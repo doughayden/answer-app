@@ -115,7 +115,7 @@ if [ $? -eq 0 ]; then
 else
   echo "Creating a bucket for the Terraform state..."
   echo ""
-  gcloud storage buckets create "gs://${BUCKET}" --project=$PROJECT
+  gcloud storage buckets create "gs://${BUCKET}" --public-access-prevention --uniform-bucket-level-access --project=$PROJECT
 fi
 echo ""
 echo ""

@@ -1,9 +1,12 @@
 # VERTEX AI AGENT BUILDER ANSWER APP
 
 ## Overview
-The Answer App uses [Vertex AI Agent Builder](https://cloud.google.com/generative-ai-app-builder/docs/introduction) and the [Discovery Engine API](https://cloud.google.com/generative-ai-app-builder/docs/reference/rest) to serve a conversational search experience with generative answers grounded on document data. The `terraform` directory contains IaC configurations to stage and deploy the application components. The `tertraform/bootstrap` module provisions the Cloud Build service account, IAM roles, and staging bucket for the main modules. The `terraform/main` module provisions all other components using `terraform/main/modules`. 
+The Answer App uses [Vertex AI Agent Builder](https://cloud.google.com/generative-ai-app-builder/docs/introduction) and the [Discovery Engine API](https://cloud.google.com/generative-ai-app-builder/docs/reference/rest) to serve a conversational search experience with generative answers grounded on document data.
 
-<!-- - [Architecture](#architecture) -->
+<!-- ## Architecture
+- [Application Architecture](#architecture) -->
+
+## Installation
 - [Helper scripts](#helper-scripts)
 - [Prerequisites](#prerequisites)
     - [OPTION 1: Deploying from Google Cloud Shell](#option-1-deploying-from-google-cloud-shell)
@@ -15,12 +18,18 @@ The Answer App uses [Vertex AI Agent Builder](https://cloud.google.com/generativ
     - [Connect your Cloud Run services to an existing load balancer](#to-connect-your-cloud-run-services-to-an-existing-load-balancer)
     - [Set environment variables](#2-set-environment-variables)
     - [Build & push the docker images and apply the Terraform configuration](#3-build--push-the-docker-images-and-apply-the-terraform-configuration)
-- [Add an A record to the DNS Managed Zone](#add-an-a-record-to-the-dns-managed-zone)
 - [Test the endpoint](#test-the-endpoint)
+- [Add an A record to the DNS Managed Zone](#add-an-a-record-to-the-dns-managed-zone)
 - [Import documents](#import-documents)
 <!-- - [Configure Identity-Aware Proxy](#configure-identity-aware-proxy) -->
 
-### REFERENCE INFO
+## Known Issues
+- [Failure to create the Artifact Registry repository](#failure-to-create-the-artifact-registry-repository)
+- [Errors adding users to Identity-Aware Proxy](#errors-adding-users-to-identity-aware-proxy)
+- [Inconsistent Terraform plan](#inconsistent-terraform-plan)
+- [Errors reading or editing Terraform resources](#errors-reading-or-editing-terraform-resources)
+
+## Reference Info
 - [Rollbacks](#rollbacks)
     - [Option 1: Use the Cloud Console to switch Cloud Run service traffic to a different revision](#option-1-use-the-cloud-console-to-switch-cloud-run-service-traffic-to-a-different-revision)
     - [Option 2: Rollback to a different Docker image using Terraform](#option-2-rollback-to-a-different-docker-image-using-terraform)
@@ -38,10 +47,9 @@ The Answer App uses [Vertex AI Agent Builder](https://cloud.google.com/generativ
     - [Flexible Backends - Partial Configuration](#flexible-backends---partial-configuration)
     - [Reconfiguring a Backend](#reconfiguring-a-backend)
     - [Plan and Apply](#plan-and-apply)
-- [Known issues](#known-issues)
 
 <!-- &nbsp;
-# Architecture
+# ARCHITECTURE
 ([return to top](#vertex-ai-agent-builder-answer-app))\
 ![Application Architecture](assets/architecture.png)
 
@@ -54,6 +62,9 @@ The Answer App uses [Vertex AI Agent Builder](https://cloud.google.com/generativ
 - A [private DNS](https://cloud.google.com/dns/docs/zones#create-private-zone) hostname facilitates internal VPC communication with [Memorystore Redis](https://cloud.google.com/memorystore/docs/redis/memorystore-for-redis-overview) to support multi-turn conversations.
 - [Gemini](https://cloud.google.com/vertex-ai/generative-ai/docs/learn/models) powers [generative answers](https://cloud.google.com/vertex-ai/generative-ai/docs/learn/overview). -->
 
+
+&nbsp;
+# INSTALLATION
 
 &nbsp;
 # Helper scripts
@@ -70,6 +81,7 @@ Shell scripts in the `terraform/scripts` directory automate common tasks.
   - `TF_VAR_terraform_service_account`: The Terraform service account email address.
   - `BUCKET`: The staging bucket for Vertex AI Data Store documents.
   - `REPO_ROOT`: The root directory of the cloned repository.
+- `test_endpoint.sh`: Test the `answer-app` endpoint with a `curl` request.
 
 
 &nbsp;
@@ -227,22 +239,20 @@ gcloud builds submit . --config=cloudbuild.yaml --project=$PROJECT --region=$REG
 
 
 &nbsp;
-# Add an A record to the DNS Managed Zone
-([return to top](#vertex-ai-agent-builder-answer-app))
-
-- **You do not need to configure DNS if you set `loadbalancer_domain` to `null` in `config.yaml` and instead used the default `nip.io` domain.**
-- Use the public IP address created by Terraform as the A record in your DNS host.
-- **NOTE** A newly-created managed TLS certificate may take anywhere from 10-15 minutes up to 24 hours for the CA to sign after DNS propagates.
-- The Certificate [Managed status](https://cloud.google.com/load-balancing/docs/ssl-certificates/troubleshooting#certificate-managed-status) will change from PROVISIONING to ACTIVE when it's ready to use.
-- Navigate to Network Services > Load balancing > select the load balancer > Frontend: Certificate > Select the certificate and wait for the status to change to ACTIVE.
-![Active Managed Certificate](assets/cert_active.png)
-
-
-&nbsp;
 # Test the endpoint
 ([return to top](#vertex-ai-agent-builder-answer-app))
 
-- Verify the TLS certificate is active and the endpoint is reachable using the `test_endpoint.sh` helper script.
+- A newly-created managed TLS certificate may take anywhere from 10-15 minutes up to 24 hours for the CA to sign after DNS propagates.
+- The Certificate [Managed status](https://cloud.google.com/load-balancing/docs/ssl-certificates/troubleshooting#certificate-managed-status) will change from PROVISIONING to ACTIVE when it's ready to use.
+- Navigate to Network Services > Load balancing > select the load balancer > Frontend: Certificate > Select the certificate and wait for the status to change to ACTIVE.
+![Active Managed Certificate](assets/cert_active.png)
+- Alternatively you can check the status using [`gcloud` commands](https://cloud.google.com/load-balancing/docs/ssl-certificates/google-managed-certs#gcloud_1)
+```sh
+gcloud compute ssl-certificates list --global # list all certificates and get the **CERTIFICATE_NAME**
+
+gcloud compute ssl-certificates describe **CERTIFICATE_NAME** --global --format="get(name,managed.status, managed.domainStatus)"
+```
+- When the certificate is in `ACTIVE` status, verify the endpoint is reachable using the `test_endpoint.sh` helper script.
     - The script [authenticates](https://cloud.google.com/run/docs/authenticating/service-to-service) using a service account and the [Cloud Run custom audience](https://cloud.google.com/run/docs/configuring/custom-audiences) to [generate an ID token](https://cloud.google.com/docs/authentication/get-id-token#impersonation)
 
 ```sh
@@ -251,7 +261,18 @@ gcloud builds submit . --config=cloudbuild.yaml --project=$PROJECT --region=$REG
 
 - The server responds with a 200 status code and `{"status":"ok"}` if the endpoint is reachable and the TLS certificate is active.
 - *It may take some more time after the certificate reaches ACTIVE Managed status before the endpoint responds with success. It may throw an SSLError due to mismatched client and server protocols until changes propagate.*
-    - Example error: `curl: (35) LibreSSL/3.3.6: error:1404B410:SSL routines:ST_CONNECT:sslv3 alert handshake failure`
+    - Example errors:
+      - `curl: (35) LibreSSL/3.3.6: error:1404B410:SSL routines:ST_CONNECT:sslv3 alert handshake failure`
+      - `curl: (35) LibreSSL SSL_connect: SSL_ERROR_SYSCALL in connection to 34.117.145.180.nip.io:443`
+
+
+&nbsp;
+# Add an A record to the DNS Managed Zone
+([return to top](#vertex-ai-agent-builder-answer-app))
+
+- **You do not need to configure DNS if you set `loadbalancer_domain` to `null` in `config.yaml` and instead used the default `nip.io` domain.**
+- Use the public IP address created by Terraform as the A record in your DNS host. Steps vary by DNS provider.
+
 
 
 &nbsp;
@@ -304,8 +325,94 @@ gcloud builds submit . --config=cloudbuild.yaml --project=$PROJECT --region=$REG
 
 
 &nbsp;
-# REFERENCE INFORMATION
+# KNOWN ISSUES
 
+## Failure to create the Artifact Registry repository
+([return to top](#vertex-ai-agent-builder-answer-app))
+### Problem
+When running the `bootstrap` module, Terraform fails to create the Artifact Registry repository.
+
+Example:
+```
+╷
+│ Error: Error creating Repository: googleapi: Error 403: Permission 'artifactregistry.repositories.create' denied on resource '//artifactregistry.googleapis.com/projects/my-project-id/locations/us-central1' (or it may not exist).
+│ Details:
+│ [
+│   {
+│     "@type": "type.googleapis.com/google.rpc.ErrorInfo",
+│     "domain": "artifactregistry.googleapis.com",
+│     "metadata": {
+│       "permission": "artifactregistry.repositories.create",
+│       "resource": "projects/my-project-id/locations/us-central1"
+│     },
+│     "reason": "IAM_PERMISSION_DENIED"
+│   }
+│ ]
+│ 
+│   with google_artifact_registry_repository.cloud_run,
+│   on main.tf line 38, in resource "google_artifact_registry_repository" "cloud_run":
+│   38: resource "google_artifact_registry_repository" "cloud_run" {
+│ 
+╵
+```
+
+### Solution
+The error occurs on the first run of the `bootstrap` module due to a race condition between the Artifact Registry API activation and applying the Terraform plan. The API activation can take a few minutes to complete. Rerun the `bootstrap.sh` script or manually re-apply the `bootstrap` module configuration.
+
+## Errors adding users to Identity-Aware Proxy
+([return to top](#vertex-ai-agent-builder-answer-app))
+### Problem
+When [adding members to the IAP-secured backend service](#configure-identity-aware-proxy), a [Domain restricted sharing Org policy](https://cloud.google.com/resource-manager/docs/organization-policy/restricting-domains) causes an error message like this:\
+![Policy update failed](assets/drs_error.png)\
+
+### Solution
+1. [Edit the policy](https://cloud.google.com/resource-manager/docs/organization-policy/creating-managing-policies#creating_and_editing_policies) to temporarily disable it.
+2. Add the members to IAP-protected backend service IAM policy.
+3. Re-enable the policy.
+
+## Inconsistent Terraform plan
+### Problem
+The Terraform Google provider sometimes returns an inconsistent plan during `apply` operations.
+
+Example:
+```
+│ Error: Provider produced inconsistent final plan
+│ 
+│ When expanding the plan for google_compute_region_backend_service.t2x_backend_api to include new values learned so far during apply, provider "registry.terraform.io/hashicorp/google" produced an invalid new value for
+│ .backend: planned set element cty.ObjectVal(map[string]cty.Value{"balancing_mode":cty.StringVal("UTILIZATION"), "capacity_scaler":cty.NumberIntVal(1), "description":cty.StringVal(""), "failover":cty.UnknownVal(cty.Bool),
+│ "group":cty.UnknownVal(cty.String), "max_connections":cty.NullVal(cty.Number), "max_connections_per_endpoint":cty.NullVal(cty.Number), "max_connections_per_instance":cty.NullVal(cty.Number),
+│ "max_rate":cty.NullVal(cty.Number), "max_rate_per_endpoint":cty.NullVal(cty.Number), "max_rate_per_instance":cty.NullVal(cty.Number), "max_utilization":cty.MustParseNumberVal("0.8")}) does not correlate with any element
+│ in actual.
+│ 
+│ This is a bug in the provider, which should be reported in the provider's own issue tracker.
+```
+
+### Solution
+You can usually ignore the error messages because the resources get successfully created or updated. If the error persists, try running `terraform apply` again or refer to the provider's documentation.
+
+## Errors reading or editing Terraform resources
+([return to top](#vertex-ai-agent-builder-answer-app))
+### Problem
+Intermittent connectivity issues (for example, while using a VPN) can cause unresponsiveness during `plan` or `apply` operations.
+
+Example:
+```
+│ Error: Error when reading or editing RedisInstance "projects/my-project/locations/us-central1/instances/my-redis-instance": Get "https://redis.googleapis.com/v1/projects/my-project/locations/us-central1/instances/my-redis-instance?alt=json": write tcp [fe80::ca4b:d6ff:fec7:8a11%utun1]:59235->[2607:f8b0:4009:809::200a]:443: write: socket is not connected
+│ 
+│   with google_redis_instance.default,
+│   on redis.tf line 79, in resource "google_redis_instance" "default":
+│   79: resource "google_redis_instance" "default" {
+│ 
+╵
+```
+
+### Solution
+Retry the operation to clear the error. If the error persists, check your network or VPN connection and try again.
+
+
+
+&nbsp;
+# REFERENCE INFORMATION
 
 &nbsp;
 # Rollbacks
@@ -378,7 +485,7 @@ terraform apply
 ([return to top](#vertex-ai-agent-builder-answer-app))
 
 ## **Least privilege Service Account roles**
-Assign the [minimum required permissions](https://cloud.google.com/iam/docs/using-iam-securely#least_privilege) to the T2X service account using these IAM roles:
+Assign the [minimum required permissions](https://cloud.google.com/iam/docs/using-iam-securely#least_privilege) to the Cloud Run service account using these IAM roles:
 - `roles/aiplatform.user`
 - `roles/bigquery.dataEditor`
 - `roles/bigquery.user`
@@ -389,19 +496,19 @@ Assign specific Admin roles for the Terraform provisioning service account:
 - Artifact Registry Administrator (`roles/artifactregistry.admin`)
 - BigQuery Admin (`roles/bigquery.admin`)
 - Cloud Build Editor (`roles/cloudbuild.builds.editor`)
-- Cloud Memorystore Redis Admin (`roles/redis.admin`)
+<!-- - Cloud Memorystore Redis Admin (`roles/redis.admin`) -->
 - Cloud Run Admin (`roles/run.admin`)
-- Compute Admin (`roles/compute.admin`)
+<!-- - Compute Admin (`roles/compute.admin`) -->
 - Discovery Engine Admin (`roles/discoveryengine.admin`)
-- DNS Admin (`roles/dns.admin`)
+<!-- - DNS Admin (`roles/dns.admin`) -->
 - Project IAM Admin (`roles/resourcemanager.projectIamAdmin`)
-- Security Admin (`roles/iam.securityAdmin`) - required to [set IAM policies on DNS Managed Zones](https://cloud.google.com/dns/docs/zones/iam-per-resource-zones#expandable-1)
+<!-- - Security Admin (`roles/iam.securityAdmin`) - required to [set IAM policies on DNS Managed Zones](https://cloud.google.com/dns/docs/zones/iam-per-resource-zones#expandable-1) -->
 - Service Account Admin (`roles/iam.serviceAccountAdmin`)
 - Service Account User (`roles/iam.serviceAccountUser`) - required to [attach service accounts to resources](https://cloud.google.com/iam/docs/attach-service-accounts)
 - Service Usage Admin (`roles/serviceusage.serviceUsageAdmin`)
 - Storage Admin (`roles/storage.admin`)
 - Vertex AI Administrator (`roles/aiplatform.admin`)
-- Workflows Admin (`roles/workflows.admin`)
+<!-- - Workflows Admin (`roles/workflows.admin`) -->
 
 ## **[Service account impersonation](https://cloud.google.com/iam/docs/service-account-impersonation)**
 Instead of creating and managing Service Account keys for authentication, this code uses an [impersonation pattern for Terraform](https://cloud.google.com/blog/topics/developers-practitioners/using-google-cloud-service-account-impersonation-your-terraform-code) to fetch access tokens on behalf of a Google Cloud IAM Service Account.
@@ -418,31 +525,9 @@ gcloud iam service-accounts add-iam-policy-binding "terraform-service-account@${
 ```
 - Use the `google_service_account_access_token` [Terraform data source](https://registry.terraform.io/providers/hashicorp/google/latest/docs/data-sources/service_account_access_token) to generate short-lived credentials [instead of service account keys](https://cloud.google.com/iam/docs/best-practices-for-managing-service-account-keys#alternatives).
 
-
-## **Data encryption**:
-- [Default encryption at rest](https://cloud.google.com/docs/security/encryption/default-encryption) for storage buckets and disk images.
-- [Default encryption in transit](https://cloud.google.com/docs/security/encryption-in-transit#connectivity_to_google_apis_and_services) for GCE connections to Cloud Storage and other Google APIs. 
-
-
-&nbsp;
-# Observability
-([return to top](#vertex-ai-agent-builder-answer-app))
-
-## Monitor and troubleshoot application deployment with Cloud Logging and Cloud Monitoring.
-- Log filters to view Cloud Run application logs
-```
-resource.type = "cloud_run_revision"
-resource.labels.service_name = "answer-app"
-resource.labels.location = "us-central1"
- severity>=DEFAULT
-```
-
-
 &nbsp;
 # Terraform Overview
-([return to top](#vertex-ai-agent-builder-answer-app))
-
-This repository contains Terraform modules to deploy the T2X application and supporting resources in Google Cloud. This overview document provides general instructions to initialize a Terraform workspace/environment, set up a backend configuration and bucket for storing Terraform state, and lists some known issues.
+This overview document provides general instructions to initialize a Terraform workspace/environment, set up a backend configuration and bucket for storing Terraform state, and lists some known issues.
 
 
 - [Terraform command alias](#terraform-command-alias)
@@ -581,56 +666,3 @@ tf plan -var-file="vars_$ENVIRONMENT.tfvars"
 tf apply -var-file="vars_$ENVIRONMENT.tfvars"
 
 ```
-
-
-&nbsp;
-# Known issues
-([return to top](#vertex-ai-agent-builder-answer-app))
-
-## Errors adding users to Identity-Aware Proxy
-### Problem
-When [adding members to the IAP-secured backend service](#configure-identity-aware-proxy), a [Domain restricted sharing Org policy](https://cloud.google.com/resource-manager/docs/organization-policy/restricting-domains) causes an error message like this:\
-![Policy update failed](assets/drs_error.png)\
-
-### Solution
-1. [Edit the policy](https://cloud.google.com/resource-manager/docs/organization-policy/creating-managing-policies#creating_and_editing_policies) to temporarily disable it.
-2. Add the members to IAP-protected backend service IAM policy.
-3. Re-enable the policy.
-
-## Inconsistent Terraform plan
-### Problem
-The Terraform Google provider sometimes returns an inconsistent plan during `apply` operations.
-
-Example:
-```
-│ Error: Provider produced inconsistent final plan
-│ 
-│ When expanding the plan for google_compute_region_backend_service.t2x_backend_api to include new values learned so far during apply, provider "registry.terraform.io/hashicorp/google" produced an invalid new value for
-│ .backend: planned set element cty.ObjectVal(map[string]cty.Value{"balancing_mode":cty.StringVal("UTILIZATION"), "capacity_scaler":cty.NumberIntVal(1), "description":cty.StringVal(""), "failover":cty.UnknownVal(cty.Bool),
-│ "group":cty.UnknownVal(cty.String), "max_connections":cty.NullVal(cty.Number), "max_connections_per_endpoint":cty.NullVal(cty.Number), "max_connections_per_instance":cty.NullVal(cty.Number),
-│ "max_rate":cty.NullVal(cty.Number), "max_rate_per_endpoint":cty.NullVal(cty.Number), "max_rate_per_instance":cty.NullVal(cty.Number), "max_utilization":cty.MustParseNumberVal("0.8")}) does not correlate with any element
-│ in actual.
-│ 
-│ This is a bug in the provider, which should be reported in the provider's own issue tracker.
-```
-
-### Solution
-You can usually ignore the error messages because the resources get successfully created or updated. If the error persists, try running `terraform apply` again or refer to the provider's documentation.
-
-## Errors reading or editing Terraform resources
-### Problem
-Intermittent connectivity issues (for example, while using a VPN) can cause unresponsiveness during `plan` or `apply` operations.
-
-Example:
-```
-│ Error: Error when reading or editing RedisInstance "projects/my-project/locations/us-central1/instances/my-redis-instance": Get "https://redis.googleapis.com/v1/projects/my-project/locations/us-central1/instances/my-redis-instance?alt=json": write tcp [fe80::ca4b:d6ff:fec7:8a11%utun1]:59235->[2607:f8b0:4009:809::200a]:443: write: socket is not connected
-│ 
-│   with google_redis_instance.default,
-│   on redis.tf line 79, in resource "google_redis_instance" "default":
-│   79: resource "google_redis_instance" "default" {
-│ 
-╵
-```
-
-### Solution
-Retry the operation to clear the error. If the error persists, check your network or VPN connection and try again.
