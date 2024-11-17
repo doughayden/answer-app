@@ -328,7 +328,7 @@ gcloud builds submit . --config=cloudbuild.yaml --project=$PROJECT --region=$REG
 ### Example: select an image by digest or tag from Artifact Registry.
 - Set the project ID and service account environment variables.
 ```sh
-source ./terraform/scripts/set_variables.sh
+source scripts/set_variables.sh
 ```
 
 - Initialize the Terraform `main` module configuration with the remote state by passing required arguments to the partial backend.
@@ -338,8 +338,9 @@ terraform init -backend-config="bucket=$BUCKET" -backend-config="impersonate_ser
 
 - Set the Terraform input environment variables to the target image names.
 ```sh
-export TF_VAR_docker_image_api="us-central1-docker.pkg.dev/argo-genai-sa/talk-to-docs/t2x-api@sha256:4f2092b926b7e9dc30813e819bb86cfa7d664eede575539460b4a68bbd4981e1"
-export TF_VAR_docker_image_ui="us-central1-docker.pkg.dev/argo-genai-sa/talk-to-docs/t2x-ui:latest"
+export TF_VAR_docker_image="us-central1-docker.pkg.dev/my-project-id/answer-app/answer-app@sha256:4f2092b926b7e9dc30813e819bb86cfa7d664eede575539460b4a68bbd4981e1"
+# OR
+export TF_VAR_docker_image="us-central1-docker.pkg.dev/my-project-id/answer-app/answer-app:latest"
 ```
 
 - Apply the Terraform configuration to update the Cloud Run service to the target image.
