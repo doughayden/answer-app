@@ -1,0 +1,75 @@
+serviceAccount: 'projects/$PROJECT_ID/serviceAccounts/answer-app-cloudbuild@$PROJECT_ID.iam.gserviceaccount.com'
+
+options:
+  automapSubstitutions: true
+  dynamicSubstitutions: true
+  logging: 'LEGACY'
+  defaultLogsBucketBehavior: 'REGIONAL_USER_OWNED_BUCKET'
+
+substitutions:
+  _DOCKER_IMAGE: 'us-central1-docker.pkg.dev/${PROJECT_ID}/answer-app/answer-app'
+  # _RUN_TYPE will be 'plan' by default. Override with 'apply' to apply changes.
+  _RUN_TYPE: 'plan'
+
+steps:
+- id: tree
+  name: 'alpine'
+  script: apk add --no-cache tree && echo "" && tree -a && echo ""
+
+- id: build
+  name: 'gcr.io/cloud-builders/docker'
+  dir: 'src'
+  args: ['build', '-t', '${_DOCKER_IMAGE}:latest', '-t', '${_DOCKER_IMAGE}:${BUILD_ID}', '-f', 'Dockerfile', '.']
+
+- id: push
+  name: 'gcr.io/cloud-builders/docker'
+  dir: 'src'
+  args: ['push', '--all-tags', '${_DOCKER_IMAGE}']
+
+- id: init
+  name: 'hashicorp/terraform:latest'
+  dir: 'terraform/main'
+  script: |
+    echo ""
+    terraform init -reconfigure -backend-config="bucket=terraform-state-${PROJECT_ID}" -backend-config="impersonate_service_account=terraform-service-account@${PROJECT_ID}.iam.gserviceaccount.com"
+    echo ""
+    echo "Terraform version:"
+    echo ""
+    terraform version
+    echo ""
+    echo "Terraform workspace: $(terraform workspace list)"
+    echo ""
+
+- id: validate
+  name: 'hashicorp/terraform:latest'
+  dir: 'terraform/main'
+  args: ['validate']
+
+# Display the format diff. Don't write changes.
+- id: fmt
+  name: 'hashicorp/terraform:latest'
+  dir: 'terraform/main'
+  args: ['fmt', '-recursive', '-diff', '-write=false']
+
+- id: plan
+  name: 'hashicorp/terraform:latest'
+  dir: 'terraform/main'
+  env:
+    - TF_VAR_project_id=${PROJECT_ID}
+    - TF_VAR_terraform_service_account=terraform-service-account@${PROJECT_ID}.iam.gserviceaccount.com
+    - TF_VAR_docker_image=${_DOCKER_IMAGE}:${BUILD_ID}
+  args: ['plan', '-input=false', '-out', '.terraform/tfplan']
+
+- id: apply
+  name: 'hashicorp/terraform:latest'
+  dir: 'terraform/main'
+  script: |
+    echo ""
+    echo "Detected '_RUN_TYPE' value: '${_RUN_TYPE}'"
+    echo ""
+    if [ "${_RUN_TYPE}" = "apply" ]; then
+      terraform apply -auto-approve -input=false .terraform/tfplan
+    else
+      echo "'_RUN_TYPE' substitution override not received. Defaulting to plan-only and skipping apply"
+    fi
+    echo ""

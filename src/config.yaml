@@ -1,0 +1,10 @@
+# Application configuration
+app_name: answer-app
+location: global # One of global, us, or eu.
+data_store_id: cymbal-bank-data-store
+search_engine_id: cymbal-bank-search-engine
+customer_name: Cymbal
+
+# Infrastructure components configuration
+create_loadbalancer: true # Set to false to deploy the app to Cloud Run without a load balancer.
+loadbalancer_domain: null # Set to a domain you control or leave null to use an auto-generated domain with https://nip.io.

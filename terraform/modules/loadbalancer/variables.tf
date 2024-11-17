@@ -1,0 +1,30 @@
+variable "project_id" {
+  type        = string
+  description = "The project ID."
+}
+
+variable "lb_domain" {
+  type        = string
+  description = "The load balancer domain name."
+  nullable    = true
+  default     = null
+}
+
+variable "default_service" {
+  type        = string
+  description = "The default backend service."
+}
+
+variable "backend_services" {
+  type = list(object({
+    paths               = list(string)
+    service             = string
+    path_prefix_rewrite = optional(string, "/")
+  }))
+  description = "The list of load balancer backend services."
+}
+
+variable "app_name" {
+  type        = string
+  description = "The application name."
+}
