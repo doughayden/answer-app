@@ -20,15 +20,9 @@ variable "zone" {
   default     = "us-central1-a"
 }
 
-variable "vpc_subnet_cidr" {
-  type        = string
-  description = "The VPC subnetwork CIDR."
-  default     = "10.0.0.0/24"
-}
-
 variable "docker_image" {
   description = "The API Cloud Run service Docker image."
-  type        = string
+  type        = map(string)
   nullable    = true
   default     = null
 }

@@ -7,7 +7,13 @@ options:
   defaultLogsBucketBehavior: 'REGIONAL_USER_OWNED_BUCKET'
 
 substitutions:
-  _DOCKER_IMAGE: 'us-central1-docker.pkg.dev/${PROJECT_ID}/answer-app/answer-app'
+  _REPO_ID: 'answer-app'
+  _REPO_NAME: '${LOCATION}-docker.pkg.dev/${PROJECT_ID}/${_REPO_ID}'
+  _DOCKER_IMAGE_ANSWER_APP: '${_REPO_NAME}/answer-app'
+  _TF_VAR_DOCKER_IMAGE: |
+    {
+      "answer-app": "${_DOCKER_IMAGE_ANSWER_APP}:${BUILD_ID}"
+    }
   # _RUN_TYPE will be 'plan' by default. Override with 'apply' to apply changes.
   _RUN_TYPE: 'plan'
 
@@ -16,15 +22,35 @@ steps:
   name: 'alpine'
   script: apk add --no-cache tree && echo "" && tree -a && echo ""
 
-- id: build
+- id: build-answer-app
   name: 'gcr.io/cloud-builders/docker'
+  waitFor: ['tree']
   dir: 'src'
-  args: ['build', '-t', '${_DOCKER_IMAGE}:latest', '-t', '${_DOCKER_IMAGE}:${BUILD_ID}', '-f', 'Dockerfile', '.']
+  args: [
+    'build',
+    '-t', '${_DOCKER_IMAGE_ANSWER_APP}:latest',
+    '-t', '${_DOCKER_IMAGE_ANSWER_APP}:${BUILD_ID}',
+    '-f', 'Dockerfile',
+    '.'
+  ]
 
-- id: push
+- id: push-answer-app
   name: 'gcr.io/cloud-builders/docker'
+  waitFor: ['build-answer-app']
   dir: 'src'
-  args: ['push', '--all-tags', '${_DOCKER_IMAGE}']
+  args: ['push', '--all-tags', '${_DOCKER_IMAGE_ANSWER_APP}']
+
+# test image names in the terraform builder
+- id: test_image_names
+  name: 'hashicorp/terraform:latest'
+  env:
+    - TF_VAR_docker_image=${_TF_VAR_DOCKER_IMAGE}
+  script: |
+    echo ""
+    echo "TF_VAR_docker_image:"
+    echo ""
+    echo "${TF_VAR_docker_image}"
+    echo ""
 
 - id: init
   name: 'hashicorp/terraform:latest'
@@ -57,7 +83,7 @@ steps:
   env:
     - TF_VAR_project_id=${PROJECT_ID}
     - TF_VAR_terraform_service_account=terraform-service-account@${PROJECT_ID}.iam.gserviceaccount.com
-    - TF_VAR_docker_image=${_DOCKER_IMAGE}:${BUILD_ID}
+    - TF_VAR_docker_image=${_TF_VAR_DOCKER_IMAGE}
   args: ['plan', '-input=false', '-out', '.terraform/tfplan']
 
 - id: apply

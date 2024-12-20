@@ -1,0 +1,52 @@
+[
+    {
+        "name": "question",
+        "type": "STRING",
+        "mode": "REQUIRED",
+        "description": "The user's question"
+    },
+    {
+        "name": "answer",
+        "type": "STRING",
+        "mode": "REQUIRED",
+        "description": "The answer text returned by the model"
+    },
+    {
+        "name": "references",
+        "type": "RECORD",
+        "mode": "REPEATED",
+        "description": "Details about the references used to generate the answer",
+        "fields": [
+            {
+                "name": "chunk",
+                "type": "STRING",
+                "mode": "REQUIRED",
+                "description": "The document chunk retrieved"
+            },
+            {
+                "name": "content",
+                "type": "STRING",
+                "mode": "REQUIRED",
+                "description": "The content of the document chunk"
+            },
+            {
+                "name": "relevance_score",
+                "type": "NUMERIC",
+                "mode": "REQUIRED",
+                "description": "The relevance score of the document chunk"
+            },
+            {
+                "name": "document",
+                "type": "STRING",
+                "mode": "REQUIRED",
+                "description": "The document ID"
+            }
+        ]
+    },
+    {
+        "name": "latency",
+        "type": "FLOAT64",
+        "mode": "REQUIRED",
+        "description": "The time taken for the model to return an answer to the application"
+    }
+]

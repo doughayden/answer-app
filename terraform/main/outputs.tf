@@ -20,27 +20,27 @@ output "cert_name" {
 
 output "app_service_account" {
   description = "The Cloud Run app service account email address."
-  value       = module.iam.app_service_account_email
+  value       = module.answer_app.app_service_account_email
 }
 
 output "data_store_id" {
   description = "The Agent Builder data store ID."
-  value       = module.discovery_engine.data_store_id
+  value       = module.answer_app.data_store_id
 }
 
 output "search_engine_id" {
   description = "The Agent Builder search engine ID."
-  value       = module.discovery_engine.search_engine_id
+  value       = module.answer_app.search_engine_id
 }
 
 output "docker_image" {
   description = "The Cloud Run service Docker image."
-  value       = module.cloud_run.docker_image
+  value       = local.docker_image
 }
 
 output "custom_audience" {
   description = "The custom audience to authenticate calls to the Cloud Run service."
-  value       = module.cloud_run.cloudrun_custom_audiences[0]
+  value       = module.answer_app.cloudrun_custom_audiences[0]
 }
 
 output "terraform_service_account" {

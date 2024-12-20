@@ -13,13 +13,3 @@ variable "region" {
   description = "The Compute API default region."
   default     = "us-central1"
 }
-
-variable "services" {
-  type        = list(string)
-  description = "The Google Cloud APIs to enable."
-}
-
-variable "cloudbuild_iam_roles" {
-  type        = list(string)
-  description = "The Cloud Build service account IAM roles."
-}

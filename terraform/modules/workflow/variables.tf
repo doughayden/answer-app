@@ -3,11 +3,6 @@ variable "project_id" {
   type        = string
 }
 
-variable "service_account" {
-  description = "The Workflow-attached service account email address."
-  type        = string
-}
-
 variable "audience" {
   description = "The audience to use for HTTP requests."
   type        = string

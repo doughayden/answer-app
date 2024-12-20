@@ -1,10 +1,27 @@
-# Application configuration
+### Application configuration ###
+# The name of the application. Used in cloud resource names (Cloud Run services, Cloud Load Balancer, etc.).
 app_name: answer-app
-location: global # One of global, us, or eu.
+
+# The location for discoveryengine API (Agent Builder) resources. One of global, us, or eu.
+location: global
+
+# The Agent Builder Data Store and Search Engine IDs to provision with Terraform.
 data_store_id: cymbal-bank-data-store
 search_engine_id: cymbal-bank-search-engine
+
+# The company name used in the Agent Builder Search Engine.
 customer_name: Cymbal
 
-# Infrastructure components configuration
-create_loadbalancer: true # Set to false to deploy the app to Cloud Run without a load balancer.
-loadbalancer_domain: null # Set to a domain you control or leave null to use an auto-generated domain with https://nip.io.
+
+### Infrastructure components configuration ###
+# Set create_loadbalancer to false to deploy the app to Cloud Run without a load balancer.
+create_loadbalancer: true
+
+# Set loadbalancer_domain to a domain you control or leave null to use an auto-generated domain with https://nip.io.
+# Skipped when create_loadbalancer is false.
+# Requires editing the DNS zone A record to point to the load balancer IP address.
+loadbalancer_domain: null
+
+# Big Query dataset and table IDs to store conversation details.
+dataset_id: answer_app
+table_id: conversations

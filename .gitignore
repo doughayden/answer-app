@@ -308,6 +308,7 @@ terraform.rc
 *.pdf
 *.pkl
 *.txt
+!terraform_service_account_roles.txt
 !requirements.txt
 
 # folders

@@ -1,0 +1,11 @@
+resource "google_bigquery_dataset" "answer_app" {
+  dataset_id = var.dataset_id
+  location   = "US"
+}
+
+resource "google_bigquery_table" "conversations" {
+  dataset_id          = google_bigquery_dataset.answer_app.dataset_id
+  deletion_protection = false
+  schema              = file("${path.module}/schema.json")
+  table_id            = var.table_id
+}

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# The user completes these prerequisite commmands (Google Cloud Shell sets them up automatically):
+# The user completes these prerequisite commands (Google Cloud Shell sets them up automatically):
 # gcloud auth login
 # gcloud config set project 'my-project-id' # replace 'my-project-id' with your project ID
 # [OPTIONAL] gcloud config set compute/region us-central1

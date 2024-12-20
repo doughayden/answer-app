@@ -3,89 +3,120 @@
 import logging
 
 from google.api_core.client_options import ClientOptions
+from google.auth import default
 from google.cloud import discoveryengine_v1 as discoveryengine
 
 logger = logging.getLogger(__name__)
 
 
-def answer_query_sample(
-    query_text: str,
-    project_id: str,
-    location: str,
-    engine_id: str,
-) -> discoveryengine.AnswerQueryResponse:
-    """Call the answer method and return a generated answer and a list of search results,
-    with links to the sources.
+class DiscoveryEngineAgent:
+    """A class to interact with the Conversational Search Service."""
 
-    Args:
-        query_text (str): The text of the query to be answered.
-        project_id (str): The ID of the Google Cloud project.
-        location (str): The location of the search engine.
-        engine_id (str): The ID of the search engine.
+    def __init__(
+        self,
+        location: str,
+        engine_id: str,
+        project_id: str | None = None,
+    ) -> None:
+        """Initialize the DiscoveryEngineAgent class.
 
-    Returns:
-        discoveryengine.AnswerQueryResponse: The response from the Conversational Search Service,
-        containing the generated answer and search results.
-    """
-    #  For more information, refer to:
-    # https://cloud.google.com/generative-ai-app-builder/docs/locations#specify_a_multi-region_for_your_data_store
-    client_options = (
-        ClientOptions(api_endpoint=f"{location}-discoveryengine.googleapis.com")
-        if location != "global"
-        else None
-    )
+        Args:
+            location (str): The location of the search engine.
+            engine_id (str): The ID of the search engine.
+            project_id (str, optional): The ID of the Google Cloud project. Defaults to None.
+        """
+        self._location = location
+        self._engine_id = engine_id
+        self._project_id = project_id if project_id else default()[1]
+        self._log_attributes()
 
-    # Create a client
-    client = discoveryengine.ConversationalSearchServiceClient(
-        client_options=client_options
-    )
+        return
 
-    # The full resource name of the Search serving config
-    serving_config = f"projects/{project_id}/locations/{location}/collections/default_collection/engines/{engine_id}/servingConfigs/default_serving_config"
+    def _log_attributes(self) -> None:
+        """Log the attributes of the class."""
+        logger.debug(f"Search Agent project: {self._project_id}")
+        logger.debug(f"Search Agent location: {self._location}")
+        logger.debug(f"Search Agent engine ID: {self._engine_id}")
 
-    # Optional: Options for query phase
-    query_understanding_spec = discoveryengine.AnswerQueryRequest.QueryUnderstandingSpec(
-        query_rephraser_spec=discoveryengine.AnswerQueryRequest.QueryUnderstandingSpec.QueryRephraserSpec(
-            disable=False,  # Optional: Disable query rephraser
-            max_rephrase_steps=1,  # Optional: Number of rephrase steps
-        ),
-        # Optional: Classify query types
-        query_classification_spec=discoveryengine.AnswerQueryRequest.QueryUnderstandingSpec.QueryClassificationSpec(
-            types=[
-                discoveryengine.AnswerQueryRequest.QueryUnderstandingSpec.QueryClassificationSpec.Type.ADVERSARIAL_QUERY,
-                discoveryengine.AnswerQueryRequest.QueryUnderstandingSpec.QueryClassificationSpec.Type.NON_ANSWER_SEEKING_QUERY,
-            ]  # Options: ADVERSARIAL_QUERY, NON_ANSWER_SEEKING_QUERY or both
-        ),
-    )
+        return
 
-    # Optional: Options for answer phase
-    answer_generation_spec = discoveryengine.AnswerQueryRequest.AnswerGenerationSpec(
-        ignore_adversarial_query=False,  # Optional: Ignore adversarial query
-        ignore_non_answer_seeking_query=False,  # Optional: Ignore non-answer seeking query
-        ignore_low_relevant_content=False,  # Optional: Return fallback answer when content is not relevant
-        model_spec=discoveryengine.AnswerQueryRequest.AnswerGenerationSpec.ModelSpec(
-            model_version="gemini-1.5-flash-001/answer_gen/v2",  # Optional: Model to use for answer generation
-        ),
-        prompt_spec=discoveryengine.AnswerQueryRequest.AnswerGenerationSpec.PromptSpec(
-            preamble="Give a detailed answer.",  # Optional: Natural language instructions for customizing the answer.
-        ),
-        include_citations=True,  # Optional: Include citations in the response
-        answer_language_code="en",  # Optional: Language code of the answer
-    )
+    def answer_query_sample(
+        self,
+        query_text: str,
+        session: str | None = None,
+    ) -> discoveryengine.AnswerQueryResponse:
+        """Call the answer method and return a generated answer and a list of search results,
+        with links to the sources.
 
-    # Initialize request argument(s)
-    request = discoveryengine.AnswerQueryRequest(
-        serving_config=serving_config,
-        query=discoveryengine.Query(text=query_text),
-        session=None,  # Optional: include previous session ID to continue a conversation
-        query_understanding_spec=query_understanding_spec,
-        answer_generation_spec=answer_generation_spec,
-    )
+        Args:
+            query_text (str): The text of the query to be answered.
+            session (str, optional): The session ID to continue a conversation. Defaults to None.
 
-    # Make the request
-    response = client.answer_query(request)
+        Returns:
+            discoveryengine.AnswerQueryResponse: The response from the Conversational Search Service,
+            containing the generated answer and search results.
+        """
+        #  For more information, refer to:
+        # https://cloud.google.com/generative-ai-app-builder/docs/locations#specify_a_multi-region_for_your_data_store
+        client_options = (
+            ClientOptions(
+                api_endpoint=f"{self._location}-discoveryengine.googleapis.com"
+            )
+            if self._location != "global"
+            else None
+        )
 
-    # Handle the response
-    logger.debug(response)
+        # Create a client
+        client = discoveryengine.ConversationalSearchServiceClient(
+            client_options=client_options
+        )
 
-    return response
+        # The full resource name of the Search serving config
+        serving_config = f"projects/{self._project_id}/locations/{self._location}/collections/default_collection/engines/{self._engine_id}/servingConfigs/default_serving_config"
+
+        # Optional: Options for query phase
+        query_understanding_spec = discoveryengine.AnswerQueryRequest.QueryUnderstandingSpec(
+            query_rephraser_spec=discoveryengine.AnswerQueryRequest.QueryUnderstandingSpec.QueryRephraserSpec(
+                disable=False,  # Optional: Disable query rephraser
+                max_rephrase_steps=1,  # Optional: Number of rephrase steps
+            ),
+            # Optional: Classify query types
+            query_classification_spec=discoveryengine.AnswerQueryRequest.QueryUnderstandingSpec.QueryClassificationSpec(
+                types=[
+                    discoveryengine.AnswerQueryRequest.QueryUnderstandingSpec.QueryClassificationSpec.Type.ADVERSARIAL_QUERY,
+                    discoveryengine.AnswerQueryRequest.QueryUnderstandingSpec.QueryClassificationSpec.Type.NON_ANSWER_SEEKING_QUERY,
+                ]  # Options: ADVERSARIAL_QUERY, NON_ANSWER_SEEKING_QUERY or both
+            ),
+        )
+
+        # Optional: Options for answer phase
+        answer_generation_spec = discoveryengine.AnswerQueryRequest.AnswerGenerationSpec(
+            ignore_adversarial_query=False,  # Optional: Ignore adversarial query
+            ignore_non_answer_seeking_query=False,  # Optional: Ignore non-answer seeking query
+            ignore_low_relevant_content=False,  # Optional: Return fallback answer when content is not relevant
+            model_spec=discoveryengine.AnswerQueryRequest.AnswerGenerationSpec.ModelSpec(
+                model_version="gemini-1.5-flash-001/answer_gen/v2",  # Optional: Model to use for answer generation
+            ),
+            prompt_spec=discoveryengine.AnswerQueryRequest.AnswerGenerationSpec.PromptSpec(
+                preamble="Give a detailed answer.",  # Optional: Natural language instructions for customizing the answer.
+            ),
+            include_citations=True,  # Optional: Include citations in the response
+            answer_language_code="en",  # Optional: Language code of the answer
+        )
+
+        # Initialize request argument(s)
+        request = discoveryengine.AnswerQueryRequest(
+            serving_config=serving_config,
+            query=discoveryengine.Query(text=query_text),
+            session=session,  # Optional: include previous session ID to continue a conversation
+            query_understanding_spec=query_understanding_spec,
+            answer_generation_spec=answer_generation_spec,
+        )
+
+        # Make the request
+        response = client.answer_query(request)
+
+        # Handle the response
+        logger.debug(response)
+
+        return response

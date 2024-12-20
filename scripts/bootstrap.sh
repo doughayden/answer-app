@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# The user completes these prerequisite commmands (Google Cloud Shell sets them up automatically):
+# The user completes these prerequisite commands (Google Cloud Shell sets them up automatically):
 # gcloud auth login
 # gcloud config set project 'my-project-id' # replace 'my-project-id' with your project ID
 # [OPTIONAL] gcloud config set compute/region us-central1
@@ -60,35 +60,26 @@ echo ""
 # Grant the required IAM roles to the service account if they are not already granted.
 echo "TERRAFORM SERVICE ACCOUNT ROLES:"
 echo ""
-required_roles=(
-  "roles/aiplatform.admin"
-  "roles/artifactregistry.admin"
-  "roles/bigquery.admin"
-  "roles/cloudbuild.builds.editor"
-  "roles/redis.admin"
-  "roles/compute.admin"
-  "roles/discoveryengine.admin"
-  "roles/dns.admin"
-  "roles/resourcemanager.projectIamAdmin"
-  "roles/run.admin"
-  "roles/iam.securityAdmin"
-  "roles/iam.serviceAccountAdmin"
-  "roles/iam.serviceAccountUser"
-  "roles/serviceusage.serviceUsageAdmin"
-  "roles/storage.admin"
-  "roles/workflows.admin"
-)
-for role in "${required_roles[@]}"; do
+
+# Read roles from the roles.txt file
+roles_file="${SCRIPT_DIR}/terraform_service_account_roles.txt"
+if [ ! -f "$roles_file" ]; then
+  echo "Error: roles.txt file not found!"
+  return 1
+fi
+
+while IFS= read -r role; do
   gcloud projects get-iam-policy $PROJECT --flatten="bindings[].members" --format="table(bindings.role)" --filter="bindings.members:$TF_VAR_terraform_service_account" | grep -q $role
   if [ $? -ne 0 ]; then
     echo "Granting the $role role to the service account..."
     echo ""
     gcloud projects add-iam-policy-binding $PROJECT --member="serviceAccount:$TF_VAR_terraform_service_account" --role=$role --condition=None
     echo ""
-else
+  else
     echo "The service account already has the $role role."
   fi
-done
+done < "$roles_file"
+
 echo ""
 echo ""
 
@@ -120,6 +111,31 @@ fi
 echo ""
 echo ""
 
+# Test whether the caller can get an impersonated token for the service account and access objects in the bucket.
+# Keep trying until the IAM policy propagates or 1 minute has passed.
+echo "IAM POLICY PROPAGATION:"
+echo ""
+elapsed=0
+sleep=10
+limit=60
+gcloud storage objects list "gs://${BUCKET}/**" --impersonate-service-account=$TF_VAR_terraform_service_account > /dev/null 2>&1
+while [ $? -ne 0 ]; do
+  echo "Waiting for the IAM policy to propagate..."
+  sleep $sleep
+  elapsed=$((elapsed + sleep))
+  if [ $elapsed -ge $limit ]; then
+    echo ""
+    echo "ERROR: The caller cannot impersonate the service account and access objects in the bucket after 1 minute."
+    echo ""
+    return 1
+  fi
+  gcloud storage objects list "gs://${BUCKET}/**" --impersonate-service-account=$TF_VAR_terraform_service_account > /dev/null 2>&1
+done
+echo "The caller can impersonate the service account and access objects in the bucket."
+echo ""
+echo ""
+
+
 # Initialize the Terraform configuration in the main directory using a subshell.
 echo "TERRAFORM MAIN DIRECTORY - INITIALIZE:"
 (
@@ -129,7 +145,7 @@ terraform init -backend-config="bucket=$BUCKET" -backend-config="impersonate_ser
 echo ""
 echo ""
 
-# Initialize and apply Terraform in the boostrap directory using a subshell.
+# Initialize and apply Terraform in the bootstrap directory using a subshell.
 echo "TERRAFORM BOOTSTRAP DIRECTORY - INITIALIZE AND APPLY:"
 (
 cd $REPO_ROOT/terraform/bootstrap

@@ -27,11 +27,11 @@ module "loadbalancer" {
   project_id      = var.project_id
   lb_domain       = local.config.loadbalancer_domain
   app_name        = local.config.app_name
-  default_service = module.cloud_run.cloudrun_backend_service_id
+  default_service = module.answer_app.cloudrun_backend_service_id
   backend_services = [
     {
-      paths   = ["/${module.cloud_run.service_name}/*"]
-      service = module.cloud_run.cloudrun_backend_service_id
+      paths   = ["/${module.answer_app.service_name}/*"]
+      service = module.answer_app.cloudrun_backend_service_id
     },
   ]
 }
@@ -42,26 +42,18 @@ resource "google_project_service_identity" "iap_sa" {
   service  = "iap.googleapis.com"
 }
 
-module "iam" {
-  source        = "../modules/iam"
+module "answer_app" {
+  source        = "../modules/answer-app"
   project_id    = var.project_id
+  region        = var.region
   iap_sa_member = google_project_service_identity.iap_sa.member
   app_name      = local.config.app_name
-}
+  lb_domain     = local.lb_domain
+  docker_image  = local.docker_image[local.config.app_name]
+  location      = local.config.location
+  dataset_id    = local.config.dataset_id
+  table_id      = local.config.table_id
 
-module "cloud_run" {
-  source          = "../modules/cloud-run"
-  service_name    = local.config.app_name
-  project_id      = var.project_id
-  region          = var.region
-  lb_domain       = local.lb_domain
-  service_account = module.iam.app_service_account_email
-  docker_image    = local.docker_image
-}
-
-module "discovery_engine" {
-  source   = "../modules/discoveryengine"
-  location = local.config.location
   data_stores = {
     "${local.config.app_name}-default" = {
       data_store_id = local.config.data_store_id
@@ -76,8 +68,7 @@ module "discovery_engine" {
 # module "workflow" {
 #   source           = "../modules/workflow"
 #   project_id       = var.project_id
-#   service_account  = module.iam.workflow_service_account_email
-#   audience         = module.cloud_run.cloudrun_custom_audiences[0]
+#   audience         = module.answer_app.cloudrun_custom_audiences[0]
 #   company_name     = local.config.customer_name
 #   data_store_id    = local.config.data_store_id
 #   lb_domain        = local.lb_domain
