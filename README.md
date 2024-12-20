@@ -14,6 +14,7 @@ The Answer App uses [Vertex AI Agent Builder](https://cloud.google.com/generativ
 - [Test the endpoint](#test-the-endpoint)
 - [Import documents](#import-documents)
 <!-- - [Configure Identity-Aware Proxy](#configure-identity-aware-proxy) -->
+- [Use the app](#use-the-app)
 
 ## Known Issues
 - [Failure to create the Artifact Registry repository](#failure-to-create-the-artifact-registry-repository)
@@ -306,6 +307,45 @@ gcloud compute ssl-certificates describe **CERTIFICATE_NAME** --global --format=
     - See the [Known Issues](#errors-adding-users-to-identity-aware-proxy) section for information about "Policy updated failed" errors due to the [Domain restricted sharing Org policy](https://cloud.google.com/resource-manager/docs/organization-policy/restricting-domains#example_error_message).
 13. You may see an "Error: Forbidden" message for about the first 5 minutes, but after that users with the "IAP-secured Web App User" role on the Project or IAP backend service should be able to access the app via the domain on the Load Balancer certificate.
     - i.e. `https://app.example.com` or `https://35.244.148.105.nip.io` -->
+
+
+
+&nbsp;
+# Use the app
+([return to top](#vertex-ai-agent-builder-answer-app))
+
+Use the helper script to send a question to the `answer-app` endpoint.
+- Source the `set_audience_and_token.sh` script to set the endpoint audience and your identity token as environment variables.
+```sh
+source scripts/set_audience_and_token.sh # change the path if necessary
+```
+
+- Send a question to the `answer-app` endpoint using the `send_question.sh` script.
+```sh
+./scripts/send_question.sh # change the path if necessary
+```
+
+- Type questions related to the imported documents to test the generative answers.
+- Follow instructions in the terminal screen to send questions, quit, or continue.
+
+Example:
+```
+> ./scripts/send_question.sh                                           
+Enter a question to send to the Search app. Press Ctrl+C to exit...
+
+
+QUESTION: 
+
+What amenities does the bank offer its employees?
+
+ANSWER:
+
+Cymbal Bank offers its employees access to a gym located on the 10th floor of the office building.  Employees need a valid employee badge to enter.  The bank also has a hybrid work policy, allowing employees to work from home or in the office.  Those working remotely must have a dedicated workspace free from distractions.  Additionally,  employees have access to internal tools such as Cymbal Drive (internal communication), Cymbal Expense (expense tracking), Cymbal Fly (travel booking), Cymbal Stay (hotel booking), and Cymbal Work (project management).  IT support is available by contacting the IT department at 1-800-555-1212 for computer or phone issues.
+
+
+
+Press any key to continue or Ctrl+C to exit...
+```
 
 
 &nbsp;

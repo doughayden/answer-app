@@ -31,7 +31,7 @@
             },
             {
                 "name": "relevance_score",
-                "type": "NUMERIC",
+                "type": "FLOAT64",
                 "mode": "REQUIRED",
                 "description": "The relevance score of the document chunk"
             },
