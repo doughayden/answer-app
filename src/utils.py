@@ -9,7 +9,7 @@ from google.cloud.discoveryengine_v1 import AnswerQueryResponse
 import yaml
 
 from discoveryengine_utils import DiscoveryEngineAgent
-from model import SelectedReferences, StructuredResponse
+from model import SelectedReferences, AnswerResponse
 
 
 logger = logging.getLogger(__name__)
@@ -97,17 +97,19 @@ class UtilHandler:
         return table
 
     @staticmethod
-    def _compose_structured_response(
+    def _compose_answer_response(
         response: AnswerQueryResponse,
         latency: float,
-    ) -> StructuredResponse:
-        """Compose a structured response from the response object.
+    ) -> AnswerResponse:
+        """Compose a structured answer response from the
+        google.cloud.discoveryengine_v1AnswerQueryResponse object.
 
         Args:
             response (AnswerQueryResponse): The response object.
+            latency (float): The latency of the response.
 
         Returns:
-            StructuredResponse: The structured response object.
+            AnswerResponse: The structured answer response object to return to the caller.
         """
         references = [
             SelectedReferences(
@@ -120,21 +122,26 @@ class UtilHandler:
             for reference in response.answer.references
         ]
 
-        return StructuredResponse(
+        return AnswerResponse(
             answer=response.answer.answer_text,
             references=references,
             latency=latency,
         )
 
-    async def answer_query_sample(self, query_text: str) -> StructuredResponse:
+    async def answer_query(
+        self,
+        query_text: str,
+        session: str | None,
+    ) -> AnswerResponse:
         """Call the answer method and return a generated answer and a list of search results,
         with links to the sources.
 
         Args:
             query_text (str): The text of the query to be answered.
+            session (str, optional): The session ID to continue a conversation. Defaults to None.
 
         Returns:
-            StructuredResponse: The response from the Conversational Search Service,
+            AnswerResponse: The response from the Conversational Search Service,
             containing the generated answer and selected references.
         """
         # Start the timer.
@@ -142,15 +149,19 @@ class UtilHandler:
 
         # Get the answer to the query.
         response = await asyncio.to_thread(
-            self._search_agent.answer_query_sample,
+            self._search_agent.answer_query,
             query_text=query_text,
+            session=session,
         )
+
+        # Log the answer.
+        logger.info(f"Answer: {response.answer.answer_text}")
 
         # Log the latency in the model response.
         latency = time.time() - start_time
-        logger.debug(f"Query time: {latency:.4f} seconds.")
+        logger.info(f"Search agent latency: {latency:.4f} seconds.")
 
-        return self._compose_structured_response(response, latency)
+        return self._compose_answer_response(response, latency)
 
     async def bq_insert_row_data(
         self,
@@ -182,6 +193,6 @@ class UtilHandler:
         )
 
         # Log the insert time.
-        logger.debug(f"Insert time: {time.time() - start_time:.4f} seconds.")
+        logger.info(f"Insert row latency: {time.time() - start_time:.4f} seconds.")
 
         return errors

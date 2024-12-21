@@ -15,6 +15,7 @@ The Answer App uses [Vertex AI Agent Builder](https://cloud.google.com/generativ
 - [Import documents](#import-documents)
 <!-- - [Configure Identity-Aware Proxy](#configure-identity-aware-proxy) -->
 - [Use the app](#use-the-app)
+- [Unit Tests](#unit-tests)
 
 ## Known Issues
 - [Failure to create the Artifact Registry repository](#failure-to-create-the-artifact-registry-repository)
@@ -345,6 +346,24 @@ Cymbal Bank offers its employees access to a gym located on the 10th floor of th
 
 
 Press any key to continue or Ctrl+C to exit...
+```
+
+
+&nbsp;
+# UNIT TESTS
+([return to top](#vertex-ai-agent-builder-answer-app))
+
+The `src/tests` directory contains unit tests for the `answer-app` service. Use the `pytest` command to run the tests.
+- Run all tests in the `src/tests` directory using `pytest` from the `src` directory.
+```sh
+cd src
+pytest
+```
+
+- Generate a coverage report with the `--cov` flag.
+```sh
+cd src
+pytest --cov=.
 ```
 
 

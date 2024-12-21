@@ -1,14 +1,12 @@
 from pydantic import BaseModel
 
 
-class Question(BaseModel):
-
+class QuestionRequest(BaseModel):
     question: str
-    # session: str = "-"
+    session: str | None = None
 
 
 class SelectedReferences(BaseModel):
-
     chunk: str
     content: str
     relevance_score: float
@@ -16,8 +14,16 @@ class SelectedReferences(BaseModel):
     # struct_data: dict[str, Any]
 
 
-class StructuredResponse(BaseModel):
-
+class AnswerResponse(BaseModel):
     answer: str
     references: list[SelectedReferences]
     latency: float
+
+
+class HealthCheckResponse(BaseModel):
+    status: str = "ok"
+
+
+class EnvVarResponse(BaseModel):
+    name: str
+    value: str | None

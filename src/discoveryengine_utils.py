@@ -28,6 +28,7 @@ class DiscoveryEngineAgent:
         self._location = location
         self._engine_id = engine_id
         self._project_id = project_id if project_id else default()[1]
+        self._client = self._initialize_client()
         self._log_attributes()
 
         return
@@ -37,10 +38,33 @@ class DiscoveryEngineAgent:
         logger.debug(f"Search Agent project: {self._project_id}")
         logger.debug(f"Search Agent location: {self._location}")
         logger.debug(f"Search Agent engine ID: {self._engine_id}")
+        logger.debug(f"Search Agent client: {self._client.transport.host}")
 
         return
 
-    def answer_query_sample(
+    def _initialize_client(self) -> discoveryengine.ConversationalSearchServiceClient:
+        """Initialize the Conversational Search Service client.
+
+        Returns:
+            discoveryengine.ConversationalSearchServiceClient:
+            The client for the Conversational Search Service.
+        """
+        #  For more information, refer to:
+        # https://cloud.google.com/generative-ai-app-builder/docs/locations#specify_a_multi-region_for_your_data_store
+        client_options = (
+            ClientOptions(
+                api_endpoint=f"{self._location}-discoveryengine.googleapis.com"
+            )
+            if self._location != "global"
+            else None
+        )
+
+        # Create a client
+        return discoveryengine.ConversationalSearchServiceClient(
+            client_options=client_options
+        )
+
+    def answer_query(
         self,
         query_text: str,
         session: str | None = None,
@@ -56,21 +80,6 @@ class DiscoveryEngineAgent:
             discoveryengine.AnswerQueryResponse: The response from the Conversational Search Service,
             containing the generated answer and search results.
         """
-        #  For more information, refer to:
-        # https://cloud.google.com/generative-ai-app-builder/docs/locations#specify_a_multi-region_for_your_data_store
-        client_options = (
-            ClientOptions(
-                api_endpoint=f"{self._location}-discoveryengine.googleapis.com"
-            )
-            if self._location != "global"
-            else None
-        )
-
-        # Create a client
-        client = discoveryengine.ConversationalSearchServiceClient(
-            client_options=client_options
-        )
-
         # The full resource name of the Search serving config
         serving_config = f"projects/{self._project_id}/locations/{self._location}/collections/default_collection/engines/{self._engine_id}/servingConfigs/default_serving_config"
 
@@ -114,7 +123,7 @@ class DiscoveryEngineAgent:
         )
 
         # Make the request
-        response = client.answer_query(request)
+        response = self._client.answer_query(request)
 
         # Handle the response
         logger.debug(response)
