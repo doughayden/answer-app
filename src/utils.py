@@ -5,11 +5,10 @@ from typing import Any
 
 import google.auth
 from google.cloud import bigquery
-from google.cloud.discoveryengine_v1 import AnswerQueryResponse
 import yaml
 
 from discoveryengine_utils import DiscoveryEngineAgent
-from model import SelectedReferences, AnswerResponse
+from model import AnswerResponse
 
 
 logger = logging.getLogger(__name__)
@@ -96,54 +95,25 @@ class UtilHandler:
 
         return table
 
-    @staticmethod
-    def _compose_answer_response(
-        response: AnswerQueryResponse,
-        latency: float,
-    ) -> AnswerResponse:
-        """Compose a structured answer response from the
-        google.cloud.discoveryengine_v1AnswerQueryResponse object.
-
-        Args:
-            response (AnswerQueryResponse): The response object.
-            latency (float): The latency of the response.
-
-        Returns:
-            AnswerResponse: The structured answer response object to return to the caller.
-        """
-        references = [
-            SelectedReferences(
-                chunk=reference.chunk_info.chunk,
-                content=reference.chunk_info.content,
-                relevance_score=reference.chunk_info.relevance_score,
-                document=reference.chunk_info.document_metadata.document,
-                # struct_data=MessageToDict(reference.chunk_info.document_metadata.struct_data),
-            )
-            for reference in response.answer.references
-        ]
-
-        return AnswerResponse(
-            answer=response.answer.answer_text,
-            references=references,
-            latency=latency,
-        )
-
     async def answer_query(
         self,
         query_text: str,
-        session: str | None,
-    ) -> AnswerResponse:
+        session_id: str | None,
+    ) -> dict[str, Any]:
         """Call the answer method and return a generated answer and a list of search results,
         with links to the sources.
 
         Args:
             query_text (str): The text of the query to be answered.
-            session (str, optional): The session ID to continue a conversation. Defaults to None.
+            session_id (str, optional): The session ID to continue a conversation.
 
         Returns:
-            AnswerResponse: The response from the Conversational Search Service,
+            dict (str, Any): The response from the Conversational Search Service,
             containing the generated answer and selected references.
         """
+        logger.debug(f"Query: {query_text}")
+        logger.debug(f"Session ID: {session_id}")
+
         # Start the timer.
         start_time = time.time()
 
@@ -151,17 +121,15 @@ class UtilHandler:
         response = await asyncio.to_thread(
             self._search_agent.answer_query,
             query_text=query_text,
-            session=session,
+            session_id=session_id,
         )
 
-        # Log the answer.
-        logger.info(f"Answer: {response.answer.answer_text}")
-
-        # Log the latency in the model response.
+        # Log the latency in the model response and add it to the response data.
         latency = time.time() - start_time
+        response["latency"] = latency
         logger.info(f"Search agent latency: {latency:.4f} seconds.")
 
-        return self._compose_answer_response(response, latency)
+        return response
 
     async def bq_insert_row_data(
         self,

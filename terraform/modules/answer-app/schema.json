@@ -6,47 +6,465 @@
         "description": "The user's question"
     },
     {
-        "name": "answer",
-        "type": "STRING",
+        "name": "latency",
+        "type": "FLOAT",
         "mode": "REQUIRED",
-        "description": "The answer text returned by the model"
+        "description": "The time taken for the model to return an answer to the application"
     },
     {
-        "name": "references",
+        "name": "answer",
         "type": "RECORD",
-        "mode": "REPEATED",
-        "description": "Details about the references used to generate the answer",
+        "mode": "REQUIRED",
+        "description": "The answer details",
         "fields": [
             {
-                "name": "chunk",
+                "name": "name",
                 "type": "STRING",
                 "mode": "REQUIRED",
-                "description": "The document chunk retrieved"
+                "description": "The name of the answer"
             },
             {
-                "name": "content",
+                "name": "state",
                 "type": "STRING",
                 "mode": "REQUIRED",
-                "description": "The content of the document chunk"
+                "description": "The state of the answer"
             },
             {
-                "name": "relevance_score",
-                "type": "FLOAT64",
-                "mode": "REQUIRED",
-                "description": "The relevance score of the document chunk"
-            },
-            {
-                "name": "document",
+                "name": "answer_text",
                 "type": "STRING",
                 "mode": "REQUIRED",
-                "description": "The document ID"
+                "description": "The answer text"
+            },
+            {
+                "name": "citations",
+                "type": "RECORD",
+                "mode": "REPEATED",
+                "description": "Citations for the answer",
+                "fields": [
+                    {
+                        "name": "start_index",
+                        "type": "INTEGER",
+                        "mode": "NULLABLE",
+                        "description": "The start index of the citation"
+                    },
+                    {
+                        "name": "end_index",
+                        "type": "INTEGER",
+                        "mode": "NULLABLE",
+                        "description": "The end index of the citation"
+                    },
+                    {
+                        "name": "sources",
+                        "type": "RECORD",
+                        "mode": "REPEATED",
+                        "description": "Sources for the citation",
+                        "fields": [
+                            {
+                                "name": "reference_id",
+                                "type": "STRING",
+                                "mode": "NULLABLE",
+                                "description": "The reference ID"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "name": "references",
+                "type": "RECORD",
+                "mode": "REPEATED",
+                "description": "References for the answer",
+                "fields": [
+                    {
+                        "name": "unstructured_document_info",
+                        "type": "RECORD",
+                        "mode": "NULLABLE",
+                        "description": "Unstructured document information",
+                        "fields": [
+                            {
+                                "name": "document",
+                                "type": "STRING",
+                                "mode": "NULLABLE",
+                                "description": "The document ID"
+                            },
+                            {
+                                "name": "uri",
+                                "type": "STRING",
+                                "mode": "NULLABLE",
+                                "description": "The URI of the document"
+                            },
+                            {
+                                "name": "title",
+                                "type": "STRING",
+                                "mode": "NULLABLE",
+                                "description": "The title of the document"
+                            },
+                            {
+                                "name": "chunk_contents",
+                                "type": "RECORD",
+                                "mode": "REPEATED",
+                                "description": "Chunk contents of the document",
+                                "fields": [
+                                    {
+                                        "name": "content",
+                                        "type": "STRING",
+                                        "mode": "NULLABLE",
+                                        "description": "The content of the chunk"
+                                    },
+                                    {
+                                        "name": "page_identifier",
+                                        "type": "STRING",
+                                        "mode": "NULLABLE",
+                                        "description": "The page identifier of the chunk"
+                                    },
+                                    {
+                                        "name": "relevance_score",
+                                        "type": "FLOAT",
+                                        "mode": "NULLABLE",
+                                        "description": "The relevance score of the chunk"
+                                    }
+                                ]
+                            },
+                            {
+                                "name": "struct_data",
+                                "type": "STRING",
+                                "mode": "NULLABLE",
+                                "description": "Structured data of the document"
+                            }
+                        ]
+                    },
+                    {
+                        "name": "chunk_info",
+                        "type": "RECORD",
+                        "mode": "NULLABLE",
+                        "description": "Chunk information",
+                        "fields": [
+                            {
+                                "name": "content",
+                                "type": "STRING",
+                                "mode": "NULLABLE",
+                                "description": "The content of the chunk"
+                            },
+                            {
+                                "name": "relevance_score",
+                                "type": "FLOAT",
+                                "mode": "NULLABLE",
+                                "description": "The relevance score of the chunk"
+                            },
+                            {
+                                "name": "document_metadata",
+                                "type": "RECORD",
+                                "mode": "NULLABLE",
+                                "description": "Document metadata",
+                                "fields": [
+                                    {
+                                        "name": "document",
+                                        "type": "STRING",
+                                        "mode": "NULLABLE",
+                                        "description": "The document ID"
+                                    },
+                                    {
+                                        "name": "uri",
+                                        "type": "STRING",
+                                        "mode": "NULLABLE",
+                                        "description": "The URI of the document"
+                                    },
+                                    {
+                                        "name": "title",
+                                        "type": "STRING",
+                                        "mode": "NULLABLE",
+                                        "description": "The title of the document"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "name": "structured_document_info",
+                        "type": "RECORD",
+                        "mode": "NULLABLE",
+                        "description": "Structured document information",
+                        "fields": [
+                            {
+                                "name": "document",
+                                "type": "STRING",
+                                "mode": "NULLABLE",
+                                "description": "The document ID"
+                            },
+                            {
+                                "name": "struct_data",
+                                "type": "STRING",
+                                "mode": "NULLABLE",
+                                "description": "Structured data of the document"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "name": "related_questions",
+                "type": "STRING",
+                "mode": "REPEATED",
+                "description": "Related questions"
+            },
+            {
+                "name": "steps",
+                "type": "RECORD",
+                "mode": "REPEATED",
+                "description": "Steps taken to generate the answer",
+                "fields": [
+                    {
+                        "name": "state",
+                        "type": "STRING",
+                        "mode": "REQUIRED",
+                        "description": "The state of the step"
+                    },
+                    {
+                        "name": "description",
+                        "type": "STRING",
+                        "mode": "NULLABLE",
+                        "description": "The description of the step"
+                    },
+                    {
+                        "name": "thought",
+                        "type": "STRING",
+                        "mode": "NULLABLE",
+                        "description": "The thought process of the step"
+                    },
+                    {
+                        "name": "actions",
+                        "type": "RECORD",
+                        "mode": "REPEATED",
+                        "description": "Actions taken in the step",
+                        "fields": [
+                            {
+                                "name": "search_action",
+                                "type": "RECORD",
+                                "mode": "NULLABLE",
+                                "description": "Search action details",
+                                "fields": [
+                                    {
+                                        "name": "query",
+                                        "type": "STRING",
+                                        "mode": "NULLABLE",
+                                        "description": "The search query"
+                                    }
+                                ]
+                            },
+                            {
+                                "name": "observation",
+                                "type": "RECORD",
+                                "mode": "NULLABLE",
+                                "description": "Observation details",
+                                "fields": [
+                                    {
+                                        "name": "search_results",
+                                        "type": "RECORD",
+                                        "mode": "REPEATED",
+                                        "description": "Search results",
+                                        "fields": [
+                                            {
+                                                "name": "document",
+                                                "type": "STRING",
+                                                "mode": "NULLABLE",
+                                                "description": "The document ID"
+                                            },
+                                            {
+                                                "name": "uri",
+                                                "type": "STRING",
+                                                "mode": "NULLABLE",
+                                                "description": "The URI of the document"
+                                            },
+                                            {
+                                                "name": "title",
+                                                "type": "STRING",
+                                                "mode": "NULLABLE",
+                                                "description": "The title of the document"
+                                            },
+                                            {
+                                                "name": "snippet_info",
+                                                "type": "RECORD",
+                                                "mode": "REPEATED",
+                                                "description": "Snippet information",
+                                                "fields": [
+                                                    {
+                                                        "name": "snippet",
+                                                        "type": "STRING",
+                                                        "mode": "NULLABLE",
+                                                        "description": "The snippet text"
+                                                    },
+                                                    {
+                                                        "name": "snippet_status",
+                                                        "type": "STRING",
+                                                        "mode": "NULLABLE",
+                                                        "description": "The status of the snippet"
+                                                    }
+                                                ]
+                                            },
+                                            {
+                                                "name": "chunk_info",
+                                                "type": "RECORD",
+                                                "mode": "REPEATED",
+                                                "description": "Chunk information",
+                                                "fields": [
+                                                    {
+                                                        "name": "chunk",
+                                                        "type": "STRING",
+                                                        "mode": "NULLABLE",
+                                                        "description": "The chunk ID"
+                                                    },
+                                                    {
+                                                        "name": "content",
+                                                        "type": "STRING",
+                                                        "mode": "NULLABLE",
+                                                        "description": "The content of the chunk"
+                                                    },
+                                                    {
+                                                        "name": "relevance_score",
+                                                        "type": "FLOAT",
+                                                        "mode": "NULLABLE",
+                                                        "description": "The relevance score of the chunk"
+                                                    }
+                                                ]
+                                            },
+                                            {
+                                                "name": "struct_data",
+                                                "type": "STRING",
+                                                "mode": "NULLABLE",
+                                                "description": "Structured data of the search result"
+                                            }
+                                        ]
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "name": "query_understanding_info",
+                "type": "RECORD",
+                "mode": "NULLABLE",
+                "description": "Query understanding information",
+                "fields": [
+                    {
+                        "name": "query_classification_info",
+                        "type": "RECORD",
+                        "mode": "REPEATED",
+                        "description": "Query classification information",
+                        "fields": [
+                            {
+                                "name": "type",
+                                "type": "STRING",
+                                "mode": "NULLABLE",
+                                "description": "The type of the query classification"
+                            },
+                            {
+                                "name": "positive",
+                                "type": "BOOLEAN",
+                                "mode": "NULLABLE",
+                                "description": "Whether the classification is positive"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "name": "answer_skipped_reasons",
+                "type": "STRING",
+                "mode": "REPEATED",
+                "description": "Reasons for skipping the answer"
+            },
+            {
+                "name": "create_time",
+                "type": "TIMESTAMP",
+                "mode": "NULLABLE",
+                "description": "The creation time of the answer"
+            },
+            {
+                "name": "complete_time",
+                "type": "TIMESTAMP",
+                "mode": "NULLABLE",
+                "description": "The completion time of the answer"
             }
         ]
     },
     {
-        "name": "latency",
-        "type": "FLOAT64",
+        "name": "session",
+        "type": "RECORD",
+        "mode": "NULLABLE",
+        "description": "The session details",
+        "fields": [
+            {
+                "name": "name",
+                "type": "STRING",
+                "mode": "NULLABLE",
+                "description": "The name of the session"
+            },
+            {
+                "name": "state",
+                "type": "STRING",
+                "mode": "NULLABLE",
+                "description": "The state of the session"
+            },
+            {
+                "name": "user_pseudo_id",
+                "type": "STRING",
+                "mode": "NULLABLE",
+                "description": "The user pseudo ID"
+            },
+            {
+                "name": "turns",
+                "type": "RECORD",
+                "mode": "REPEATED",
+                "description": "The turns in the session",
+                "fields": [
+                    {
+                        "name": "query",
+                        "type": "RECORD",
+                        "mode": "NULLABLE",
+                        "description": "The query details",
+                        "fields": [
+                            {
+                                "name": "query_id",
+                                "type": "STRING",
+                                "mode": "NULLABLE",
+                                "description": "The query ID"
+                            },
+                            {
+                                "name": "text",
+                                "type": "STRING",
+                                "mode": "NULLABLE",
+                                "description": "The query text"
+                            }
+                        ]
+                    },
+                    {
+                        "name": "answer",
+                        "type": "STRING",
+                        "mode": "NULLABLE",
+                        "description": "The answer ID"
+                    }
+                ]
+            },
+            {
+                "name": "start_time",
+                "type": "TIMESTAMP",
+                "mode": "NULLABLE",
+                "description": "The start time of the session"
+            },
+            {
+                "name": "end_time",
+                "type": "TIMESTAMP",
+                "mode": "NULLABLE",
+                "description": "The end time of the session"
+            }
+        ]
+    },
+    {
+        "name": "answer_query_token",
+        "type": "STRING",
         "mode": "REQUIRED",
-        "description": "The time taken for the model to return an answer to the application"
+        "description": "The answer query token"
     }
 ]

@@ -17,7 +17,7 @@ echo ""
 echo "ENVIRONMENT VARIABLES:"
 source "$SCRIPT_DIR/set_variables.sh"
 
-# Get the cloud run custom audience from the main module ouputs.
+# Get the cloud run custom audience from the main module outputs.
 echo "Getting the custom audience from the main Terraform module output..."
 export AUDIENCE=$(
 cd $REPO_ROOT/terraform/main

@@ -61,8 +61,14 @@ def test_answer_query(
 
     agent = DiscoveryEngineAgent(location="us-central1", engine_id="test-engine-id")
 
-    response = agent.answer_query(query_text="What is the capital of France?")
-    assert isinstance(response, AnswerQueryResponse)
+    response = agent.answer_query(
+        query_text="What is the capital of France?",
+        session_id=None,
+    )
+    assert isinstance(response, dict)
+    assert "answer" in response
+    assert "session" in response
+    assert "answer_query_token" in response
     mock_client_instance.answer_query.assert_called_once()
     args, kwargs = mock_client_instance.answer_query.call_args
     assert isinstance(args[0], AnswerQueryRequest)

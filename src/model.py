@@ -3,21 +3,15 @@ from pydantic import BaseModel
 
 class QuestionRequest(BaseModel):
     question: str
-    session: str | None = None
-
-
-class SelectedReferences(BaseModel):
-    chunk: str
-    content: str
-    relevance_score: float
-    document: str
-    # struct_data: dict[str, Any]
+    session_id: str | None = None
 
 
 class AnswerResponse(BaseModel):
-    answer: str
-    references: list[SelectedReferences]
+    question: str
+    answer: dict
     latency: float
+    session: dict | None
+    answer_query_token: str | None
 
 
 class HealthCheckResponse(BaseModel):

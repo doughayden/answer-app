@@ -67,25 +67,67 @@ def test_compose_table(
     assert table == "test-project-id.test-dataset.test-table"
 
 
-# TODO: update the test_answer_query test to properly validate the session attribute.
 @pytest.mark.asyncio
-async def test_answer_query(
+async def test_answer_query_no_session_id(
     mock_google_auth_default: MagicMock,
     mock_discoveryengine_agent: MagicMock,
     mock_load_config: MagicMock,
 ) -> None:
     mock_agent_instance = mock_discoveryengine_agent.return_value
-    mock_agent_instance.answer_query.return_value = AnswerQueryResponse()
+    mock_agent_instance.answer_query.return_value = {
+        "answer": {"answer_text": "Paris"},
+        "session": {"name": "session1"},
+        "answer_query_token": "token1",
+        "latency": 0.1234,
+        "question": "What is the capital of France?",
+    }
 
     handler = UtilHandler(log_level="DEBUG")
     response = await handler.answer_query(
         query_text="What is the capital of France?",
-        session="test-session",
+        session_id=None,
     )
-    assert isinstance(response, AnswerResponse)
+    assert isinstance(response, dict)
+    assert "answer" in response
+    assert "session" in response
+    assert "latency" in response
+    assert response["answer"]["answer_text"] == "Paris"
+    assert response["question"] == "What is the capital of France?"
     mock_agent_instance.answer_query.assert_called_once_with(
         query_text="What is the capital of France?",
-        session="test-session",
+        session_id=None,
+    )
+
+
+@pytest.mark.asyncio
+async def test_answer_query_with_session_id(
+    mock_google_auth_default: MagicMock,
+    mock_discoveryengine_agent: MagicMock,
+    mock_load_config: MagicMock,
+) -> None:
+    mock_agent_instance = mock_discoveryengine_agent.return_value
+    mock_agent_instance.answer_query.return_value = {
+        "answer": {"answer_text": "Paris"},
+        "session": {"name": "test-session"},
+        "answer_query_token": "token1",
+        "latency": 0.1234,
+        "question": "What is the capital of France?",
+    }
+
+    handler = UtilHandler(log_level="DEBUG")
+    response = await handler.answer_query(
+        query_text="What is the capital of France?",
+        session_id="test-session",
+    )
+    assert isinstance(response, dict)
+    assert "answer" in response
+    assert "session" in response
+    assert "latency" in response
+    assert response["answer"]["answer_text"] == "Paris"
+    assert response["question"] == "What is the capital of France?"
+    mock_agent_instance.answer_query.assert_called_once_with(
+        query_text="What is the capital of France?",
+        session_id="test-session",
     )
 
 

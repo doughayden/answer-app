@@ -2,7 +2,6 @@ import pytest
 from pydantic import ValidationError
 from model import (
     QuestionRequest,
-    SelectedReferences,
     AnswerResponse,
     HealthCheckResponse,
     EnvVarResponse,
@@ -19,43 +18,20 @@ def test_question_request() -> None:
         QuestionRequest()
 
 
-def test_selected_references() -> None:
-    # Valid input
-    reference = SelectedReferences(
-        chunk="chunk1",
-        content="This is the content.",
-        relevance_score=0.95,
-        document="document1",
-    )
-    assert reference.chunk == "chunk1"
-    assert reference.content == "This is the content."
-    assert reference.relevance_score == 0.95
-    assert reference.document == "document1"
-
-    # Invalid input (missing required field)
-    with pytest.raises(ValidationError):
-        SelectedReferences(
-            chunk="chunk1", content="This is the content.", relevance_score=0.95
-        )
-
-
 def test_answer_response() -> None:
     # Valid input
     response = AnswerResponse(
-        answer="Paris",
-        references=[
-            SelectedReferences(
-                chunk="chunk1",
-                content="This is the content.",
-                relevance_score=0.95,
-                document="document1",
-            )
-        ],
+        question="What is the capital of France?",
+        answer={"answer_text": "Paris"},
         latency=0.1234,
+        session={"name": "session1"},
+        answer_query_token="token1",
     )
-    assert response.answer == "Paris"
-    assert len(response.references) == 1
+    assert response.question == "What is the capital of France?"
+    assert response.answer == {"answer_text": "Paris"}
     assert response.latency == 0.1234
+    assert response.session == {"name": "session1"}
+    assert response.answer_query_token == "token1"
 
 
 def test_health_check_response() -> None:

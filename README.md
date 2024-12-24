@@ -321,23 +321,32 @@ Use the helper script to send a question to the `answer-app` endpoint.
 source scripts/set_audience_and_token.sh # change the path if necessary
 ```
 
-- Send a question to the `answer-app` endpoint using the `send_question.sh` script.
+- Send a question to the `answer-app` endpoint using the `client.py` script.
 ```sh
-./scripts/send_question.sh # change the path if necessary
+python scripts/client.py # change the path if necessary
 ```
 
+- Choose to use stateful or stateless sessions.
 - Type questions related to the imported documents to test the generative answers.
 - Follow instructions in the terminal screen to send questions, quit, or continue.
+- Review the complete response details in the debug logs written locally to `client.log`. (Log file gets overwritten with each new session.)
 
 Example:
 ```
-> ./scripts/send_question.sh                                           
-Enter a question to send to the Search app. Press Ctrl+C to exit...
+> python client.py                                           
 
+Do you want to maintain state? (y/n): y
+
+
+Session ID: -
+
+Enter a question to send to the Search app. Press Return to exit...
 
 QUESTION: 
 
 What amenities does the bank offer its employees?
+
+
 
 ANSWER:
 
@@ -345,7 +354,13 @@ Cymbal Bank offers its employees access to a gym located on the 10th floor of th
 
 
 
-Press any key to continue or Ctrl+C to exit...
+Session ID: 17380470679427580942
+
+Enter a question to send to the Search app. Press Return to exit...
+
+QUESTION:
+
+
 ```
 
 

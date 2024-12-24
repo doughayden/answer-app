@@ -30,22 +30,21 @@ async def answer(request: QuestionRequest) -> AnswerResponse:
 
     # Log the request.
     logger.info(f"Received question: {request.question}")
-    logger.info(f"Session: {request.session}")
+    logger.info(f"Session ID: {request.session_id}")
 
     try:
         # Get an answer to the question.
         response = await utils.answer_query(
             query_text=request.question,
-            session=request.session,
+            session_id=request.session_id,
         )
 
-        # Convert the response to a dict and add the question as a new key.
-        data = response.model_dump(mode="json")
-        data["question"] = request.question
+        # Add the original question to the response data.
+        response["question"] = request.question
 
         # Log details to BigQuery.
         errors = await utils.bq_insert_row_data(
-            data=data,
+            data=response,
         )
         if errors:
             logger.error(f"Errors loading to Big Query: {errors}")
@@ -55,7 +54,7 @@ async def answer(request: QuestionRequest) -> AnswerResponse:
         elapsed_time = time.time() - start_time
         logger.info(f"Returned an answer in {elapsed_time:.2f} seconds")
 
-        return response
+        return AnswerResponse(**response)
 
     except Exception as e:
         logger.error(f"An error occurred: {e}")
