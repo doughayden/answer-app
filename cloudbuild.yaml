@@ -22,10 +22,10 @@ steps:
   name: 'alpine'
   script: apk add --no-cache tree && echo "" && tree -a && echo ""
 
-- id: build-answer-app
+- id: build-answer-app-backend
   name: 'gcr.io/cloud-builders/docker'
   waitFor: ['tree']
-  dir: 'src'
+  dir: 'src/backend'
   args: [
     'build',
     '-t', '${_DOCKER_IMAGE_ANSWER_APP}:latest',
@@ -34,10 +34,10 @@ steps:
     '.'
   ]
 
-- id: push-answer-app
+- id: push-answer-app-backend
   name: 'gcr.io/cloud-builders/docker'
-  waitFor: ['build-answer-app']
-  dir: 'src'
+  waitFor: ['build-answer-app-backend']
+  dir: 'src/backend'
   args: ['push', '--all-tags', '${_DOCKER_IMAGE_ANSWER_APP}']
 
 # test image names in the terraform builder

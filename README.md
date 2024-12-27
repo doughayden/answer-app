@@ -4,7 +4,8 @@
 The Answer App uses [Vertex AI Agent Builder](https://cloud.google.com/generative-ai-app-builder/docs/introduction) and the [Discovery Engine API](https://cloud.google.com/generative-ai-app-builder/docs/reference/rest) to serve a conversational search experience with generative answers grounded on document data.
 
 ## Architecture
-- [Application Architecture](#architecture)
+- [Diagram](#diagram)
+- [Description](#description)
 
 ## Installation
 - [Prerequisites](#prerequisites)
@@ -15,6 +16,8 @@ The Answer App uses [Vertex AI Agent Builder](https://cloud.google.com/generativ
 - [Import documents](#import-documents)
 <!-- - [Configure Identity-Aware Proxy](#configure-identity-aware-proxy) -->
 - [Use the app](#use-the-app)
+
+## Tests
 - [Unit Tests](#unit-tests)
 
 ## Known Issues
@@ -41,11 +44,13 @@ The Answer App uses [Vertex AI Agent Builder](https://cloud.google.com/generativ
 
 &nbsp;
 # ARCHITECTURE
-([return to top](#vertex-ai-agent-builder-answer-app))
 
-## Components
+## Diagram
+([return to top](#vertex-ai-agent-builder-answer-app))\
 ![Application Architecture](assets/answer_app.png)
 
+## Description
+([return to top](#vertex-ai-agent-builder-answer-app))
 - Queries reach the application through the [Cloud Load Balancer](https://cloud.google.com/load-balancing/docs/https).
 - The [backend service](https://cloud.google.com/load-balancing/docs/backend-service) is the interface for regional [serverless network endpoint group](https://cloud.google.com/load-balancing/docs/backend-service#serverless_network_endpoint_groups) backends composed of [Cloud Run](https://cloud.google.com/run/docs/overview/what-is-cloud-run) services.
     - Regional failover: Cloud Run services [replicate](https://cloud.google.com/run/docs/resource-model#services) across multiple zones within a [Compute region](https://cloud.google.com/run/docs/locations) to prevent outages for a single zonal failure.
@@ -63,7 +68,7 @@ The Answer App uses [Vertex AI Agent Builder](https://cloud.google.com/generativ
 ([return to top](#vertex-ai-agent-builder-answer-app))
 
 Complete the prerequisite steps before deploying the resources with Terraform:
-1. [Configure the Local Development Environment](#1-user-account-and-local-development-environment)
+1. [User Account and Local Development Environment](#1-user-account-and-local-development-environment)
 2. [Clone the Repo](#2-clone-the-repo)
 3. [Use the Helper Scripts](#3-use-the-helper-scripts)
 
@@ -230,7 +235,7 @@ gcloud builds submit . --config=cloudbuild.yaml --project=$PROJECT --region=$REG
 # Add an A record to the DNS Managed Zone
 ([return to top](#vertex-ai-agent-builder-answer-app))
 
-- **You do not need to configure DNS if you set `loadbalancer_domain` to `null` in `config.yaml` and instead used the default `nip.io` domain.**
+- **You do not need to configure DNS if you set `loadbalancer_domain` to `null` in [`config.yaml`](src/config.yaml) and instead used the default `nip.io` domain.**
 - Use the public IP address created by Terraform as the A record in your DNS host. Steps vary by DNS provider.
 
 
@@ -252,7 +257,7 @@ gcloud compute ssl-certificates describe **CERTIFICATE_NAME** --global --format=
     - The script [authenticates](https://cloud.google.com/run/docs/authenticating/service-to-service) using a service account and the [Cloud Run custom audience](https://cloud.google.com/run/docs/configuring/custom-audiences) to [generate an ID token](https://cloud.google.com/docs/authentication/get-id-token#impersonation)
 
 ```sh
-./scripts/test_endpoint.sh # change the path if necessary
+scripts/test_endpoint.sh # change the path if necessary
 ```
 
 - The server responds with a 200 status code and `{"status":"ok"}` if the endpoint is reachable and the TLS certificate is active.
@@ -316,20 +321,22 @@ gcloud compute ssl-certificates describe **CERTIFICATE_NAME** --global --format=
 ([return to top](#vertex-ai-agent-builder-answer-app))
 
 Use the helper script to send a question to the `answer-app` endpoint.
-- Source the `set_audience_and_token.sh` script to set the endpoint audience and your identity token as environment variables.
+- Source the `set_audience.sh` script to set the endpoint audience for the deployed service.
+- It also sets other required environment variables for the shell session by sourcing the `set_variables.sh` script.
 ```sh
-source scripts/set_audience_and_token.sh # change the path if necessary
+source scripts/set_audience.sh # change the path if necessary
 ```
 
 - Send a question to the `answer-app` endpoint using the `client.py` script.
 ```sh
-python scripts/client.py # change the path if necessary
+cd $REPO_ROOT/src/client
+python client.py
 ```
 
 - Choose to use stateful or stateless sessions.
 - Type questions related to the imported documents to test the generative answers.
 - Follow instructions in the terminal screen to send questions, quit, or continue.
-- Review the complete response details in the debug logs written locally to `client.log`. (Log file gets overwritten with each new session.)
+- Review the complete response details in the debug logs written locally to `client.log`. (Log file gets overwritten in your working directory with each new session.)
 
 Example:
 ```
@@ -365,19 +372,21 @@ QUESTION:
 
 
 &nbsp;
-# UNIT TESTS
+# TESTS
+
+## Unit Tests
 ([return to top](#vertex-ai-agent-builder-answer-app))
 
-The `src/tests` directory contains unit tests for the `answer-app` service. Use the `pytest` command to run the tests.
-- Run all tests in the `src/tests` directory using `pytest` from the `src` directory.
+The `src/backend/tests` directory contains unit tests for the `answer-app` backend service. Use the `pytest` command to run the tests.
+- Run all tests in the `src/tests` directory using `pytest` from the `src/backend` directory.
 ```sh
-cd src
+cd src/backend
 pytest
 ```
 
 - Generate a coverage report with the `--cov` flag.
 ```sh
-cd src
+cd src/backend
 pytest --cov=.
 ```
 

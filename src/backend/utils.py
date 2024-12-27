@@ -1,17 +1,18 @@
-"""Ref: https://cloud.google.com/generative-ai-app-builder/docs/answer"""
-
-# from datetime import datetime, timezone
+import asyncio
 import logging
+import time
 from typing import Any
 
-from google.api_core.client_options import ClientOptions
 from google.api_core.datetime_helpers import DatetimeWithNanoseconds
-from google.auth import default
-from google.cloud import discoveryengine_v1 as discoveryengine
+import google.auth
+from google.cloud import bigquery
 from google.cloud.discoveryengine_v1.types import Answer, AnswerQueryResponse, Session
 from google.protobuf.json_format import MessageToJson
+import yaml
 
-# from google.protobuf.timestamp_pb2 import Timestamp
+from discoveryengine_utils import DiscoveryEngineAgent
+from model import AnswerResponse, ClientCitation
+
 
 logger = logging.getLogger(__name__)
 
@@ -40,7 +41,7 @@ def _response_to_dict(response: AnswerQueryResponse) -> dict[str, Any]:
     return {
         "answer": {
             "name": response.answer.name,
-            "state": Answer.Step.State(response.answer.state).name,
+            "state": Answer.State(response.answer.state).name,
             "answer_text": response.answer.answer_text,
             "citations": [
                 {
@@ -100,7 +101,7 @@ def _response_to_dict(response: AnswerQueryResponse) -> dict[str, Any]:
             ],
             "steps": [
                 {
-                    "state": step.state,
+                    "state": Answer.Step.State(step.state).name,
                     "description": step.description,
                     "thought": step.thought,
                     "actions": [
@@ -182,66 +183,146 @@ def _response_to_dict(response: AnswerQueryResponse) -> dict[str, Any]:
     }
 
 
-class DiscoveryEngineAgent:
-    """A class to interact with the Conversational Search Service."""
+def _response_to_markdown(response: AnswerQueryResponse) -> str:
+    """Convert the response object to a markdown-formatted string of
+    the answer text and citations."""
+    answer_text = response.answer.answer_text
+    citations = response.answer.citations
+    references = response.answer.references
 
-    def __init__(
-        self,
-        location: str,
-        engine_id: str,
-        project_id: str | None = None,
-    ) -> None:
-        """Initialize the DiscoveryEngineAgent class.
+    # Create a list of ClientCitation objects from the response citations and references.
+    client_citations = [
+        ClientCitation(
+            title=references[
+                int(source.reference_id)
+            ].chunk_info.document_metadata.title,
+            score=references[int(source.reference_id)].chunk_info.relevance_score,
+            start_index=citation.start_index,
+            end_index=citation.end_index,
+            chunk_index=int(source.reference_id),
+            link=references[int(source.reference_id)].chunk_info.document_metadata.uri,
+        )
+        for citation in citations
+        for source in citation.sources
+    ]
+
+    # Sort the client_citations by start index.
+    client_citations.sort(key=lambda citation: citation.start_index)
+
+    # Initialize the output with the answer text.
+    markdown = answer_text
+
+    # Initialize the offset for the citation links.
+    offset = 0
+
+    # Iterate through the citations and insert the links into the answer text.
+    for citation in client_citations:
+        markdown = (
+            markdown[: citation.end_index + offset]
+            + citation.get_inline_link()
+            + markdown[citation.end_index + offset :]
+        )
+
+        # Increase the offset by the number of characters added to the answer text.
+        offset += citation.count_chars()
+
+    # Create a footer string to list of all the references cited in the response.
+    footer = "\n\nCitations:\n\n"
+    for citation in client_citations:
+        footer += f"[{citation.chunk_index+1}] [{citation.title}]({citation.get_footer_link()})\n\n"
+
+    # Append the footer to the answer text.
+    markdown += footer
+
+    return markdown
+
+
+class UtilHandler:
+    """A utility handler class for the anomaly detection application."""
+
+    def __init__(self, log_level: str = "INFO") -> None:
+        """Initialize the UtilHandler class.
 
         Args:
-            location (str): The location of the search engine.
-            engine_id (str): The ID of the search engine.
-            project_id (str, optional): The ID of the Google Cloud project. Defaults to None.
+            log_level (str, optional): The log level to set. Defaults to "INFO".
         """
-        self._location = location
-        self._engine_id = engine_id
-        self._project_id = project_id if project_id else default()[1]
-        self._client = self._initialize_client()
-        self._log_attributes()
+        self._setup_logging(log_level)
+        self._config = self._load_config("config.yaml")
+        self._credentials, self._project = google.auth.default()
+        self._bq_client = self._load_bigquery_client()
+        self._table = self._compose_table()
+        self._search_agent = DiscoveryEngineAgent(
+            location=self._config["location"],
+            engine_id=self._config["search_engine_id"],
+            project_id=self._project,
+        )
 
         return
 
-    def _log_attributes(self) -> None:
-        """Log the attributes of the class."""
-        logger.debug(f"Search Agent project: {self._project_id}")
-        logger.debug(f"Search Agent location: {self._location}")
-        logger.debug(f"Search Agent engine ID: {self._engine_id}")
-        logger.debug(f"Search Agent client: {self._client.transport.host}")
+    def _setup_logging(self, log_level: str = "INFO") -> None:
+        """Set up logging with the specified log level.
+
+        Args:
+            log_level (str, optional): The log level to set. Defaults to "INFO".
+        """
+        log_format = "{levelname:<9} [{name}.{funcName}:{lineno:>5}] {message}"
+        logging.basicConfig(
+            format=log_format,
+            style="{",
+            level=getattr(logging, log_level, logging.INFO),
+            encoding="utf-8",
+        )
+        logger.info(f"Logging level set to: {log_level}")
 
         return
 
-    def _initialize_client(self) -> discoveryengine.ConversationalSearchServiceClient:
-        """Initialize the Conversational Search Service client.
+    def _load_config(self, filepath: str) -> dict[str, Any]:
+        """Load the configuration file and ensure required keys are set.
+
+        Args:
+            filepath (str): The path to the configuration file.
 
         Returns:
-            discoveryengine.ConversationalSearchServiceClient:
-            The client for the Conversational Search Service.
+            dict[str, Any]: The configuration settings.
         """
-        #  For more information, refer to:
-        # https://cloud.google.com/generative-ai-app-builder/docs/locations#specify_a_multi-region_for_your_data_store
-        client_options = (
-            ClientOptions(
-                api_endpoint=f"{self._location}-discoveryengine.googleapis.com"
-            )
-            if self._location != "global"
-            else None
-        )
+        with open(filepath, "r") as file:
+            config: dict = yaml.safe_load(file)
+        logger.debug(f"Loaded configuration: {config}")
 
-        # Create a client
-        return discoveryengine.ConversationalSearchServiceClient(
-            client_options=client_options
-        )
+        return config
 
-    def answer_query(
+    def _load_bigquery_client(self) -> bigquery.Client:
+        """Load the BigQuery client.
+
+        Returns:
+            bigquery.Client: The BigQuery client.
+        """
+        client = bigquery.Client(
+            credentials=self._credentials,
+            project=self._project,
+        )
+        logger.debug(f"BigQuery Client project: {client.project}")
+
+        return client
+
+    def _compose_table(self) -> str:
+        """Compose the BigQuery table name.
+
+        Returns:
+            str: The BigQuery table name.
+        """
+        table = (
+            f"{self._project}.{self._config['dataset_id']}.{self._config['table_id']}"
+        )
+        logger.debug(f"Table: {table}")
+
+        return table
+
+    async def answer_query(
         self,
         query_text: str,
         session_id: str | None,
-    ) -> dict[str, Any]:
+    ) -> AnswerResponse:
         """Call the answer method and return a generated answer and a list of search results,
         with links to the sources.
 
@@ -250,65 +331,72 @@ class DiscoveryEngineAgent:
             session_id (str, optional): The session ID to continue a conversation.
 
         Returns:
-            dict (str, Any): The response from the Conversational Search Service,
-            containing the generated answer and search results, unpacked to a dictionary.
-
-        Ref: https://cloud.google.com/generative-ai-app-builder/docs/answer#search-answer-basic
+            AnswerResponse: The response from the Conversational Search Service,
+            containing the generated answer, citations, references, and a markdown-formatted
+            answer sting to display to the client.
         """
-        # The full resource name of the Search engine.
-        engine = f"projects/{self._project_id}/locations/{self._location}/collections/default_collection/engines/{self._engine_id}"
+        logger.debug(f"Query: {query_text}")
+        logger.debug(f"Session ID: {session_id}")
 
-        # The full resource name of the Search serving config.
-        serving_config = f"{engine}/servingConfigs/default_serving_config"
+        # Start the timer.
+        start_time = time.time()
 
-        # Optional: Options for query phase
-        query_understanding_spec = discoveryengine.AnswerQueryRequest.QueryUnderstandingSpec(
-            query_rephraser_spec=discoveryengine.AnswerQueryRequest.QueryUnderstandingSpec.QueryRephraserSpec(
-                disable=False,  # Optional: Disable query rephraser
-                max_rephrase_steps=1,  # Optional: Number of rephrase steps
-            ),
-            # Optional: Classify query types
-            query_classification_spec=discoveryengine.AnswerQueryRequest.QueryUnderstandingSpec.QueryClassificationSpec(
-                types=[
-                    discoveryengine.AnswerQueryRequest.QueryUnderstandingSpec.QueryClassificationSpec.Type.ADVERSARIAL_QUERY,
-                    discoveryengine.AnswerQueryRequest.QueryUnderstandingSpec.QueryClassificationSpec.Type.NON_ANSWER_SEEKING_QUERY,
-                ]  # Options: ADVERSARIAL_QUERY, NON_ANSWER_SEEKING_QUERY or both
-            ),
+        # Get the answer to the query.
+        response = await asyncio.to_thread(
+            self._search_agent.answer_query,
+            query_text=query_text,
+            session_id=session_id,
         )
 
-        # Optional: Options for answer phase
-        answer_generation_spec = discoveryengine.AnswerQueryRequest.AnswerGenerationSpec(
-            ignore_adversarial_query=False,  # Optional: Ignore adversarial query
-            ignore_non_answer_seeking_query=False,  # Optional: Ignore non-answer seeking query
-            ignore_low_relevant_content=False,  # Optional: Return fallback answer when content is not relevant
-            model_spec=discoveryengine.AnswerQueryRequest.AnswerGenerationSpec.ModelSpec(
-                model_version="gemini-1.5-flash-001/answer_gen/v2",  # Optional: Model to use for answer generation
-            ),
-            prompt_spec=discoveryengine.AnswerQueryRequest.AnswerGenerationSpec.PromptSpec(
-                preamble="Give a detailed answer.",  # Optional: Natural language instructions for customizing the answer.
-            ),
-            include_citations=True,  # Optional: Include citations in the response
-            answer_language_code="en",  # Optional: Language code of the answer
+        # Log the latency in the model response.
+        latency = time.time() - start_time
+        logger.info(f"Search agent latency: {latency:.4f} seconds.")
+
+        # Create a markdown string of the answer text and citations and a dictionary of the full response.
+        markdown = _response_to_markdown(response)
+        response_dict = _response_to_dict(response)
+
+        # Log the response conversion time.
+        conversion_time = time.time() - start_time - latency
+        logger.debug(f"Response conversion time: {conversion_time:.4f} seconds.")
+
+        return AnswerResponse(
+            question=query_text,
+            markdown=markdown,
+            latency=latency,
+            **response_dict,
         )
 
-        # Construct the session name using the engine as the serving config.
-        # Ref: https://cloud.google.com/python/docs/reference/discoveryengine/latest/google.cloud.discoveryengine_v1.types.AnswerQueryRequest
-        session = f"{engine}/sessions/{session_id}" if session_id else None
+    async def bq_insert_row_data(
+        self,
+        data: dict[str, Any],
+    ) -> list[dict[str, Any]] | None:
+        """Insert rows into a BigQuery table.
 
-        # Initialize request argument(s).
-        request = discoveryengine.AnswerQueryRequest(
-            serving_config=serving_config,
-            query=discoveryengine.Query(text=query_text),
-            session=session,  # Optional: include previous session ID to continue a conversation
-            query_understanding_spec=query_understanding_spec,
-            answer_generation_spec=answer_generation_spec,
+        Args:
+            data (dict[str, Any]): The row data to insert.
+
+        Returns:
+            list[dict] | None: A list of errors, if any occurred.
+
+        """
+        # Start the timer.
+        start_time = time.time()
+
+        # Define the BigQuery table.
+        table = (
+            f"{self._project}.{self._config['dataset_id']}.{self._config['table_id']}"
+        )
+        logger.debug(f"Table: {table}")
+
+        # Insert the rows into the BigQuery table.
+        errors = await asyncio.to_thread(
+            self._bq_client.insert_rows_json,
+            table=table,
+            json_rows=[data],
         )
 
-        # Make the request.
-        response = self._client.answer_query(request)
+        # Log the insert time.
+        logger.info(f"Insert row latency: {time.time() - start_time:.4f} seconds.")
 
-        # Handle the response.
-        logger.debug(response)
-        logger.info(f"Answer: {response.answer.answer_text}")
-
-        return _response_to_dict(response)
+        return errors

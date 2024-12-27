@@ -1,5 +1,7 @@
 import pytest
+
 from pydantic import ValidationError
+
 from model import (
     QuestionRequest,
     AnswerResponse,

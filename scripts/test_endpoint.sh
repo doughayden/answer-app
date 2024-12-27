@@ -13,7 +13,8 @@ else
 fi
 
 # Get the custom audience, and get an impersonated ID token.
-source "$SCRIPT_DIR/set_audience_and_token.sh"
+source "$SCRIPT_DIR/set_audience.sh"
+source "$SCRIPT_DIR/set_token.sh"
 
 # Test the API endpoint.
 echo "CURL RESULTS:"

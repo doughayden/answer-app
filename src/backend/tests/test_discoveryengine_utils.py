@@ -1,12 +1,14 @@
 import pytest
+from typing import Generator
 from unittest.mock import patch, MagicMock
-from discoveryengine_utils import DiscoveryEngineAgent
+
 from google.cloud.discoveryengine_v1 import (
     AnswerQueryResponse,
     AnswerQueryRequest,
     Query,
 )
-from typing import Generator
+
+from discoveryengine_utils import DiscoveryEngineAgent
 
 
 @pytest.fixture

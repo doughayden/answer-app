@@ -39,12 +39,12 @@ async def answer(request: QuestionRequest) -> AnswerResponse:
             session_id=request.session_id,
         )
 
-        # Add the original question to the response data.
-        response["question"] = request.question
+        # Dump the response model to a dictionary for loading to BigQuery.
+        data = response.model_dump()
 
         # Log details to BigQuery.
         errors = await utils.bq_insert_row_data(
-            data=response,
+            data=data,
         )
         if errors:
             logger.error(f"Errors loading to Big Query: {errors}")
@@ -54,7 +54,7 @@ async def answer(request: QuestionRequest) -> AnswerResponse:
         elapsed_time = time.time() - start_time
         logger.info(f"Returned an answer in {elapsed_time:.2f} seconds")
 
-        return AnswerResponse(**response)
+        return response
 
     except Exception as e:
         logger.error(f"An error occurred: {e}")
@@ -72,5 +72,4 @@ def get_env_variable(name: str = Query(...)) -> EnvVarResponse:
     """Return the value of an environment variable.
     Ref: https://cloud.google.com/run/docs/testing/local#cloud-code-emulator_1
     """
-    # return {name: os.environ.get(name, f"No variable set for '{name}'")}
     return EnvVarResponse(name=name, value=os.environ.get(name, None))

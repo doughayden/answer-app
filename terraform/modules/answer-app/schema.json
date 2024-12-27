@@ -6,6 +6,12 @@
         "description": "The user's question"
     },
     {
+        "name": "markdown",
+        "type": "STRING",
+        "mode": "REQUIRED",
+        "description": "The markdown-formatted answer including citations and references"
+    },
+    {
         "name": "latency",
         "type": "FLOAT",
         "mode": "REQUIRED",

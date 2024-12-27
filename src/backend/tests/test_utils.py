@@ -1,10 +1,12 @@
 import pytest
+from typing import Generator
 from unittest.mock import patch, MagicMock
-from utils import UtilHandler
+
 from google.cloud.discoveryengine_v1 import AnswerQueryResponse
 from google.auth.credentials import Credentials
+
 from model import AnswerResponse
-from typing import Generator
+from utils import UtilHandler
 
 
 @pytest.fixture

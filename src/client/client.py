@@ -13,23 +13,39 @@ python scripts/client.py
 import json
 import logging
 import os
-import requests
 
-from google.auth import default
+import requests
+from rich.console import Console
+from rich.markdown import Markdown
+
+from auth_utils import get_impersonated_id_token
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(
-    format="{levelname:<9} [{name}.{funcName}:{lineno:>5}] {message}",
+    format="{asctime} {levelname:<9} [{name}.{funcName}:{lineno:>5}] {message}",
     style="{",
     level=logging.DEBUG,
     handlers=[logging.FileHandler(filename="client.log", mode="w", encoding="utf-8")],
     encoding="utf-8",
 )
 
-creds, project = default()
-token = creds.token
-
 audience = os.getenv("AUDIENCE", "http://localhost:8888")
+logger.debug(f"AUDIENCE: {audience}")
+
+target_principal = os.getenv("TF_VAR_terraform_service_account", None)
+logger.debug(f"TARGET PRINCIPAL: {target_principal}")
+
+if target_principal:
+    target_scopes = ["https://www.googleapis.com/auth/cloud-platform"]
+    token = get_impersonated_id_token(
+        target_principal=target_principal,
+        target_scopes=target_scopes,
+        audience=audience,
+    )
+    logger.debug(f"TOKEN: {token}")
+
+# Initialize the console for rich output.
+console = Console()
 
 
 def send_request(
@@ -78,10 +94,10 @@ def main(
             question=question,
             session_id=session_id,
         )
+        markdown = Markdown(response.get("markdown", "No markdown returned."))
         print(2 * "\n")
-        print(
-            f"ANSWER: \n\n{response.get('answer', {}).get('answer_text', 'No answer returned.')}"
-        )
+        print("ANSWER: \n\n")
+        console.print(markdown)
         print(2 * "\n")
         logger.debug(f"Response: {json.dumps(response, indent=2)}")
         session_id = response.get("session", {}).get("name", "").split("/")[-1]

@@ -10,7 +10,7 @@ data "terraform_remote_state" "main" {
 
 locals {
   # Load the configuration file.
-  config = yamldecode(file("../../src/config.yaml"))
+  config = yamldecode(file("../../src/backend/config.yaml"))
 
   # Use the load balancer domain name from the configuration file if it is set.
   # Otherwise, get the domain name from the load balancer module output.
