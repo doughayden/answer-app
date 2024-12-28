@@ -340,7 +340,8 @@ python client.py
 
 Example:
 ```
-> python client.py                                           
+> python client.py
+
 
 Do you want to maintain state? (y/n): y
 
@@ -349,19 +350,88 @@ Session ID: -
 
 Enter a question to send to the Search app. Press Return to exit...
 
-QUESTION: 
+QUESTION:
 
-What amenities does the bank offer its employees?
-
-
-
-ANSWER:
-
-Cymbal Bank offers its employees access to a gym located on the 10th floor of the office building.  Employees need a valid employee badge to enter.  The bank also has a hybrid work policy, allowing employees to work from home or in the office.  Those working remotely must have a dedicated workspace free from distractions.  Additionally,  employees have access to internal tools such as Cymbal Drive (internal communication), Cymbal Expense (expense tracking), Cymbal Fly (travel booking), Cymbal Stay (hotel booking), and Cymbal Work (project management).  IT support is available by contacting the IT department at 1-800-555-1212 for computer or phone issues.
+tell me about the digital transformation project
 
 
 
-Session ID: 17380470679427580942
+ANSWER: 
+
+
+The digital transformation project at Cymbal Bank aims to implement a new digital banking platform to improve customer experience,   
+boost operational efficiency, and enable new financial services.[1]  This involves creating an integrated mobile and web banking     
+platform with features like real-time payments, enhanced security (including multi-factor authentication and encryption),            
+personalized financial insights, and self-service options.[1]                                                                        
+
+The project's goals include enhancing customer experience through intuitive interfaces, increasing operational efficiency by         
+automating processes such as account management and loan applications, enabling future growth with scalable cloud infrastructure,    
+improving security through adherence to banking regulations, and personalizing banking services with AI-driven insights.[1]          
+
+The platform will offer features such as digital account opening, funds transfer (peer-to-peer and bill payments), mobile deposit,   
+budgeting and financial insights, and 24/7 customer support via chatbots.[1]  The infrastructure will be cloud-based (AWS, Azure, or 
+similar) with API integration for third-party services and secure data storage.[1]  Compliance will include KYC (Know Your Customer) 
+processes and adherence to regulations like GDPR.[1]  Customer communication and training will involve a marketing campaign,         
+tutorials, webinars, and in-branch demonstrations.[1]                                                                                
+
+The project has a budget of $2,925,000, encompassing platform development and integration, infrastructure, security and compliance,  
+training and marketing, and a contingency.[1]  Key stakeholders include the CEO (executive sponsor), the project manager, the IT     
+department, operations team, legal and compliance teams, marketing team, vendors, and customers.[1][1]                             
+
+The project timeline includes requirements gathering, design and development (including alpha and beta prototypes), security audits, 
+customer training, a marketing campaign, and a post-go-live support plan.[1]  Milestones include project kickoff, requirements       
+gathering, vendor selection, design and development, user testing, final platform development, security audits, customer training,   
+launch marketing, go-live, and post-go-live support.[1]  Success criteria include achieving at least 85% customer satisfaction, 70%  
+platform adoption within six months, a 15% reduction in operational costs, and regulatory compliance.[1]  Potential risks include    
+data breaches, vendor delivery delays, regulatory non-compliance, customer resistance, and budget overruns, with mitigation          
+strategies in place for each.[1]  Next steps involve confirming project approval, detailed requirements gathering, and establishing  
+regular stakeholder meetings.[1]                                                                                                     
+
+Citations:                                                                                                                           
+
+[1] Project Plan_ Implementation of New Digital Banking Platform for Cymbal Bank                                                     
+
+
+
+Session ID: 16811186210320065380
+
+Enter a question to send to the Search app. Press Return to exit...
+
+QUESTION:
+
+who is involved in it?
+
+
+
+ANSWER: 
+
+
+The digital banking transformation project at Cymbal Bank involves several key stakeholders:[1][1]                                 
+
+ • Executive Sponsor: The CEO of Cymbal Bank.[1]                                                                                     
+ • Project Manager:  A designated individual ([Your Name] in the project plan).[1]                                                   
+ • IT Department:  This includes the Head of IT, lead developers, and the cybersecurity team.[1]                                     
+ • Operations Team:  Comprising the Operations Manager and Customer Support.[1]                                                      
+ • Legal and Compliance:  The Legal Officer and Compliance Officer are involved.[1]                                                  
+ • Marketing Team: The Marketing Manager and Communications team.[1]                                                                 
+ • Vendors: Third-party software vendors for cloud services and mobile app development, etc.[1].                                     
+ • Customers: Current and prospective customers of Cymbal Bank.[1]                                                                   
+
+Additionally, based on other Cymbal Bank organizational information, roles such as Chief Information Officer (CIO), Chief Risk       
+Officer (CRO), Chief Technology Officer (CTO), Cloud Engineers, Cloud Architects, Cloud Analysts, Cloud Administrators, Cloud        
+Developers, Cloud Security Engineers, Customer Service Representatives, Data Analysts, Data Engineers, Data Scientists, Developers,  
+and DevOps Engineers may also be involved in various aspects of the project.[2][2][2][2]  Project Coordinators would assist the    
+Project Manager.[2]  Client Relationship Managers would be involved in understanding customer needs and offering solutions.[2]       
+
+Citations:                                                                                                                           
+
+[1] Project Plan_ Implementation of New Digital Banking Platform for Cymbal Bank                                                     
+
+[2] Cymbal Bank Organizations & Roles                                                                                                
+
+
+
+Session ID: 16811186210320065380
 
 Enter a question to send to the Search app. Press Return to exit...
 
