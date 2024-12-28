@@ -1,12 +1,20 @@
+import base64
 import pytest
 from typing import Generator
 from unittest.mock import patch, MagicMock
 
-from google.cloud.discoveryengine_v1 import AnswerQueryResponse
+from google.cloud.discoveryengine_v1 import AnswerQueryResponse, Answer, Session
 from google.auth.credentials import Credentials
+import pytz
 
-from model import AnswerResponse
-from utils import UtilHandler
+from utils import (
+    UtilHandler,
+    _timestamp_to_string,
+    _response_to_dict,
+    _answer_to_markdown,
+)
+from model import AnswerResponse, ClientCitation
+from google.api_core.datetime_helpers import DatetimeWithNanoseconds
 
 
 @pytest.fixture
@@ -69,6 +77,87 @@ def test_compose_table(
     assert table == "test-project-id.test-dataset.test-table"
 
 
+def test_timestamp_to_string() -> None:
+    timestamp = DatetimeWithNanoseconds(2023, 1, 1, 12, 0, 0, tzinfo=pytz.UTC)
+    assert _timestamp_to_string(timestamp) == "2023-01-01T12:00:00.000000Z"
+    assert _timestamp_to_string(None) is None
+
+
+def test_response_to_dict() -> None:
+    utc = pytz.UTC
+    response = AnswerQueryResponse(
+        answer=Answer(
+            name="answer1",
+            state=Answer.State.SUCCEEDED,
+            answer_text="This is an answer",
+            citations=[],
+            references=[],
+            related_questions=[],
+            steps=[],
+            query_understanding_info=Answer.QueryUnderstandingInfo(
+                query_classification_info=[]
+            ),
+            answer_skipped_reasons=[],
+            create_time=DatetimeWithNanoseconds(2023, 1, 1, 12, 0, 0, tzinfo=utc),
+            complete_time=DatetimeWithNanoseconds(2023, 1, 1, 12, 0, 1, tzinfo=utc),
+        ),
+        session=Session(
+            name="session1",
+            state=Session.State.IN_PROGRESS,
+            user_pseudo_id="user1",
+            turns=[],
+            start_time=DatetimeWithNanoseconds(2023, 1, 1, 12, 0, 0, tzinfo=utc),
+            end_time=DatetimeWithNanoseconds(2023, 1, 1, 12, 0, 1, tzinfo=utc),
+        ),
+        answer_query_token="token1",
+    )
+    response_dict = _response_to_dict(response)
+    assert response_dict["answer"]["name"] == "answer1"
+    assert response_dict["answer"]["state"] == "SUCCEEDED"
+    assert response_dict["answer"]["answer_text"] == "This is an answer"
+    assert response_dict["answer"]["create_time"] == "2023-01-01T12:00:00.000000Z"
+    assert response_dict["answer"]["complete_time"] == "2023-01-01T12:00:01.000000Z"
+    assert response_dict["session"]["name"] == "session1"
+    assert response_dict["session"]["state"] == "IN_PROGRESS"
+    assert response_dict["session"]["user_pseudo_id"] == "user1"
+    assert response_dict["session"]["start_time"] == "2023-01-01T12:00:00.000000Z"
+    assert response_dict["session"]["end_time"] == "2023-01-01T12:00:01.000000Z"
+    assert response_dict["answer_query_token"] == "token1"
+
+
+def test_answer_to_markdown() -> None:
+    answer = Answer(
+        answer_text="This is an answer",
+        citations=[
+            Answer.Citation(
+                start_index=0,
+                end_index=17,
+                sources=[Answer.CitationSource(reference_id="0")],
+            )
+        ],
+        references=[
+            Answer.Reference(
+                chunk_info=Answer.Reference.ChunkInfo(
+                    content="Reference content",
+                    relevance_score=0.9,
+                    document_metadata=Answer.Reference.ChunkInfo.DocumentMetadata(
+                        title="Reference title", uri="http://example.com"
+                    ),
+                )
+            )
+        ],
+    )
+    markdown = _answer_to_markdown(answer)
+    expected_markdown = (
+        "This is an answer_[[1](http://example.com)]_\n\n**Citations:**\n\n"
+        "[1] [Reference title](http://example.com)\n\n"
+    )
+    encoded_expected_markdown = base64.b64encode(
+        expected_markdown.encode("utf-8")
+    ).decode("utf-8")
+    assert markdown == encoded_expected_markdown
+
+
 @pytest.mark.asyncio
 async def test_answer_query_no_session_id(
     mock_google_auth_default: MagicMock,
@@ -76,25 +165,18 @@ async def test_answer_query_no_session_id(
     mock_load_config: MagicMock,
 ) -> None:
     mock_agent_instance = mock_discoveryengine_agent.return_value
-    mock_agent_instance.answer_query.return_value = {
-        "answer": {"answer_text": "Paris"},
-        "session": {"name": "session1"},
-        "answer_query_token": "token1",
-        "latency": 0.1234,
-        "question": "What is the capital of France?",
-    }
-
+    mock_agent_instance.answer_query.return_value = AnswerQueryResponse(
+        answer=Answer(answer_text="Paris"),
+        session=Session(name="session1"),
+        answer_query_token="token1",
+    )
     handler = UtilHandler(log_level="DEBUG")
     response = await handler.answer_query(
-        query_text="What is the capital of France?",
-        session_id=None,
+        query_text="What is the capital of France?", session_id=None
     )
-    assert isinstance(response, dict)
-    assert "answer" in response
-    assert "session" in response
-    assert "latency" in response
-    assert response["answer"]["answer_text"] == "Paris"
-    assert response["question"] == "What is the capital of France?"
+    assert isinstance(response, AnswerResponse)
+    assert response.answer["answer_text"] == "Paris"
+    assert response.question == "What is the capital of France?"
     mock_agent_instance.answer_query.assert_called_once_with(
         query_text="What is the capital of France?",
         session_id=None,
@@ -108,25 +190,19 @@ async def test_answer_query_with_session_id(
     mock_load_config: MagicMock,
 ) -> None:
     mock_agent_instance = mock_discoveryengine_agent.return_value
-    mock_agent_instance.answer_query.return_value = {
-        "answer": {"answer_text": "Paris"},
-        "session": {"name": "test-session"},
-        "answer_query_token": "token1",
-        "latency": 0.1234,
-        "question": "What is the capital of France?",
-    }
-
+    mock_agent_instance.answer_query.return_value = AnswerQueryResponse(
+        answer=Answer(answer_text="Paris"),
+        session=Session(name="test-session"),
+        answer_query_token="token1",
+    )
     handler = UtilHandler(log_level="DEBUG")
     response = await handler.answer_query(
         query_text="What is the capital of France?",
         session_id="test-session",
     )
-    assert isinstance(response, dict)
-    assert "answer" in response
-    assert "session" in response
-    assert "latency" in response
-    assert response["answer"]["answer_text"] == "Paris"
-    assert response["question"] == "What is the capital of France?"
+    assert isinstance(response, AnswerResponse)
+    assert response.answer["answer_text"] == "Paris"
+    assert response.question == "What is the capital of France?"
     mock_agent_instance.answer_query.assert_called_once_with(
         query_text="What is the capital of France?",
         session_id="test-session",

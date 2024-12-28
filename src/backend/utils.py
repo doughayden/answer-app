@@ -1,4 +1,5 @@
 import asyncio
+import base64
 import logging
 import time
 from typing import Any
@@ -22,6 +23,8 @@ def _timestamp_to_string(timestamp: DatetimeWithNanoseconds | None) -> str | Non
 
     Args:
         timestamp: (DatetimeWithNanoseconds): The protobuf Timestamp object.
+        Subclass of datetime.datetime with nanosecond precision from the
+        google.api_core.datetime_helpers module.
 
     Returns:
         str: The timestamp-formatted string. If the input is None, return None.
@@ -183,62 +186,96 @@ def _response_to_dict(response: AnswerQueryResponse) -> dict[str, Any]:
     }
 
 
-def _response_to_markdown(response: AnswerQueryResponse) -> str:
-    """Convert the response object to a markdown-formatted string of
-    the answer text and citations."""
-    answer_text = response.answer.answer_text
-    citations = response.answer.citations
-    references = response.answer.references
+def _answer_to_markdown(answer: Answer) -> str:
+    """Convert the Answer object to a base64-encoded markdown-formatted string of
+    the answer text and citations.
 
+    Args:
+        answer (google.cloud.discoveryengine_v1.types.Answer): The Answer object.
+
+    Returns:
+        str: The markdown-formatted answer text with citations encoded using base64.
+
+    Ref: https://github.com/aurelio-labs/cookbook/blob/main/gen-ai/google-ai/gemini-2/web-search.ipynb
+    """
     # Create a list of ClientCitation objects from the response citations and references.
-    client_citations = [
+    client_citations: list[ClientCitation] = [
         ClientCitation(
-            title=references[
-                int(source.reference_id)
-            ].chunk_info.document_metadata.title,
-            score=references[int(source.reference_id)].chunk_info.relevance_score,
+            # fmt: off
             start_index=citation.start_index,
             end_index=citation.end_index,
-            chunk_index=int(source.reference_id),
-            link=references[int(source.reference_id)].chunk_info.document_metadata.uri,
+            ref_index=int(source.reference_id),
+            content=answer.references[int(source.reference_id)].chunk_info.content,
+            score=answer.references[int(source.reference_id)].chunk_info.relevance_score,
+            title=answer.references[int(source.reference_id)].chunk_info.document_metadata.title,
+            uri=answer.references[int(source.reference_id)].chunk_info.document_metadata.uri,
+            # fmt: on
         )
-        for citation in citations
+        for citation in answer.citations
         for source in citation.sources
     ]
 
     # Sort the client_citations by start index.
     client_citations.sort(key=lambda citation: citation.start_index)
 
-    # Initialize the output with the answer text.
-    markdown = answer_text
-
-    # Initialize the offset for the citation links.
-    offset = 0
-
-    # Iterate through the citations and insert the links into the answer text.
+    # Build a list of deduplicated references in the order they appear in the sorted client_citations.
+    # A unique document URI may be referenced multiple times with different content in the answer.references list.
+    collected_refs: set[str] = set()
+    deduplicated_refs: list[str] = []
     for citation in client_citations:
+        if citation.uri not in collected_refs:
+            deduplicated_refs.append(citation.uri)
+            collected_refs.add(citation.uri)
+
+    # Map the deduplicated reference uris to a citation index starting from 1.
+    citation_index_map: dict[str, int] = {
+        uri: citation_index
+        for citation_index, uri in enumerate(deduplicated_refs, start=1)
+    }
+
+    # Update each citation's index value using it's uri as the key.
+    for citation in client_citations:
+        citation.citation_index = citation_index_map[citation.uri]
+
+    # Initialize the output.
+    markdown: str = answer.answer_text
+    offset = 0
+    footer: str = "\n\n**Citations:**\n\n"
+    collected_citations: set[int] = set()
+
+    for citation in client_citations:
+
+        # Insert citation numbers and links into the answer text.
         markdown = (
             markdown[: citation.end_index + offset]
             + citation.get_inline_link()
             + markdown[citation.end_index + offset :]
         )
 
+        # Append to the citation footer only unique references.
+        footer += (
+            f"[{citation.citation_index}] [{citation.title}]({citation.get_footer_link()})\n\n"
+            if citation.citation_index not in collected_citations
+            else ""
+        )
+
+        # Add the citation index to the set of collected citations to prevent duplicates.
+        collected_citations.add(citation.citation_index)
+
         # Increase the offset by the number of characters added to the answer text.
         offset += citation.count_chars()
 
-    # Create a footer string to list of all the references cited in the response.
-    footer = "\n\nCitations:\n\n"
-    for citation in client_citations:
-        footer += f"[{citation.chunk_index+1}] [{citation.title}]({citation.get_footer_link()})\n\n"
-
-    # Append the footer to the answer text.
+    # Append the footer to the annotated markdown answer text.
     markdown += footer
 
-    return markdown
+    # Base64 encode the markdown string to ensure fidelity when sending over HTTP.
+    encoded_markdown = base64.b64encode(markdown.encode("utf-8")).decode("utf-8")
+
+    return encoded_markdown
 
 
 class UtilHandler:
-    """A utility handler class for the anomaly detection application."""
+    """A utility handler class."""
 
     def __init__(self, log_level: str = "INFO") -> None:
         """Initialize the UtilHandler class.
@@ -353,7 +390,7 @@ class UtilHandler:
         logger.info(f"Search agent latency: {latency:.4f} seconds.")
 
         # Create a markdown string of the answer text and citations and a dictionary of the full response.
-        markdown = _response_to_markdown(response)
+        markdown = _answer_to_markdown(response.answer)
         response_dict = _response_to_dict(response)
 
         # Log the response conversion time.

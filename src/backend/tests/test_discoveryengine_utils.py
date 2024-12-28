@@ -3,8 +3,10 @@ from typing import Generator
 from unittest.mock import patch, MagicMock
 
 from google.cloud.discoveryengine_v1 import (
+    Answer,
     AnswerQueryResponse,
     AnswerQueryRequest,
+    Session,
     Query,
 )
 
@@ -67,10 +69,10 @@ def test_answer_query(
         query_text="What is the capital of France?",
         session_id=None,
     )
-    assert isinstance(response, dict)
-    assert "answer" in response
-    assert "session" in response
-    assert "answer_query_token" in response
+    assert isinstance(response, AnswerQueryResponse)
+    assert isinstance(response.answer, Answer)
+    assert isinstance(response.session, Session)
+    assert isinstance(response.answer_query_token, str)
     mock_client_instance.answer_query.assert_called_once()
     args, kwargs = mock_client_instance.answer_query.call_args
     assert isinstance(args[0], AnswerQueryRequest)

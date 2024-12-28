@@ -27,18 +27,29 @@ class EnvVarResponse(BaseModel):
 
 
 class ClientCitation(BaseModel):
-    title: str
-    score: float
     start_index: int
     end_index: int
-    chunk_index: int
-    link: str
+    ref_index: int
+    content: str
+    score: float
+    title: str
+    citation_index: int | None = None
+    uri: str
 
     def get_inline_link(self):
-        return f"_[[{self.chunk_index+1}]({self.get_footer_link()})]_"
+        # Ensure citation_index is an integer before performing the addition
+        if self.citation_index is None:
+            raise ValueError(
+                "citation_index must be set to an integer before calling get_inline_link"
+            )
+
+        # # Ref: https://www.markdownguide.org/basic-syntax/#adding-titles
+        # return f'_[[{self.citation_index}]({self.get_footer_link()} "{self.content}")]_'
+
+        return f"_[[{self.citation_index}]({self.get_footer_link()})]_"
 
     def get_footer_link(self):
-        url = self.link.replace("gs://", "https://storage.cloud.google.com/")
+        url = self.uri.replace("gs://", "https://storage.cloud.google.com/")
         url_encoded = quote(url, safe=":/")
         return url_encoded
 
