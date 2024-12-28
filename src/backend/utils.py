@@ -198,6 +198,9 @@ def _answer_to_markdown(answer: Answer) -> str:
 
     Ref: https://github.com/aurelio-labs/cookbook/blob/main/gen-ai/google-ai/gemini-2/web-search.ipynb
     """
+    # Start the timer.
+    start_time = time.time()
+
     # Create a list of ClientCitation objects from the response citations and references.
     client_citations: list[ClientCitation] = [
         ClientCitation(
@@ -218,32 +221,25 @@ def _answer_to_markdown(answer: Answer) -> str:
     # Sort the client_citations by start index.
     client_citations.sort(key=lambda citation: citation.start_index)
 
-    # Build a list of deduplicated references in the order they appear in the sorted client_citations.
-    # A unique document URI may be referenced multiple times with different content in the answer.references list.
-    collected_refs: set[str] = set()
-    deduplicated_refs: list[str] = []
-    for citation in client_citations:
-        if citation.uri not in collected_refs:
-            deduplicated_refs.append(citation.uri)
-            collected_refs.add(citation.uri)
-
-    # Map the deduplicated reference uris to a citation index starting from 1.
-    citation_index_map: dict[str, int] = {
-        uri: citation_index
-        for citation_index, uri in enumerate(deduplicated_refs, start=1)
-    }
-
-    # Update each citation's index value using it's uri as the key.
-    for citation in client_citations:
-        citation.citation_index = citation_index_map[citation.uri]
-
     # Initialize the output.
     markdown: str = answer.answer_text
     offset = 0
     footer: str = "\n\n**Citations:**\n\n"
-    collected_citations: set[int] = set()
+    collected_uris: dict[str, int] = {}
+    citation_index = 0
 
     for citation in client_citations:
+        logger.debug(f"Citation: {citation}")
+
+        # Increment the index and append to the footer if the uri is not in the set.
+        if citation.uri not in collected_uris.keys():
+            citation_index += 1
+            collected_uris[citation.uri] = citation_index
+            footer += f"[{citation_index}] [{citation.title}]({citation.get_footer_link()})\n\n"
+
+        citation.update_citation_index(collected_uris[citation.uri])
+        logger.debug(f"Citation index: {citation.citation_index}")
+        logger.debug(f"Footer: {footer}")
 
         # Insert citation numbers and links into the answer text.
         markdown = (
@@ -252,24 +248,18 @@ def _answer_to_markdown(answer: Answer) -> str:
             + markdown[citation.end_index + offset :]
         )
 
-        # Append to the citation footer only unique references.
-        footer += (
-            f"[{citation.citation_index}] [{citation.title}]({citation.get_footer_link()})\n\n"
-            if citation.citation_index not in collected_citations
-            else ""
-        )
-
-        # Add the citation index to the set of collected citations to prevent duplicates.
-        collected_citations.add(citation.citation_index)
-
         # Increase the offset by the number of characters added to the answer text.
         offset += citation.count_chars()
 
-    # Append the footer to the annotated markdown answer text.
+    # Append the footer and log the full annotated markdown answer text.
     markdown += footer
+    logger.debug(f"Markdown: {markdown}")
 
     # Base64 encode the markdown string to ensure fidelity when sending over HTTP.
     encoded_markdown = base64.b64encode(markdown.encode("utf-8")).decode("utf-8")
+
+    # Log the markdown conversion time.
+    logger.debug(f"Markdown conversion time: {time.time() - start_time:.4f} seconds.")
 
     return encoded_markdown
 
@@ -392,10 +382,6 @@ class UtilHandler:
         # Create a markdown string of the answer text and citations and a dictionary of the full response.
         markdown = _answer_to_markdown(response.answer)
         response_dict = _response_to_dict(response)
-
-        # Log the response conversion time.
-        conversion_time = time.time() - start_time - latency
-        logger.debug(f"Response conversion time: {conversion_time:.4f} seconds.")
 
         return AnswerResponse(
             question=query_text,

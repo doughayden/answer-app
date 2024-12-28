@@ -158,6 +158,96 @@ def test_answer_to_markdown() -> None:
     assert markdown == encoded_expected_markdown
 
 
+def test_answer_to_markdown_multiple_citations() -> None:
+    answer = Answer(
+        answer_text="This is an answer. It has multiple citations. Some are repeated. Some are not.",
+        citations=[
+            Answer.Citation(
+                start_index=0,
+                end_index=18,
+                sources=[Answer.CitationSource(reference_id="0")],
+            ),
+            Answer.Citation(
+                start_index=19,
+                end_index=45,
+                sources=[Answer.CitationSource(reference_id="0")],
+            ),
+            Answer.Citation(
+                start_index=46,
+                end_index=64,
+                sources=[Answer.CitationSource(reference_id="4")],
+            ),
+            Answer.Citation(
+                start_index=65,
+                end_index=78,
+                sources=[Answer.CitationSource(reference_id="1")],
+            ),
+        ],
+        references=[
+            Answer.Reference(
+                chunk_info=Answer.Reference.ChunkInfo(
+                    content="Reference content 0",
+                    relevance_score=0.9,
+                    document_metadata=Answer.Reference.ChunkInfo.DocumentMetadata(
+                        title="Reference 0 title", uri="http://example.com"
+                    ),
+                )
+            ),
+            Answer.Reference(
+                chunk_info=Answer.Reference.ChunkInfo(
+                    content="Reference content 1",
+                    relevance_score=0.9,
+                    document_metadata=Answer.Reference.ChunkInfo.DocumentMetadata(
+                        title="Reference 1 title", uri="http://exemplar.com"
+                    ),
+                )
+            ),
+            Answer.Reference(
+                chunk_info=Answer.Reference.ChunkInfo(
+                    content="Reference content 2",
+                    relevance_score=0.9,
+                    document_metadata=Answer.Reference.ChunkInfo.DocumentMetadata(
+                        title="Reference 0 title", uri="http://example.com"
+                    ),
+                )
+            ),
+            Answer.Reference(
+                chunk_info=Answer.Reference.ChunkInfo(
+                    content="Reference content 3",
+                    relevance_score=0.9,
+                    document_metadata=Answer.Reference.ChunkInfo.DocumentMetadata(
+                        title="Reference 1 title", uri="http://exemplar.com"
+                    ),
+                )
+            ),
+            Answer.Reference(
+                chunk_info=Answer.Reference.ChunkInfo(
+                    content="Reference content 4",
+                    relevance_score=0.9,
+                    document_metadata=Answer.Reference.ChunkInfo.DocumentMetadata(
+                        title="Reference 2 title", uri="http://anotherexample.com"
+                    ),
+                )
+            ),
+        ],
+    )
+    markdown = _answer_to_markdown(answer)
+    expected_markdown = (
+        "This is an answer._[[1](http://example.com)]_ "
+        "It has multiple citations._[[1](http://example.com)]_ "
+        "Some are repeated._[[2](http://anotherexample.com)]_ "
+        "Some are not._[[3](http://exemplar.com)]_"
+        "\n\n**Citations:**\n\n"
+        "[1] [Reference 0 title](http://example.com)\n\n"
+        "[2] [Reference 2 title](http://anotherexample.com)\n\n"
+        "[3] [Reference 1 title](http://exemplar.com)\n\n"
+    )
+    encoded_expected_markdown = base64.b64encode(
+        expected_markdown.encode("utf-8")
+    ).decode("utf-8")
+    assert markdown == encoded_expected_markdown
+
+
 @pytest.mark.asyncio
 async def test_answer_query_no_session_id(
     mock_google_auth_default: MagicMock,

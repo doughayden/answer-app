@@ -98,3 +98,14 @@ def test_client_citation() -> None:
     citation.citation_index = None
     with pytest.raises(ValueError):
         citation.get_inline_link()
+
+    # Test update_citation_index method
+    citation.update_citation_index(2)
+    assert citation.citation_index == 2
+    assert (
+        citation.get_inline_link()
+        == "_[[2](https://storage.cloud.google.com/bucket/file.txt)]_"
+    )
+    assert citation.count_chars() == len(
+        "_[[2](https://storage.cloud.google.com/bucket/file.txt)]_"
+    )

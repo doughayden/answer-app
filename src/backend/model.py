@@ -36,6 +36,9 @@ class ClientCitation(BaseModel):
     citation_index: int | None = None
     uri: str
 
+    def update_citation_index(self, citation_index: int):
+        self.citation_index = citation_index
+
     def get_inline_link(self):
         # Ensure citation_index is an integer before performing the addition
         if self.citation_index is None:
