@@ -33,13 +33,6 @@ The Answer App uses [Vertex AI Agent Builder](https://cloud.google.com/generativ
 - [Execute Terraform to apply infrastructure-only changes to the `bootstrap` or `main` module](#execute-terraform-to-apply-infrastructure-only-changes-to-the-bootstrap-or-main-module)
 - [Service Account Impersonation](#service-account-impersonation)
 - [Terraform Overview](#terraform-overview)
-    - [Terraform command alias](#terraform-command-alias)
-    - [Initialize](#initialize)
-    - [Workspaces](#workspaces)
-    - [Terraform Backends](#terraform-backends)
-    - [Flexible Backends - Partial Configuration](#flexible-backends---partial-configuration)
-    - [Reconfiguring a Backend](#reconfiguring-a-backend)
-    - [Plan and Apply](#plan-and-apply)
 
 
 &nbsp;
@@ -498,7 +491,7 @@ The error occurs on the first run of the `bootstrap` module due to a race condit
 
 
 ## Cloud Build fails with a Cloud Storage 403 permission denied error
-([return to top](#network-anomaly-detection-pov))
+([return to top](#vertex-ai-agent-builder-answer-app))
 ### Problem
 Cloud Build fails with a `storage.objects.get` access error when trying to access the Google Cloud Storage object after the first run of the `bootstrap` module.
 
@@ -689,13 +682,16 @@ This overview document provides general instructions to initialize a Terraform w
 - [Flexible Backends - Partial Configuration](#flexible-backends---partial-configuration)
 - [Reconfiguring a Backend](#reconfiguring-a-backend)
 - [Plan and Apply](#plan-and-apply)
-- [Known issues](#known-issues)
 
 
 ## Terraform command alias
+([return to Terraform Overview](#terraform-overview))
+
 Commands in this section assume `tf` is an [alias](https://cloud.google.com/docs/terraform/best-practices-for-terraform#aliases) for `terraform` in your shell.
 
 ## Initialize
+([return to Terraform Overview](#terraform-overview))
+
 The Terraform working directory must be [initialized](https://developer.hashicorp.com/terraform/cli/init) to set up configuration files and download provider plugins.
 ```sh
 # Initialize the working directory.
@@ -703,6 +699,8 @@ tf init
 ```
 
 ## Workspaces
+([return to Terraform Overview](#terraform-overview))
+
 [Terraform workspaces](https://developer.hashicorp.com/terraform/cli/workspaces) allow separation of environments so each is managed in a unique state file.
 
 ```sh
@@ -723,6 +721,8 @@ tf workspace select -or-create nonprod
 ```
 
 ## Terraform Backends
+([return to Terraform Overview](#terraform-overview))
+
 Using the [default (local) backend](https://developer.hashicorp.com/terraform/language/backend#default-backend) doesn't require additional configuration. A [Cloud Storage backend](https://developer.hashicorp.com/terraform/language/backend/gcs) requires these prerequisites:
 - The GCS backend bucket must already exist - Terraform will not create it at `init`.
 Example (edit with your actual project and bucket name):
@@ -750,6 +750,8 @@ terraform {
 ```
 
 ## Flexible Backends - Partial Configuration
+([return to Terraform Overview](#terraform-overview))
+
 - Backend declaration can't accept input variables or use expansion/interpolation because Terraform loads the backend config before anything else.
 - A [partial configuration](https://developer.hashicorp.com/terraform/language/backend#partial-configuration) in the `terraform.backend` block allows flexible backend definition for multiple environments.
 - Partial configurations allow you to include some attributes in the `terraform.backend` block and pass the rest from another source.
@@ -793,12 +795,16 @@ tf init -backend-config="bucket=terraform-state-my-project-id" -backend-config="
 
 
 ## Reconfiguring a Backend
+([return to Terraform Overview](#terraform-overview))
+
 To force Terraform to use a new backend without [migrating](https://spacelift.io/blog/terraform-migrate-state) state data from an existing backend, [initialize](https://developer.hashicorp.com/terraform/cli/commands/init#backend-initialization) with the `-reconfigure` flag. The existing state in the old backend is left unchanged and not copied to the new backend.
 ```sh
 tf init -reconfigure -backend-config="backend_$ENVIRONMENT.gcs.tfbackend
 ```
 
 ## Plan and Apply
+([return to Terraform Overview](#terraform-overview))
+
 Terraform requires declared or default values for [input variables](https://developer.hashicorp.com/terraform/language/values/variables#assigning-values-to-root-module-variables). For example, variables defined in `.tfvars` files to separate environments.
 
 ```sh
