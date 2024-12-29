@@ -149,7 +149,7 @@ def test_answer_to_markdown() -> None:
     )
     markdown = _answer_to_markdown(answer)
     expected_markdown = (
-        "This is an answer_[[1](http://example.com)]_\n\n**Citations:**\n\n"
+        'This is an answer _[[1](http://example.com "Reference content")]_\n\n**Citations:**\n\n'
         "[1] [Reference title](http://example.com)\n\n"
     )
     encoded_expected_markdown = base64.b64encode(
@@ -233,10 +233,10 @@ def test_answer_to_markdown_multiple_citations() -> None:
     )
     markdown = _answer_to_markdown(answer)
     expected_markdown = (
-        "This is an answer._[[1](http://example.com)]_ "
-        "It has multiple citations._[[1](http://example.com)]_ "
-        "Some are repeated._[[2](http://anotherexample.com)]_ "
-        "Some are not._[[3](http://exemplar.com)]_"
+        'This is an answer. _[[1](http://example.com "Reference content 0")]_ '
+        'It has multiple citations. _[[1](http://example.com "Reference content 0")]_ '
+        'Some are repeated. _[[2](http://anotherexample.com "Reference content 4")]_ '
+        'Some are not. _[[3](http://exemplar.com "Reference content 1")]_'
         "\n\n**Citations:**\n\n"
         "[1] [Reference 0 title](http://example.com)\n\n"
         "[2] [Reference 2 title](http://anotherexample.com)\n\n"

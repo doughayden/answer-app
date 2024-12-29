@@ -10,7 +10,7 @@ from model import (
     HealthCheckResponse,
     EnvVarResponse,
 )
-from utils import UtilHandler
+from utils import sanitize, UtilHandler
 
 
 logger = logging.getLogger(__name__)
@@ -29,8 +29,9 @@ async def answer(request: QuestionRequest) -> AnswerResponse:
     start_time = time.time()
 
     # Log the request.
-    logger.info(f"Received question: {request.question}")
-    logger.info(f"Session ID: {request.session_id}")
+    logger.info(f"Received question: {sanitize(request.question)}")
+    request_session_id = request.session_id or "None"
+    logger.info(f"Received session_id: {sanitize(request_session_id)}")
 
     try:
         # Get an answer to the question.
@@ -52,7 +53,7 @@ async def answer(request: QuestionRequest) -> AnswerResponse:
 
         # Log the full time taken to answer the question.
         elapsed_time = time.time() - start_time
-        logger.info(f"Returned an answer in {elapsed_time:.2f} seconds")
+        logger.info(f"Returned an answer in {elapsed_time:.2f} seconds.")
 
         return response
 

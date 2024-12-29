@@ -63,7 +63,7 @@ def test_client_citation() -> None:
         start_index=0,
         end_index=10,
         ref_index=1,
-        content="Test content",
+        content='Test "content"',
         score=0.9,
         title="Test Title",
         citation_index=1,
@@ -72,7 +72,7 @@ def test_client_citation() -> None:
     assert citation.start_index == 0
     assert citation.end_index == 10
     assert citation.ref_index == 1
-    assert citation.content == "Test content"
+    assert citation.content == 'Test "content"'
     assert citation.score == 0.9
     assert citation.title == "Test Title"
     assert citation.citation_index == 1
@@ -81,7 +81,7 @@ def test_client_citation() -> None:
     # Test get_inline_link method
     assert (
         citation.get_inline_link()
-        == "_[[1](https://storage.cloud.google.com/bucket/file.txt)]_"
+        == " _[[1](https://storage.cloud.google.com/bucket/file.txt \"Test 'content'\")]_"
     )
 
     # Test get_footer_link method
@@ -91,7 +91,7 @@ def test_client_citation() -> None:
 
     # Test count_chars method
     assert citation.count_chars() == len(
-        "_[[1](https://storage.cloud.google.com/bucket/file.txt)]_"
+        " _[[1](https://storage.cloud.google.com/bucket/file.txt \"Test 'content'\")]_"
     )
 
     # Test without citation_index
@@ -104,8 +104,8 @@ def test_client_citation() -> None:
     assert citation.citation_index == 2
     assert (
         citation.get_inline_link()
-        == "_[[2](https://storage.cloud.google.com/bucket/file.txt)]_"
+        == " _[[2](https://storage.cloud.google.com/bucket/file.txt \"Test 'content'\")]_"
     )
     assert citation.count_chars() == len(
-        "_[[2](https://storage.cloud.google.com/bucket/file.txt)]_"
+        " _[[2](https://storage.cloud.google.com/bucket/file.txt \"Test 'content'\")]_"
     )

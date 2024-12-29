@@ -46,10 +46,9 @@ class ClientCitation(BaseModel):
                 "citation_index must be set to an integer before calling get_inline_link"
             )
 
-        # # Ref: https://www.markdownguide.org/basic-syntax/#adding-titles
-        # return f'_[[{self.citation_index}]({self.get_footer_link()} "{self.content}")]_'
-
-        return f"_[[{self.citation_index}]({self.get_footer_link()})]_"
+        # Ref: https://www.markdownguide.org/basic-syntax/#adding-titles
+        content = self.content.replace('"', "'")
+        return f' _[[{self.citation_index}]({self.get_footer_link()} "{content}")]_'
 
     def get_footer_link(self):
         url = self.uri.replace("gs://", "https://storage.cloud.google.com/")

@@ -18,6 +18,19 @@ from model import AnswerResponse, ClientCitation
 logger = logging.getLogger(__name__)
 
 
+def sanitize(text: str) -> str:
+    """Sanitize log entry text by removing newline characters.
+    Satisfies GitHub CodeQL security scan.
+
+    Args:
+        text (str): The text to sanitize.
+
+    Returns:
+        str: The sanitized text.
+    """
+    return text.replace("\r\n", "").replace("\n", "")
+
+
 def _timestamp_to_string(timestamp: DatetimeWithNanoseconds | None) -> str | None:
     """Convert a protobuf Timestamp to a standard timestamp-formatted string.
 
@@ -350,7 +363,7 @@ class UtilHandler:
         query_text: str,
         session_id: str | None,
     ) -> AnswerResponse:
-        """Call the answer method and return a generated answer and a list of search results,
+        """Call the answer method to return a generated answer and a list of search results,
         with links to the sources.
 
         Args:
