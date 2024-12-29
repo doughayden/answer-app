@@ -23,7 +23,7 @@ from utils import UtilHandler
 logger = logging.getLogger(__name__)
 
 # Initialize a utility handler.
-utils = UtilHandler(log_level=os.getenv("LOG_LEVEL", "INFO").upper())
+utils = UtilHandler(log_level=os.getenv("LOG_LEVEL", "DEBUG").upper())
 
 # Initialize the console for rich output.
 console = Console()
@@ -63,9 +63,10 @@ def main(
             print("No markdown returned. Exiting...")
             break
 
-        # Decode the markdown and display it.
+        # Decode the markdown and write it to a local file for offline debugging.
         decoded_markdown = base64.b64decode(encoded_markdown).decode("utf-8")
-        logger.debug(f"Decoded markdown: {decoded_markdown}")
+        with open(".log/answer.md", "w") as f:
+            f.write(decoded_markdown)
 
         markdown = Markdown(decoded_markdown)
         print(2 * "\n")

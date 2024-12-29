@@ -47,7 +47,9 @@ class UtilHandler:
             style="{",
             level=getattr(logging, log_level, logging.INFO),
             handlers=[
-                logging.FileHandler(filename="client.log", mode="w", encoding="utf-8")
+                logging.FileHandler(
+                    filename=".log/client.log", mode="w", encoding="utf-8"
+                )
             ],
             encoding="utf-8",
         )
