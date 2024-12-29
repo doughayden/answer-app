@@ -369,8 +369,7 @@ class UtilHandler:
         start_time = time.time()
 
         # Get the answer to the query.
-        response = await asyncio.to_thread(
-            self._search_agent.answer_query,
+        response = await self._search_agent.answer_query(
             query_text=query_text,
             session_id=session_id,
         )

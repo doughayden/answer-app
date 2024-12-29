@@ -45,12 +45,14 @@ class DiscoveryEngineAgent:
 
         return
 
-    def _initialize_client(self) -> discoveryengine.ConversationalSearchServiceClient:
-        """Initialize the Conversational Search Service client.
+    def _initialize_client(
+        self,
+    ) -> discoveryengine.ConversationalSearchServiceAsyncClient:
+        """Initialize the Conversational Search Service async client.
 
         Returns:
-            discoveryengine.ConversationalSearchServiceClient:
-            The client for the Conversational Search Service.
+            discoveryengine.ConversationalSearchServiceAsyncClient:
+            The async client for the Conversational Search Service.
         """
         #  For more information, refer to:
         # https://cloud.google.com/generative-ai-app-builder/docs/locations#specify_a_multi-region_for_your_data_store
@@ -62,12 +64,12 @@ class DiscoveryEngineAgent:
             else None
         )
 
-        # Create a client
-        return discoveryengine.ConversationalSearchServiceClient(
+        # Create an async client
+        return discoveryengine.ConversationalSearchServiceAsyncClient(
             client_options=client_options
         )
 
-    def answer_query(
+    async def answer_query(
         self,
         query_text: str,
         session_id: str | None,
@@ -135,7 +137,7 @@ class DiscoveryEngineAgent:
         )
 
         # Make the request.
-        response = self._client.answer_query(request)
+        response = await self._client.answer_query(request)
 
         # Handle the response.
         logger.debug(response)

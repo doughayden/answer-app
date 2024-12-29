@@ -1,7 +1,7 @@
 import base64
 import pytest
 from typing import Generator
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch, MagicMock, AsyncMock
 
 from google.cloud.discoveryengine_v1 import AnswerQueryResponse, Answer, Session
 from google.auth.credentials import Credentials
@@ -255,10 +255,12 @@ async def test_answer_query_no_session_id(
     mock_load_config: MagicMock,
 ) -> None:
     mock_agent_instance = mock_discoveryengine_agent.return_value
-    mock_agent_instance.answer_query.return_value = AnswerQueryResponse(
-        answer=Answer(answer_text="Paris"),
-        session=Session(name="session1"),
-        answer_query_token="token1",
+    mock_agent_instance.answer_query = AsyncMock(
+        return_value=AnswerQueryResponse(
+            answer=Answer(answer_text="Paris"),
+            session=Session(name="session1"),
+            answer_query_token="token1",
+        )
     )
     handler = UtilHandler(log_level="DEBUG")
     response = await handler.answer_query(
@@ -280,10 +282,12 @@ async def test_answer_query_with_session_id(
     mock_load_config: MagicMock,
 ) -> None:
     mock_agent_instance = mock_discoveryengine_agent.return_value
-    mock_agent_instance.answer_query.return_value = AnswerQueryResponse(
-        answer=Answer(answer_text="Paris"),
-        session=Session(name="test-session"),
-        answer_query_token="token1",
+    mock_agent_instance.answer_query = AsyncMock(
+        return_value=AnswerQueryResponse(
+            answer=Answer(answer_text="Paris"),
+            session=Session(name="test-session"),
+            answer_query_token="token1",
+        )
     )
     handler = UtilHandler(log_level="DEBUG")
     response = await handler.answer_query(

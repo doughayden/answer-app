@@ -1,6 +1,6 @@
 import pytest
 from typing import Generator
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch, MagicMock, AsyncMock
 
 from google.cloud.discoveryengine_v1 import (
     Answer,
@@ -23,7 +23,7 @@ def mock_default() -> Generator[MagicMock, None, None]:
 @pytest.fixture
 def mock_discoveryengine_client() -> Generator[MagicMock, None, None]:
     with patch(
-        "discoveryengine_utils.discoveryengine.ConversationalSearchServiceClient"
+        "discoveryengine_utils.discoveryengine.ConversationalSearchServiceAsyncClient"
     ) as mock_client:
         yield mock_client
 
@@ -57,15 +57,16 @@ def test_log_attributes(
     assert "Search Agent engine ID: test-engine-id" in caplog.text
 
 
-def test_answer_query(
+@pytest.mark.asyncio
+async def test_answer_query(
     mock_default: MagicMock, mock_discoveryengine_client: MagicMock
 ) -> None:
     mock_client_instance = mock_discoveryengine_client.return_value
-    mock_client_instance.answer_query.return_value = AnswerQueryResponse()
+    mock_client_instance.answer_query = AsyncMock(return_value=AnswerQueryResponse())
 
     agent = DiscoveryEngineAgent(location="us-central1", engine_id="test-engine-id")
 
-    response = agent.answer_query(
+    response = await agent.answer_query(
         query_text="What is the capital of France?",
         session_id=None,
     )

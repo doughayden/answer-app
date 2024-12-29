@@ -1,14 +1,14 @@
+import base64
 import os
 import pytest
 from typing import Generator
 from unittest.mock import patch, MagicMock
 
 from fastapi.testclient import TestClient
-from fastapi import HTTPException
+from google.cloud.discoveryengine_v1.types import AnswerQueryResponse, Answer, Session
 
 from main import app
-from google.cloud.discoveryengine_v1.types import AnswerQueryResponse, Answer, Session
-import base64
+
 
 client = TestClient(app)
 
@@ -20,7 +20,18 @@ def set_env_vars() -> Generator[None, None, None]:
     del os.environ["MY_ENV_VAR"]
 
 
-def test_answer_no_session_id() -> None:
+@pytest.mark.asyncio
+@patch("utils.DiscoveryEngineAgent.answer_query")
+@patch("utils.bigquery.Client.insert_rows_json")
+async def test_answer_no_session_id(
+    mock_insert_rows_json: MagicMock, mock_answer_query: MagicMock
+) -> None:
+    mock_insert_rows_json.return_value = []  # Simulate successful insert with no errors
+    mock_answer_query.return_value = AnswerQueryResponse(
+        answer=Answer(answer_text="**Paris**"),
+        session=None,
+        answer_query_token="token1",
+    )
     response = client.post(
         "/answer", json={"question": "What is the capital of France?"}
     )
@@ -81,7 +92,10 @@ async def test_answer_with_wildcard_session_id(
 
     response = client.post(
         "/answer",
-        json={"question": "What is the capital of France?", "session_id": "-"},
+        json={
+            "question": "What is the capital of France?",
+            "session_id": "-",
+        },
     )
     assert response.status_code == 200
     data = response.json()
