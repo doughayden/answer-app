@@ -23,8 +23,3 @@ variable "backend_services" {
   }))
   description = "The list of load balancer backend services."
 }
-
-variable "app_name" {
-  type        = string
-  description = "The application name."
-}

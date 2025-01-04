@@ -139,7 +139,7 @@ echo ""
 # Initialize the Terraform configuration in the main directory using a subshell.
 echo "TERRAFORM MAIN DIRECTORY - INITIALIZE:"
 (
-cd $REPO_ROOT/terraform/main
+cd "$SCRIPT_DIR/../terraform/main"
 terraform init -backend-config="bucket=$BUCKET" -backend-config="impersonate_service_account=$TF_VAR_terraform_service_account" -reconfigure
 )
 echo ""
@@ -148,7 +148,7 @@ echo ""
 # Initialize and apply Terraform in the bootstrap directory using a subshell.
 echo "TERRAFORM BOOTSTRAP DIRECTORY - INITIALIZE AND APPLY:"
 (
-cd $REPO_ROOT/terraform/bootstrap
+cd "$SCRIPT_DIR/../terraform/bootstrap"
 terraform init -backend-config="bucket=$BUCKET" -backend-config="impersonate_service_account=$TF_VAR_terraform_service_account" -reconfigure
 terraform apply
 )

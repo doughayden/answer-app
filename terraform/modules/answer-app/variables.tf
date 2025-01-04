@@ -25,7 +25,7 @@ variable "lb_domain" {
 
 variable "docker_image" {
   description = "The Cloud Run service Docker image."
-  type        = string
+  type        = map(string)
 }
 
 variable "location" {

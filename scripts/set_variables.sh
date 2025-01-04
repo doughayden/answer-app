@@ -21,23 +21,19 @@ else
   export REGION=$region
 fi
 
+# Set the BUCKET variable for Terraform remote state storage.
+export BUCKET="terraform-state-${PROJECT}"
+
 # Set the project_id and terraform_service_account Terraform input variables.
 export TF_VAR_project_id=$PROJECT
 export TF_VAR_terraform_service_account="terraform-service-account@${PROJECT}.iam.gserviceaccount.com"
-
-# Set the REPO_ROOT environment variable.
-export REPO_ROOT=$(git rev-parse --show-toplevel)
-
-# Set the BUCKET variable for Terraform remote state storage.
-export BUCKET="terraform-state-${PROJECT}"
 
 # Display the environment variables.
 echo ""
 echo "PROJECT: $PROJECT"
 echo "REGION: $REGION"
+echo "BUCKET: $BUCKET"
 echo "TF_VAR_project_id: $TF_VAR_project_id"
 echo "TF_VAR_terraform_service_account: $TF_VAR_terraform_service_account"
-echo "BUCKET: $BUCKET"
-echo "REPO_ROOT: $REPO_ROOT"
 echo ""
 echo ""

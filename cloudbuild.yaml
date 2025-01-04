@@ -10,9 +10,11 @@ substitutions:
   _REPO_ID: 'answer-app'
   _REPO_NAME: '${LOCATION}-docker.pkg.dev/${PROJECT_ID}/${_REPO_ID}'
   _DOCKER_IMAGE_ANSWER_APP: '${_REPO_NAME}/answer-app'
+  _DOCKER_IMAGE_ANSWER_APP_CLIENT: '${_REPO_NAME}/answer-app-client'
   _TF_VAR_DOCKER_IMAGE: |
     {
-      "answer-app": "${_DOCKER_IMAGE_ANSWER_APP}:${BUILD_ID}"
+      "answer-app": "${_DOCKER_IMAGE_ANSWER_APP}:${BUILD_ID}",
+      "answer-app-client": "${_DOCKER_IMAGE_ANSWER_APP_CLIENT}:${BUILD_ID}"
     }
   # _RUN_TYPE will be 'plan' by default. Override with 'apply' to apply changes.
   _RUN_TYPE: 'plan'
@@ -39,6 +41,24 @@ steps:
   waitFor: ['build-answer-app-backend']
   dir: 'src/backend'
   args: ['push', '--all-tags', '${_DOCKER_IMAGE_ANSWER_APP}']
+
+- id: build-answer-app-client
+  name: 'gcr.io/cloud-builders/docker'
+  waitFor: ['tree']
+  dir: 'src/client'
+  args: [
+    'build',
+    '-t', '${_DOCKER_IMAGE_ANSWER_APP_CLIENT}:latest',
+    '-t', '${_DOCKER_IMAGE_ANSWER_APP_CLIENT}:${BUILD_ID}',
+    '-f', 'Dockerfile',
+    '.'
+  ]
+
+- id: push-answer-app-client
+  name: 'gcr.io/cloud-builders/docker'
+  waitFor: ['build-answer-app-client']
+  dir: 'src/client'
+  args: ['push', '--all-tags', '${_DOCKER_IMAGE_ANSWER_APP_CLIENT}']
 
 # test image names in the terraform builder
 - id: test_image_names

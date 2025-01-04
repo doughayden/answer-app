@@ -18,7 +18,6 @@ customer_name: Cymbal
 create_loadbalancer: true
 
 # Set loadbalancer_domain to a domain you control or leave null to use an auto-generated domain with https://nip.io.
-# Skipped when create_loadbalancer is false.
 # Requires editing the DNS zone A record to point to the load balancer IP address.
 loadbalancer_domain: null
 

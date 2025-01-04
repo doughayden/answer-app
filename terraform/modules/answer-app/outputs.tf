@@ -9,6 +9,7 @@ output "bigquery_table_id" {
 }
 
 output "docker_image" {
+  # Not used by the calling (main) module.
   description = "The Cloud Run service Docker image."
   value       = google_cloud_run_v2_service.run_app.template.0.containers.0.image
 }
@@ -20,7 +21,7 @@ output "service_id" {
 
 output "service_name" {
   description = "The Cloud Run service name. Also names the serverless NEG and backend service."
-  value       = var.app_name
+  value       = google_cloud_run_v2_service.run_app.name
 }
 
 output "cloudrun_backend_service_id" {
@@ -31,6 +32,37 @@ output "cloudrun_backend_service_id" {
 output "cloudrun_custom_audiences" {
   description = "The list of custom audiences to authenticated calls to the Cloud Run service."
   value       = google_cloud_run_v2_service.run_app.custom_audiences
+}
+
+output "client_docker_image" {
+  # Not used by the calling (main) module.
+  description = "The Cloud Run service Docker image."
+  value       = google_cloud_run_v2_service.run_app_client.template.0.containers.0.image
+}
+
+output "client_service_id" {
+  description = "The Cloud Run service ID."
+  value       = google_cloud_run_v2_service.run_app_client.id
+}
+
+output "client_service_name" {
+  description = "The Cloud Run service name. Also names the serverless NEG and backend service."
+  value       = google_cloud_run_v2_service.run_app_client.name
+}
+
+output "cloudrun_client_backend_service_id" {
+  description = "The Cloud Run backend service ID."
+  value       = google_compute_backend_service.run_app_client.id
+}
+
+# output "cloudrun_client_custom_audiences" {
+#   description = "The list of custom audiences to authenticated calls to the Cloud Run service."
+#   value       = google_cloud_run_v2_service.run_app_client.custom_audiences
+# }
+
+output "client_service_uri" {
+  description = "The URL to access the web client application."
+  value       = google_cloud_run_v2_service.run_app_client.uri
 }
 
 output "data_store_id" {
@@ -51,4 +83,14 @@ output "app_service_account_email" {
 output "app_service_account_member" {
   description = "The app service-attached service account member."
   value       = google_service_account.app_service_account.member
+}
+
+output "client_app_service_account_email" {
+  description = "The app service-attached service account email address."
+  value       = google_service_account.client_app_service_account.email
+}
+
+output "client_app_service_account_member" {
+  description = "The app service-attached service account member."
+  value       = google_service_account.client_app_service_account.member
 }

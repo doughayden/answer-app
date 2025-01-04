@@ -23,6 +23,11 @@ output "app_service_account" {
   value       = module.answer_app.app_service_account_email
 }
 
+output "client_app_service_account" {
+  description = "The Cloud Run app service account email address."
+  value       = module.answer_app.client_app_service_account_email
+}
+
 output "data_store_id" {
   description = "The Agent Builder data store ID."
   value       = module.answer_app.data_store_id
@@ -46,4 +51,9 @@ output "custom_audience" {
 output "terraform_service_account" {
   description = "The Terraform provisioning service account email address."
   value       = var.terraform_service_account
+}
+
+output "client_app_uri" {
+  description = "The URI to access the web client application."
+  value       = local.config.create_loadbalancer ? "https://${local.lb_domain}/answer-app-client" : module.answer_app.client_service_uri
 }

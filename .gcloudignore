@@ -336,3 +336,8 @@ terraform.rc
 # folders
 .vscode/
 .history/
+
+# unit tests
+tests/
+test/
+pytest.ini

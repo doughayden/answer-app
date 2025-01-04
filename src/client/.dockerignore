@@ -1,0 +1,25 @@
+# Github workflows.
+.github/
+
+# Ignore all temp directories
+**/.tmp/
+
+# Virtual environment.
+.venv/
+
+# VS Code settings.
+.vscode/
+
+# Repo folders not part of the application.
+assets/
+terraform/
+
+# Other files.
+Dockerfile
+README.md
+*.pyc
+*.pyo
+*.pyd
+__pycache__
+.pytest_cache
+.log/

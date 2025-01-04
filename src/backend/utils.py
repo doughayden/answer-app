@@ -418,16 +418,10 @@ class UtilHandler:
         # Start the timer.
         start_time = time.time()
 
-        # Define the BigQuery table.
-        table = (
-            f"{self._project}.{self._config['dataset_id']}.{self._config['table_id']}"
-        )
-        logger.debug(f"Table: {table}")
-
         # Insert the rows into the BigQuery table.
         errors = await asyncio.to_thread(
             self._bq_client.insert_rows_json,
-            table=table,
+            table=self._table,
             json_rows=[data],
         )
 

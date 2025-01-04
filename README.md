@@ -14,7 +14,7 @@ The Answer App uses [Vertex AI Agent Builder](https://cloud.google.com/generativ
 - [Add an A record to the DNS Managed Zone](#add-an-a-record-to-the-dns-managed-zone)
 - [Test the endpoint](#test-the-endpoint)
 - [Import documents](#import-documents)
-<!-- - [Configure Identity-Aware Proxy](#configure-identity-aware-proxy) -->
+- [Configure Identity-Aware Proxy](#configure-identity-aware-proxy)
 - [Use the app](#use-the-app)
 
 ## Tests
@@ -23,8 +23,7 @@ The Answer App uses [Vertex AI Agent Builder](https://cloud.google.com/generativ
 ## Known Issues
 - [Failure to create the Artifact Registry repository](#failure-to-create-the-artifact-registry-repository)
 - [Cloud Build fails with a Cloud Storage 403 permission denied error](#cloud-build-fails-with-a-cloud-storage-403-permission-denied-error)
-<!-- - [Errors adding users to Identity-Aware Proxy](#errors-adding-users-to-identity-aware-proxy) -->
-- [Inconsistent Terraform plan](#inconsistent-terraform-plan)
+- [Errors adding users to Identity-Aware Proxy](#errors-adding-users-to-identity-aware-proxy)
 - [Errors reading or editing Terraform resources](#errors-reading-or-editing-terraform-resources)
 
 ## Reference Info
@@ -161,7 +160,6 @@ Shell scripts in the `terraform/scripts` directory automate common tasks.
   - `TF_VAR_project_id`: The Google Cloud project ID for Terraform.
   - `TF_VAR_terraform_service_account`: The Terraform service account email address.
   - `BUCKET`: The staging bucket for Vertex AI Data Store documents.
-  - `REPO_ROOT`: The root directory of the cloned repository.
 - `test_endpoint.sh`: Test the `answer-app` endpoint with a `curl` request.
 
 Make the helper scripts executable.
@@ -210,14 +208,14 @@ Verify/Change parameters as needed:
 Source the `set_variables.sh` script to configure the shell environment if you restarted your shell session or made changes to the environment variables.
 - The `bootstrap.sh` script sources this file to set the environment variables and it's not necessary to run it again in the same shell session.
 ```sh
-source terraform/scripts/set_variables.sh # change the path if necessary
+source scripts/set_variables.sh # change the path if necessary
 ```
 
 ## 3. Build & push the docker images and apply the Terraform configuration
-Use `gcloud` to submit the build from the root directory as the build context.
+Use `gcloud` to submit the build from the `answer-app` root directory (the location of this README file) as the build context.
 - [OPTIONAL] Omit the `_RUN_TYPE=apply` substitution to run a plan-only build and review the Terraform changes before applying.
 ```sh
-cd $REPO_ROOT
+cd /path/to/answer-app # replace with the local system path to the answer-app root directory
 gcloud builds submit . --config=cloudbuild.yaml --project=$PROJECT --region=$REGION --substitutions="_RUN_TYPE=apply"
 ```
 
@@ -268,7 +266,7 @@ scripts/test_endpoint.sh # change the path if necessary
 - [cloud-samples-data/gen-app-builder/search/cymbal-bank-employee](https://console.cloud.google.com/storage/browser/cloud-samples-data/gen-app-builder/search/cymbal-bank-employee)
 
 
-<!-- &nbsp;
+&nbsp;
 # Configure Identity-Aware Proxy
 ([return to top](#vertex-ai-agent-builder-answer-app))
 - Configuring IAP for an 'External' app is only possible from the Google Cloud Console.
@@ -277,7 +275,7 @@ scripts/test_endpoint.sh # change the path if necessary
 
 ## Steps
 1. Search for Identity-Aware Proxy (or "IAP") in the Console to navigate to it, then select "Enable API". Once the API is enabled, select "Go to Identity-Aware Proxy".  
-2. You will be prompted to "Configure Consent Screen". A consent screen is what is shown to a user to display which elements of their information are requested by the app and to give them a chance to agree to that or not. Select "Configure Consent Screen".
+2. You will be prompted to "Configure Consent Screen". A consent screen is what is shown to a user to display which elements of their information are requested by the app and to let them choose whether to proceed. Select "Configure Consent Screen".
 
 ![Identity-Aware Proxy configuration](assets/configure_consent.png)
 
@@ -285,153 +283,45 @@ scripts/test_endpoint.sh # change the path if necessary
 
 ![Identity-Aware Proxy user type of External](assets/external_app.png)
 
-4. When configuring your consent screen, identify your app with a name (ex. "Talk To Docs")  
-5. Provide a user support email address (any).  
+4. When configuring your consent screen, identify your app with a name (ex. "Answer App").
+5. Provide a user support email address (any).
 6. Under "Authorized domains" select "Add Domain" and then list the app top-level domain as Authorized domain 1.
     - i.e. if you used the hostname `app.example.com` then the top-level domain is `example.com`.
     - If you used the default domain using the `nip.io` service with a hostname like `35.244.148.105.nip.io`, then the top-level domain is `nip.io`.
-7. Add your email address as the "Developer contact information" email address. Click "Save and continue". You can also click "Save and continue" on the following two screens, then on the Summary page click "Back to Dashboard."  
+7. Add your email address as the "Developer contact information" email address. Click "Save and continue". You can also click "Save and continue" on the following two screens, then on the Summary page click "Back to Dashboard."
 8. From the "OAuth consent screen" summary page, under Publishing Status, select "Publish app" and "Confirm". This will allow you to add any Google identity to which you grant the "IAP-secured Web App User" role to access the app, rather than additionally needing to add them as a test user on the OAuth consent screen.
 
 ![OAuth Consent Screen configuration](assets/app_registration.png)
 
-9. Navigate back to the "Load Balancing" dashboard, select your load balancer, and then the Certificate name. If this is not yet ACTIVE, we will need to wait until it reaches ACTIVE status. Take a break and refresh occasionally.  
-10. When the certificate is ACTIVE, navigate back to Identity-Aware Proxy by searching "IAP" at the top of the Console.  
-11. Toggle on IAP protection of our backend service. The backend service may show a status of Error before you enable IAP, but enabling it should complete its configuration. You will be prompted to review configuration requirements, and then select the checkbox confirming your understanding and select "Turn On."  
->> Make sure to only enable IAP for `t2x-ui` and leave `t2x-api` without IAP enabled (since it is not being exposed).
+9. Navigate back to the "Load Balancing" dashboard, select your load balancer, and then the Certificate name. If this is not yet ACTIVE, we will need to wait until it reaches ACTIVE status. Take a break and refresh occasionally.
+10. When the certificate is ACTIVE, navigate back to Identity-Aware Proxy by searching "IAP" at the top of the Console.
+11. Toggle on IAP protection **ONLY** for the `answer-app-client` backend service (and not for the `answer-app` backend). You will be prompted to review configuration requirements, and then select the checkbox confirming your understanding and select "Turn On."
+    - The service will show an Error status when IAP is not enabled. This is expected until the IAP configuration is complete.
+    - Users don't directly access the `answer-app` backend service. Instead, it enforces [authentication on the calling service](https://cloud.google.com/run/docs/authenticating/service-to-service) (the client app in this case). The IAP Error status will not affect it's functionality (which does not rely on IAP for access).
 
 ![OAuth Consent Screen configuration](assets/enable_iap.png)
 
 12. Add a Google Identity (i.e a user or group) with the "IAP-secured Web App User" role.
     - See the [Known Issues](#errors-adding-users-to-identity-aware-proxy) section for information about "Policy updated failed" errors due to the [Domain restricted sharing Org policy](https://cloud.google.com/resource-manager/docs/organization-policy/restricting-domains#example_error_message).
 13. You may see an "Error: Forbidden" message for about the first 5 minutes, but after that users with the "IAP-secured Web App User" role on the Project or IAP backend service should be able to access the app via the domain on the Load Balancer certificate.
-    - i.e. `https://app.example.com` or `https://35.244.148.105.nip.io` -->
-
+    - i.e. `https://app.example.com` or `https://35.244.148.105.nip.io`
 
 
 &nbsp;
 # Use the app
 ([return to top](#vertex-ai-agent-builder-answer-app))
 
-Use the helper script to send a question to the `answer-app` endpoint.
-- Source the `set_audience.sh` script to set the endpoint audience for the deployed service.
-- It also sets other required environment variables for the shell session by sourcing the `set_variables.sh` script.
+Terraform deploys a `streamlit` [web client](src/client/streamlit_app.py) to Cloud Run that's accessible via the load balancer domain.
+- Get the client app URL from Terraform output.
 ```sh
-source scripts/set_audience.sh # change the path if necessary
+cd terraform/main # change the path if necessary
+terraform output client_app_uri
 ```
-
-- Send a question to the `answer-app` endpoint using the `client.py` script.
-```sh
-cd $REPO_ROOT/src/client
-python client.py
-```
-
-- Choose to use stateful or stateless sessions.
-- Type questions related to the imported documents to test the generative answers.
-- Follow instructions in the terminal screen to send questions, quit, or continue.
-- Review the complete response details in the debug logs written locally to `client.log`. (Log file gets overwritten in your working directory with each new session.)
-
-Example:
-```
-> python client.py
-
-
-Do you want to maintain state? (y/n): y
-
-
-Session ID: -
-
-Enter a question to send to the Search app. Press Return to exit...
-
-QUESTION:
-
-tell me about the digital transformation project
-
-
-
-ANSWER: 
-
-
-The digital transformation project at Cymbal Bank aims to implement a new digital banking platform to improve customer experience,   
-boost operational efficiency, and enable new financial services.[1]  This involves creating an integrated mobile and web banking     
-platform with features like real-time payments, enhanced security (including multi-factor authentication and encryption),            
-personalized financial insights, and self-service options.[1]                                                                        
-
-The project's goals include enhancing customer experience through intuitive interfaces, increasing operational efficiency by         
-automating processes such as account management and loan applications, enabling future growth with scalable cloud infrastructure,    
-improving security through adherence to banking regulations, and personalizing banking services with AI-driven insights.[1]          
-
-The platform will offer features such as digital account opening, funds transfer (peer-to-peer and bill payments), mobile deposit,   
-budgeting and financial insights, and 24/7 customer support via chatbots.[1]  The infrastructure will be cloud-based (AWS, Azure, or 
-similar) with API integration for third-party services and secure data storage.[1]  Compliance will include KYC (Know Your Customer) 
-processes and adherence to regulations like GDPR.[1]  Customer communication and training will involve a marketing campaign,         
-tutorials, webinars, and in-branch demonstrations.[1]                                                                                
-
-The project has a budget of $2,925,000, encompassing platform development and integration, infrastructure, security and compliance,  
-training and marketing, and a contingency.[1]  Key stakeholders include the CEO (executive sponsor), the project manager, the IT     
-department, operations team, legal and compliance teams, marketing team, vendors, and customers.[1][1]                             
-
-The project timeline includes requirements gathering, design and development (including alpha and beta prototypes), security audits, 
-customer training, a marketing campaign, and a post-go-live support plan.[1]  Milestones include project kickoff, requirements       
-gathering, vendor selection, design and development, user testing, final platform development, security audits, customer training,   
-launch marketing, go-live, and post-go-live support.[1]  Success criteria include achieving at least 85% customer satisfaction, 70%  
-platform adoption within six months, a 15% reduction in operational costs, and regulatory compliance.[1]  Potential risks include    
-data breaches, vendor delivery delays, regulatory non-compliance, customer resistance, and budget overruns, with mitigation          
-strategies in place for each.[1]  Next steps involve confirming project approval, detailed requirements gathering, and establishing  
-regular stakeholder meetings.[1]                                                                                                     
-
-Citations:                                                                                                                           
-
-[1] Project Plan_ Implementation of New Digital Banking Platform for Cymbal Bank                                                     
-
-
-
-Session ID: 16811186210320065380
-
-Enter a question to send to the Search app. Press Return to exit...
-
-QUESTION:
-
-who is involved in it?
-
-
-
-ANSWER: 
-
-
-The digital banking transformation project at Cymbal Bank involves several key stakeholders:[1][1]                                 
-
- • Executive Sponsor: The CEO of Cymbal Bank.[1]                                                                                     
- • Project Manager:  A designated individual ([Your Name] in the project plan).[1]                                                   
- • IT Department:  This includes the Head of IT, lead developers, and the cybersecurity team.[1]                                     
- • Operations Team:  Comprising the Operations Manager and Customer Support.[1]                                                      
- • Legal and Compliance:  The Legal Officer and Compliance Officer are involved.[1]                                                  
- • Marketing Team: The Marketing Manager and Communications team.[1]                                                                 
- • Vendors: Third-party software vendors for cloud services and mobile app development, etc.[1].                                     
- • Customers: Current and prospective customers of Cymbal Bank.[1]                                                                   
-
-Additionally, based on other Cymbal Bank organizational information, roles such as Chief Information Officer (CIO), Chief Risk       
-Officer (CRO), Chief Technology Officer (CTO), Cloud Engineers, Cloud Architects, Cloud Analysts, Cloud Administrators, Cloud        
-Developers, Cloud Security Engineers, Customer Service Representatives, Data Analysts, Data Engineers, Data Scientists, Developers,  
-and DevOps Engineers may also be involved in various aspects of the project.[2][2][2][2]  Project Coordinators would assist the    
-Project Manager.[2]  Client Relationship Managers would be involved in understanding customer needs and offering solutions.[2]       
-
-Citations:                                                                                                                           
-
-[1] Project Plan_ Implementation of New Digital Banking Platform for Cymbal Bank                                                     
-
-[2] Cymbal Bank Organizations & Roles                                                                                                
-
-
-
-Session ID: 16811186210320065380
-
-Enter a question to send to the Search app. Press Return to exit...
-
-QUESTION:
-
-
-```
+- Open the URL in a web browser to access the client app.
+- Use the web client to send questions to the `answer-app` endpoint and view the generative answers.
+- Hover over the inline citations to view details about the source document chunks used to generate the answer.
+- Click on inline citations or the links in the Citations footer to view the source documents in a new tab.
+![Web Client](assets/web_client.png)
 
 
 &nbsp;
@@ -443,13 +333,13 @@ QUESTION:
 The `src/backend/tests` directory contains unit tests for the `answer-app` backend service. Use the `pytest` command to run the tests.
 - Run all tests in the `src/tests` directory using `pytest` from the `src/backend` directory.
 ```sh
-cd src/backend
+cd src/backend # change the path if necessary
 pytest
 ```
 
 - Generate a coverage report with the `--cov` flag.
 ```sh
-cd src/backend
+cd src/backend # change the path if necessary
 pytest --cov=.
 ```
 
@@ -507,7 +397,7 @@ ERROR: (gcloud.builds.submit) INVALID_ARGUMENT: could not resolve source: google
 The error can occur shortly after setting up a new project with the `bootstrap` module for the first time. It's a race condition where the Cloud Build service account IAM role bindings have not yet propagated. Rerun the Cloud Build job to resolve the error.
 
 
-<!-- ## Errors adding users to Identity-Aware Proxy
+## Errors adding users to Identity-Aware Proxy
 ([return to top](#vertex-ai-agent-builder-answer-app))
 ### Problem
 When [adding members to the IAP-secured backend service](#configure-identity-aware-proxy), a [Domain restricted sharing Org policy](https://cloud.google.com/resource-manager/docs/organization-policy/restricting-domains) causes an error message like this:\
@@ -516,28 +406,7 @@ When [adding members to the IAP-secured backend service](#configure-identity-awa
 ### Solution
 1. [Edit the policy](https://cloud.google.com/resource-manager/docs/organization-policy/creating-managing-policies#creating_and_editing_policies) to temporarily disable it.
 2. Add the members to IAP-protected backend service IAM policy.
-3. Re-enable the policy. -->
-
-## Inconsistent Terraform plan
-([return to top](#vertex-ai-agent-builder-answer-app))
-### Problem
-The Terraform Google provider sometimes returns an inconsistent plan during `apply` operations.
-
-Example:
-```
-│ Error: Provider produced inconsistent final plan
-│ 
-│ When expanding the plan for google_compute_region_backend_service.t2x_backend_api to include new values learned so far during apply, provider "registry.terraform.io/hashicorp/google" produced an invalid new value for
-│ .backend: planned set element cty.ObjectVal(map[string]cty.Value{"balancing_mode":cty.StringVal("UTILIZATION"), "capacity_scaler":cty.NumberIntVal(1), "description":cty.StringVal(""), "failover":cty.UnknownVal(cty.Bool),
-│ "group":cty.UnknownVal(cty.String), "max_connections":cty.NullVal(cty.Number), "max_connections_per_endpoint":cty.NullVal(cty.Number), "max_connections_per_instance":cty.NullVal(cty.Number),
-│ "max_rate":cty.NullVal(cty.Number), "max_rate_per_endpoint":cty.NullVal(cty.Number), "max_rate_per_instance":cty.NullVal(cty.Number), "max_utilization":cty.MustParseNumberVal("0.8")}) does not correlate with any element
-│ in actual.
-│ 
-│ This is a bug in the provider, which should be reported in the provider's own issue tracker.
-```
-
-### Solution
-You can usually ignore the error messages because the resources get successfully created or updated. If the error persists, try running `terraform apply` again or refer to the provider's documentation.
+3. Re-enable the policy.
 
 
 ## Errors reading or editing Terraform resources
@@ -570,8 +439,8 @@ Retry the operation to clear the error. If the error persists, check your networ
 
 Edit and verify these files to connect the Cloud Run services to an existing load balancer.
 
-### [`config.yaml`](src/config.yaml#L18)
-- Set `create_loadbalancer = false` **AND** set `global_lb_domain` to the value of the existing load balancer domain.
+### [`config.yaml`](src/backend/config.yaml#L18)
+- Set `create_loadbalancer = false` **AND** set `loadbalancer_domain` to the value of the existing load balancer domain.
 
 ### [`cloudrun.tf`](terraform/modules/answer-app/cloudrun.tf#L65)
 - Ensure the Terraform `cloud-run` module resource `google_compute_backend_service.run_app` argument [`load_balancing_scheme`](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/compute_backend_service#load_balancing_scheme) matches the existing [load balancer type](https://cloud.google.com/load-balancing/docs/backend-service).
@@ -599,7 +468,7 @@ Edit and verify these files to connect the Cloud Run services to an existing loa
 - Apply the Terraform configuration to update the Cloud Run service to the rollback target.
 
 ### Example: select an image by digest or tag from Artifact Registry.
-1. Source the `set_variables.sh` script to configure the shell environment (provides variables including `PROJECT` and `REPO_ROOT`). Refer to the [Prerequisites](#prerequisites) section for details on configuring the `gcloud` CLI.
+1. Source the `set_variables.sh` script to configure the shell environment (provides variables including `PROJECT` and `BUCKET`). Refer to the [Prerequisites](#prerequisites) section for details on configuring the `gcloud` CLI.
 ```sh
 source scripts/set_variables.sh # change the path if necessary
 ```
@@ -608,7 +477,7 @@ source scripts/set_variables.sh # change the path if necessary
     - See the [Terraform Backends](#terraform-backends) section for more information.
     - You might need to [reconfigure the backend](#reconfiguring-a-backend) if you've already initialized the module.
 ```sh
-cd $REPO_ROOT/terraform/main
+cd terraform/main # change the path if necessary
 terraform init -backend-config="bucket=$BUCKET" -backend-config="impersonate_service_account=$TF_VAR_terraform_service_account" -reconfigure
 ```
 
@@ -633,7 +502,7 @@ terraform apply
 
 Applying the resources from the `bootstrap` module is a one-time setup for a new project. You can re-run it, for example, to add or enable additional APIs to support future development. You can apply infrastructure-only changes to the `main` module to update cloud resources without rebuilding the Docker images (and without using Cloud Build). If you don't provide docker image names as input variables, the `main` retrieves the last-deployed Docker images from the module state and reuses them in the Cloud Run services.
 
-1. Source the `set_variables.sh` script to configure the shell environment (provides variables including `PROJECT` and `REPO_ROOT`). Refer to the [Prerequisites](#prerequisites) section for details on configuring the `gcloud` CLI.
+1. Source the `set_variables.sh` script to configure the shell environment (provides variables including `PROJECT` and `BUCKET`). Refer to the [Prerequisites](#prerequisites) section for details on configuring the `gcloud` CLI.
 ```sh
 source scripts/set_variables.sh # change the path if necessary
 ```
@@ -642,7 +511,7 @@ source scripts/set_variables.sh # change the path if necessary
     - See the [Terraform Backends](#terraform-backends) section for more information.
     - You might need to [reconfigure the backend](#reconfiguring-a-backend) if you've already initialized the module.
 ```sh
-cd $REPO_ROOT/terraform/main # or cd $REPO_ROOT/terraform/bootstrap
+cd terraform/main # or cd terraform/bootstrap, change the path if necessary
 terraform init -backend-config="bucket=$BUCKET" -backend-config="impersonate_service_account=$TF_VAR_terraform_service_account" -reconfigure
 ```
 

@@ -20,7 +20,7 @@ source "$SCRIPT_DIR/set_variables.sh"
 # Get the cloud run custom audience from the main module outputs.
 echo "Getting the custom audience from the main Terraform module output..."
 export AUDIENCE=$(
-cd $REPO_ROOT/terraform/main
+cd "$SCRIPT_DIR/../terraform/main"
 terraform init -backend-config="bucket=terraform-state-${PROJECT}" -backend-config="impersonate_service_account=$TF_VAR_terraform_service_account" > /dev/null 2>&1
 terraform output -raw custom_audience
 )

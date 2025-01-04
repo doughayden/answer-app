@@ -26,12 +26,15 @@ module "loadbalancer" {
   count           = local.config.create_loadbalancer ? 1 : 0
   project_id      = var.project_id
   lb_domain       = local.config.loadbalancer_domain
-  app_name        = local.config.app_name
-  default_service = module.answer_app.cloudrun_backend_service_id
+  default_service = module.answer_app.cloudrun_client_backend_service_id
   backend_services = [
     {
       paths   = ["/${module.answer_app.service_name}/*"]
       service = module.answer_app.cloudrun_backend_service_id
+    },
+    {
+      paths   = ["/${module.answer_app.client_service_name}", "/${module.answer_app.client_service_name}/*"]
+      service = module.answer_app.cloudrun_client_backend_service_id
     },
   ]
 }
@@ -49,7 +52,7 @@ module "answer_app" {
   iap_sa_member = google_project_service_identity.iap_sa.member
   app_name      = local.config.app_name
   lb_domain     = local.lb_domain
-  docker_image  = local.docker_image[local.config.app_name]
+  docker_image  = local.docker_image
   location      = local.config.location
   dataset_id    = local.config.dataset_id
   table_id      = local.config.table_id
