@@ -1,20 +1,15 @@
 locals {
   config = yamldecode(file("../../src/backend/config.yaml"))
   services = [
-    # "aiplatform.googleapis.com",
     "artifactregistry.googleapis.com",
     "bigquery.googleapis.com",
     "cloudbuild.googleapis.com",
-    "cloudresourcemanager.googleapis.com",
     "compute.googleapis.com",
     "discoveryengine.googleapis.com",
-    "iam.googleapis.com",
-    "iamcredentials.googleapis.com",
+    "iap.googleapis.com",
     "logging.googleapis.com",
     "monitoring.googleapis.com",
-    # "pubsub.googleapis.com",
     "run.googleapis.com",
-    "serviceusage.googleapis.com",
   ]
   cloudbuild_iam_roles = ["roles/cloudbuild.builds.builder"]
 }

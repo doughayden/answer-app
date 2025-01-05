@@ -22,11 +22,13 @@ echo ""
 echo "ENVIRONMENT VARIABLES:"
 source "$SCRIPT_DIR/set_variables.sh"
 
-# Enable the Service Usage, IAM, and Service Account Credentials APIs.
+# Enable required APIs.
 services=(
-  "serviceusage.googleapis.com"
+  "cloudresourcemanager.googleapis.com"
   "iam.googleapis.com"
   "iamcredentials.googleapis.com"
+  "serviceusage.googleapis.com"
+  "storage.googleapis.com"
 )
 
 echo "REQUIRED APIS:"
@@ -150,6 +152,7 @@ echo "TERRAFORM BOOTSTRAP DIRECTORY - INITIALIZE AND APPLY:"
 (
 cd "$SCRIPT_DIR/../terraform/bootstrap"
 terraform init -backend-config="bucket=$BUCKET" -backend-config="impersonate_service_account=$TF_VAR_terraform_service_account" -reconfigure
-terraform apply
+terraform apply -auto-approve
 )
+echo ""
 echo ""

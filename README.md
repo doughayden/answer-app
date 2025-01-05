@@ -9,9 +9,9 @@ The Answer App uses [Vertex AI Agent Builder](https://cloud.google.com/generativ
 
 ## Installation
 - [Prerequisites](#prerequisites)
-- [Bootstrap](#bootstrap)
-- [Automate Deployments with Cloud Build](#automate-deployments-with-cloud-build)
+- [One-Click Deployment](#one-click-deployment)
 - [Add an A record to the DNS Managed Zone](#add-an-a-record-to-the-dns-managed-zone)
+- [Enable Vertex AI Agent Builder](#enable-vertex-ai-agent-builder)
 - [Test the endpoint](#test-the-endpoint)
 - [Import documents](#import-documents)
 - [Configure Identity-Aware Proxy](#configure-identity-aware-proxy)
@@ -23,10 +23,14 @@ The Answer App uses [Vertex AI Agent Builder](https://cloud.google.com/generativ
 ## Known Issues
 - [Failure to create the Artifact Registry repository](#failure-to-create-the-artifact-registry-repository)
 - [Cloud Build fails with a Cloud Storage 403 permission denied error](#cloud-build-fails-with-a-cloud-storage-403-permission-denied-error)
+- [Error creating a DataStore (named DataStore being deleted)](#error-creating-a-datastore-named-datastore-being-deleted)
 - [Errors adding users to Identity-Aware Proxy](#errors-adding-users-to-identity-aware-proxy)
 - [Errors reading or editing Terraform resources](#errors-reading-or-editing-terraform-resources)
 
-## Reference Info
+## Reference Information
+- [Bootstrap](#bootstrap)
+- [Un-Bootstrap](#un-bootstrap)
+- [Automate Deployments with Cloud Build](#automate-deployments-with-cloud-build)
 - [Connect cloud run services to an existing load balancer](#connect-cloud-run-services-to-an-existing-load-balancer)
 - [Rollbacks](#rollbacks)
 - [Execute Terraform to apply infrastructure-only changes to the `bootstrap` or `main` module](#execute-terraform-to-apply-infrastructure-only-changes-to-the-bootstrap-or-main-module)
@@ -144,22 +148,25 @@ gcloud config set compute/region 'region' # replace with your preferred region i
 ## 2. Clone the Repo
 ([return to prerequisites](#prerequisites))
 
-[Clone the repository](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository) and open a terminal session in the local repo root directory.
+[Clone the repository](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository) and open a terminal session in the `answer-app` directory.
+- If you're using Cloud Shell, consider using Personal Access Tokens (PATs) to [clone the repo](https://docs.github.com/en/github/authenticating-to-github/keeping-your-account-and-data-secure/creating-a-personal-access-token) if you encounter issues with SSH keys.
 
 &nbsp;
 ## 3. Use the Helper Scripts
 ([return to prerequisites](#prerequisites))
 
 Shell scripts in the `terraform/scripts` directory automate common tasks.
-- `bootstrap.sh`: Prepare the target deployment project.
-- `send_question.sh`: Send a question to the `answer-app` endpoint.
-- `set_audience_and_token.sh`: Set the custom audience and ID token used to call the `answer-app` service.
-- `set_variables.sh`: Set the environment variables for the shell session.
+- `all_deploy.sh`: Deploy the resources for the `answer-app` service. (Combines other scripts to set up the project and deploy the resources.)
+- `bootstrap.sh`: Prepare the target deployment project. (Used by the `all_deploy.sh` script.)
+- `set_audience.sh`: Set the custom audience used to call the `answer-app` service. (Used by the `test_endpoint.sh` script.)
+- `set_token.sh`: Set the ID token used to call the `answer-app` service. (Used by the `test_endpoint.sh` script.)
+- `set_variables.sh`: Set the environment variables for the shell session. (Used by the `bootstrap.sh` and `set_audience.sh` scripts and by Cloud Build.). Variables:
   - `PROJECT`: The Google Cloud project ID.
   - `REGION`: The default compute region.
-  - `TF_VAR_project_id`: The Google Cloud project ID for Terraform.
-  - `TF_VAR_terraform_service_account`: The Terraform service account email address.
   - `BUCKET`: The staging bucket for Vertex AI Data Store documents.
+  - `TF_VAR_project_id`: The Google Cloud project ID for Terraform. (Automatically read by Terraform.)
+  - `TF_VAR_terraform_service_account`: The Terraform service account email address. (Automatically read by Terraform.)
+- `terraform_service_account_roles.txt`: The IAM roles granted to the Terraform service account. (Used by the `bootstrap.sh` script.)
 - `test_endpoint.sh`: Test the `answer-app` endpoint with a `curl` request.
 
 Make the helper scripts executable.
@@ -169,57 +176,16 @@ chmod +x scripts/*.sh # change the path if necessary
 
 
 &nbsp;
-# Bootstrap
+# One-Click Deployment
 ([return to top](#vertex-ai-agent-builder-answer-app))
 
-The `bootstrap.sh` script automates the `gcloud` and `terraform` commands required to prepare the project.
-- Source the `set_variables.sh` script to configure the shell environment, including [Terraform environment variables](https://developer.hashicorp.com/terraform/language/values/variables#environment-variables). (Used automatically by later Terraform commands.).
-- Enable the Service Usage, IAM, and Service Account Credentials APIs.
-- Create a service account for Terraform provisioning.
-- Grant the required [IAM roles](https://cloud.google.com/iam/docs/understanding-roles) to the service account.
-- Prepare [Service Account Impersonation](https://cloud.google.com/iam/docs/service-account-impersonation) for the caller's user account.
-- Create a Terraform [remote state](https://developer.hashicorp.com/terraform/language/state/remote) bucket.
-- Initialize the Terraform `bootstrap` module and apply to provision resources required for the main module:
-  - Project APIs.
-  - Cloud Build service account.
-  - Artifact Registry repository.
-  - IAM role bindings for the Cloud Build service account:
-      - Project IAM policy: Cloud Build Service Account (`roles/cloudbuild.builds.builder`) role.
-      - Terraform service account IAM policy: Service Account Token Creator (`roles/iam.serviceAccountTokenCreator`) role.
+The `all_deploy.sh` script automates the steps required to prepare the project and deploy the resources.
+- Refer to the [Bootstrap](#bootstrap) and [Automate Deployments with Cloud Build](#automate-deployments-with-cloud-build) sections for details on individual steps.
 
-Source the `bootstrap.sh` script to set your shell variables and run the Terraform commands.
+Source the `all_deploy.sh` script to install the `answer-app`.
 ```sh
-source scripts/bootstrap.sh # change the path if necessary
+source scripts/all_deploy.sh # change the path if necessary
 ```
-
-
-&nbsp;
-# Automate Deployments with Cloud Build
-([return to top](#vertex-ai-agent-builder-answer-app))
-
-Use [`gcloud builds submit`](https://cloud.google.com/build/docs/running-builds/submit-build-via-cli-api) with [build config files](https://cloud.google.com/build/docs/configuring-builds/create-basic-configuration) to plan and deploy project resources.
-
-## 1. Set configuration values in `config.yaml`.
-Verify/Change parameters as needed:
-- [`config.yaml`](src/config.yaml)
-- Refer to [Connect cloud run services to an existing load balancer](#connect-cloud-run-services-to-an-existing-load-balancer) for configuration requirements when using a Load Balancer managed outside of this Terraform configuration.
-
-## 2. Set environment variables.
-Source the `set_variables.sh` script to configure the shell environment if you restarted your shell session or made changes to the environment variables.
-- The `bootstrap.sh` script sources this file to set the environment variables and it's not necessary to run it again in the same shell session.
-```sh
-source scripts/set_variables.sh # change the path if necessary
-```
-
-## 3. Build & push the docker images and apply the Terraform configuration
-Use `gcloud` to submit the build from the `answer-app` root directory (the location of this README file) as the build context.
-- [OPTIONAL] Omit the `_RUN_TYPE=apply` substitution to run a plan-only build and review the Terraform changes before applying.
-```sh
-cd /path/to/answer-app # replace with the local system path to the answer-app root directory
-gcloud builds submit . --config=cloudbuild.yaml --project=$PROJECT --region=$REGION --substitutions="_RUN_TYPE=apply"
-```
-
-- Review the build logs in the [Cloud Build History](https://cloud.google.com/build/docs/view-build-results) to verify the build and deployment status.
 
 
 &nbsp;
@@ -228,6 +194,14 @@ gcloud builds submit . --config=cloudbuild.yaml --project=$PROJECT --region=$REG
 
 - **You do not need to configure DNS if you set `loadbalancer_domain` to `null` in [`config.yaml`](src/config.yaml) and instead used the default `nip.io` domain.**
 - Use the public IP address created by Terraform as the A record in your DNS host. Steps vary by DNS provider.
+
+
+&nbsp;
+# Enable Vertex AI Agent Builder
+([return to top](#vertex-ai-agent-builder-answer-app))
+
+A project Owner must [enable Vertex AI Agent Builder](https://cloud.google.com/generative-ai-app-builder/docs/before-you-begin#turn-on-discovery-engine) in the Cloud Console to use the Discovery Engine API and the Agent Builder console. It's a one-time setup to accept terms for the project for as long as the API remains enabled. (Checking the box to agree to model sampling is optional.)
+![Enable Vertex AI Agent Builder](assets/enable_agent_builder.png)
 
 
 &nbsp;
@@ -312,12 +286,24 @@ scripts/test_endpoint.sh # change the path if necessary
 ([return to top](#vertex-ai-agent-builder-answer-app))
 
 Terraform deploys a `streamlit` [web client](src/client/streamlit_app.py) to Cloud Run that's accessible via the load balancer domain.
-- Get the client app URL from Terraform output.
+- Get the client app URL from Terraform output.(It's in the format `https://<load_balancer_domain>/answer-app-client`)
 ```sh
 cd terraform/main # change the path if necessary
 terraform output client_app_uri
 ```
+
+Example output:
+```
+"https://34.8.148.243.nip.io/answer-app-client"
+```
+
 - Open the URL in a web browser to access the client app.
+On Mac or Linux, you can use the `open` command to open the URL in your default browser.
+```sh
+cd terraform/main # change the path if necessary
+/usr/bin/open -a "/Applications/Google Chrome.app" $(terraform output -raw client_app_uri)
+```
+
 - Use the web client to send questions to the `answer-app` endpoint and view the generative answers.
 - Hover over the inline citations to view details about the source document chunks used to generate the answer.
 - Click on inline citations or the links in the Citations footer to view the source documents in a new tab.
@@ -397,6 +383,27 @@ ERROR: (gcloud.builds.submit) INVALID_ARGUMENT: could not resolve source: google
 The error can occur shortly after setting up a new project with the `bootstrap` module for the first time. It's a race condition where the Cloud Build service account IAM role bindings have not yet propagated. Rerun the Cloud Build job to resolve the error.
 
 
+## Error creating a DataStore (named DataStore being deleted)
+([return to top](#vertex-ai-agent-builder-answer-app))
+
+### Problem
+When re-running the Terraform configuration after deleting the DataStore, the following error occurs:
+```
+╷
+│ Error: Error creating DataStore: googleapi: Error 400: DataStore projects/.../locations/global/collections/default_collection/dataStores/cymbal-bank-data-store is being deleted, please wait for deletion to complete before recreating with the same ID. The deletion could take a couple of hours.
+│ 
+│   with module.answer_app.google_discovery_engine_data_store.layout_parser_data_store["answer-app-default"],
+│   on ../modules/answer-app/discoveryengine.tf line 1, in resource "google_discovery_engine_data_store" "layout_parser_data_store":
+│    1: resource "google_discovery_engine_data_store" "layout_parser_data_store" {
+│ 
+╵
+```
+
+### Solution
+Choose one of the following solutions:
+- Wait for the DataStore deletion to complete before re-running the Terraform configuration.
+- Change the DataStore ID in the Terraform configuration to create a new DataStore. Re-apply Terraform.
+
 ## Errors adding users to Identity-Aware Proxy
 ([return to top](#vertex-ai-agent-builder-answer-app))
 ### Problem
@@ -433,6 +440,76 @@ Retry the operation to clear the error. If the error persists, check your networ
 &nbsp;
 # REFERENCE INFORMATION
 
+
+&nbsp;
+# Bootstrap
+([return to top](#vertex-ai-agent-builder-answer-app))
+
+The `bootstrap.sh` script automates the `gcloud` and `terraform` commands required to prepare the project.
+- Source the `set_variables.sh` script to configure the shell environment, including [Terraform environment variables](https://developer.hashicorp.com/terraform/language/values/variables#environment-variables). (Used automatically by later Terraform commands.).
+- Enable the Service Usage, IAM, and Service Account Credentials APIs.
+- Create a service account for Terraform provisioning.
+- Grant the required [IAM roles](https://cloud.google.com/iam/docs/understanding-roles) to the service account.
+- Prepare [Service Account Impersonation](https://cloud.google.com/iam/docs/service-account-impersonation) for the caller's user account.
+- Create a Terraform [remote state](https://developer.hashicorp.com/terraform/language/state/remote) bucket.
+- Initialize the Terraform `bootstrap` module and apply to provision resources required for the main module:
+  - Project APIs.
+  - Cloud Build service account.
+  - Artifact Registry repository.
+  - IAM role bindings for the Cloud Build service account:
+      - Project IAM policy: Cloud Build Service Account (`roles/cloudbuild.builds.builder`) role.
+      - Terraform service account IAM policy: Service Account Token Creator (`roles/iam.serviceAccountTokenCreator`) role.
+
+Source the `bootstrap.sh` script to set your shell variables and run the Terraform commands.
+```sh
+source scripts/bootstrap.sh # change the path if necessary
+```
+
+
+&nbsp;
+# Un-Bootstrap
+([return to top](#vertex-ai-agent-builder-answer-app))
+
+The `un_bootstrap.sh` script automates `gcloud` commands to remove these project resources created by the `bootstrap` script. It does not disable any APIs. 
+- Terraform state bucket
+- Terraform service account project role bindings
+- Terraform service account resource
+
+Source the `un_bootstrap.sh` script to remove the resources.
+```sh
+source scripts/un_bootstrap.sh # change the path if necessary
+```
+
+
+&nbsp;
+# Automate Deployments with Cloud Build
+([return to top](#vertex-ai-agent-builder-answer-app))
+
+Use [`gcloud builds submit`](https://cloud.google.com/build/docs/running-builds/submit-build-via-cli-api) with [build config files](https://cloud.google.com/build/docs/configuring-builds/create-basic-configuration) to plan and deploy project resources.
+
+## 1. Set configuration values in `config.yaml`.
+Verify/Change parameters as needed:
+- [`config.yaml`](src/config.yaml)
+- Refer to [Connect cloud run services to an existing load balancer](#connect-cloud-run-services-to-an-existing-load-balancer) for configuration requirements when using a Load Balancer managed outside of this Terraform configuration.
+
+## 2. Set environment variables.
+Source the `set_variables.sh` script to configure the shell environment if you restarted your shell session or made changes to the environment variables.
+- The `bootstrap.sh` script sources this file to set the environment variables and it's not necessary to run it again in the same shell session.
+```sh
+source scripts/set_variables.sh # change the path if necessary
+```
+
+## 3. Build & push the docker images and apply the Terraform configuration
+Use `gcloud` to submit the build from the `answer-app` root directory (the location of this README file) as the build context.
+- [OPTIONAL] Omit the `_RUN_TYPE=apply` substitution to run a plan-only build and review the Terraform changes before applying.
+```sh
+cd /path/to/answer-app # replace with the local system path to the answer-app root directory
+gcloud builds submit . --config=cloudbuild.yaml --project=$PROJECT --region=$REGION --substitutions="_RUN_TYPE=apply"
+```
+
+- Review the build logs in the [Cloud Build History](https://cloud.google.com/build/docs/view-build-results) to verify the build and deployment status.
+
+
 &nbsp;
 # Connect cloud run services to an existing load balancer
 ([return to top](#vertex-ai-agent-builder-answer-app))
@@ -448,6 +525,7 @@ Edit and verify these files to connect the Cloud Run services to an existing loa
   - Use `load_balancing_scheme = "EXTERNAL"` for the Classic Application Load Balancer.
 - Cloud Run services will use the load balancer domain in the custom audience for authentication.
 - You must connect the backend services to the existing load balancer outside of this repo's Terraform configuration.
+
 
 &nbsp;
 # Rollbacks
@@ -520,6 +598,7 @@ terraform init -backend-config="bucket=$BUCKET" -backend-config="impersonate_ser
 terraform apply
 ```
 
+
 &nbsp;
 # [Service account impersonation](https://cloud.google.com/iam/docs/service-account-impersonation)
 ([return to top](#vertex-ai-agent-builder-answer-app))
@@ -537,6 +616,7 @@ export MEMBER='user:{your-username@example.com}' # replace '{your-username@examp
 gcloud iam service-accounts add-iam-policy-binding "terraform-service-account@${PROJECT}.iam.gserviceaccount.com" --member=$MEMBER --role="roles/iam.serviceAccountTokenCreator" --condition=None
 ```
 - Use the `google_service_account_access_token` [Terraform data source](https://registry.terraform.io/providers/hashicorp/google/latest/docs/data-sources/service_account_access_token) to generate short-lived credentials [instead of service account keys](https://cloud.google.com/iam/docs/best-practices-for-managing-service-account-keys#alternatives).
+
 
 &nbsp;
 # Terraform Overview

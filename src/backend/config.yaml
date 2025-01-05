@@ -6,8 +6,8 @@ app_name: answer-app
 location: global
 
 # The Agent Builder Data Store and Search Engine IDs to provision with Terraform.
-data_store_id: cymbal-bank-data-store
-search_engine_id: cymbal-bank-search-engine
+data_store_id: answer-app-data-store
+search_engine_id: answer-app-search-engine
 
 # The company name used in the Agent Builder Search Engine.
 customer_name: Cymbal
@@ -17,8 +17,8 @@ customer_name: Cymbal
 # Set create_loadbalancer to false to deploy the app to Cloud Run without a load balancer.
 create_loadbalancer: true
 
-# Set loadbalancer_domain to a domain you control or leave null to use an auto-generated domain with https://nip.io.
-# Requires editing the DNS zone A record to point to the load balancer IP address.
+# Set loadbalancer_domain to a domain you control. Requires editing your domain's DNS zone A record to point to the load balancer IP address.
+# Set to 'null' to use an auto-generated domain with https://nip.io. Does not require DNS configuration.
 loadbalancer_domain: null
 
 # Big Query dataset and table IDs to store conversation details.
