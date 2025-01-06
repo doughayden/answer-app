@@ -1,5 +1,7 @@
 #!/bin/bash
 
+# ***** WARNING: THIS WILL DELETE YOUR TERRAFORM STATE BUCKET AND SERVICE ACCOUNT *****
+
 # The user completes these prerequisite commands (Google Cloud Shell sets them up automatically):
 # gcloud auth login
 # gcloud config set project 'my-project-id' # replace 'my-project-id' with your project ID

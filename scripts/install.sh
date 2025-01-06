@@ -85,3 +85,7 @@ gcloud builds submit . --config=cloudbuild.yaml --project=$PROJECT --region=$REG
 )
 echo ""
 echo ""
+
+echo "==========================================="
+echo "  ***ANSWER-APP SUCCESSFULLY INSTALLED***  "
+echo ""

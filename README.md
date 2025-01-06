@@ -17,6 +17,9 @@ The Answer App uses [Vertex AI Agent Builder](https://cloud.google.com/generativ
 - [Configure Identity-Aware Proxy](#configure-identity-aware-proxy)
 - [Use the app](#use-the-app)
 
+## Un-Installation
+- [Uninstall](#uninstall)
+
 ## Tests
 - [Unit Tests](#unit-tests)
 
@@ -29,11 +32,11 @@ The Answer App uses [Vertex AI Agent Builder](https://cloud.google.com/generativ
 
 ## Reference Information
 - [Bootstrap](#bootstrap)
-- [Un-Bootstrap](#un-bootstrap)
 - [Automate Deployments with Cloud Build](#automate-deployments-with-cloud-build)
 - [Connect cloud run services to an existing load balancer](#connect-cloud-run-services-to-an-existing-load-balancer)
 - [Rollbacks](#rollbacks)
 - [Execute Terraform to apply infrastructure-only changes to the `bootstrap` or `main` module](#execute-terraform-to-apply-infrastructure-only-changes-to-the-bootstrap-or-main-module)
+- [Un-Bootstrap](#un-bootstrap)
 - [Service Account Impersonation](#service-account-impersonation)
 - [Terraform Overview](#terraform-overview)
 
@@ -156,11 +159,11 @@ gcloud config set compute/region 'region' # replace with your preferred region i
 ([return to prerequisites](#prerequisites))
 
 Shell scripts in the `terraform/scripts` directory automate common tasks.
-- `all_deploy.sh`: Deploy the resources for the `answer-app` service. (Combines other scripts to set up the project and deploy the resources.)
-- `bootstrap.sh`: Prepare the target deployment project. (Used by the `all_deploy.sh` script.)
+- `install.sh`: Deploy the resources for the `answer-app` service. (Combines other scripts to set up the project and deploy the resources.)
+- `bootstrap.sh`: Prepare the target deployment project. (Used by the `install.sh` script.)
 - `set_audience.sh`: Set the custom audience used to call the `answer-app` service. (Used by the `test_endpoint.sh` script.)
 - `set_token.sh`: Set the ID token used to call the `answer-app` service. (Used by the `test_endpoint.sh` script.)
-- `set_variables.sh`: Set the environment variables for the shell session. (Used by the `bootstrap.sh` and `set_audience.sh` scripts and by Cloud Build.). Variables:
+- `set_variables.sh`: Set the environment variables for the shell session. (Used by the `bootstrap.sh`, `set_audience.sh`, `un_bootstrap.sh`, and `uninstall.sh` scripts and by Cloud Build.). Variables:
   - `PROJECT`: The Google Cloud project ID.
   - `REGION`: The default compute region.
   - `BUCKET`: The staging bucket for Vertex AI Data Store documents.
@@ -168,6 +171,8 @@ Shell scripts in the `terraform/scripts` directory automate common tasks.
   - `TF_VAR_terraform_service_account`: The Terraform service account email address. (Automatically read by Terraform.)
 - `terraform_service_account_roles.txt`: The IAM roles granted to the Terraform service account. (Used by the `bootstrap.sh` script.)
 - `test_endpoint.sh`: Test the `answer-app` endpoint with a `curl` request.
+- `un_bootstrap.sh`: Remove the resources created by the `bootstrap.sh` script. (Used by the `uninstall.sh` script.)
+- `uninstall.sh`: Remove the `answer-app` resources from the project. (Combines other scripts to remove the resources and clean up the project.)
 
 Make the helper scripts executable.
 ```sh
@@ -179,12 +184,12 @@ chmod +x scripts/*.sh # change the path if necessary
 # One-Click Deployment
 ([return to top](#vertex-ai-agent-builder-answer-app))
 
-The `all_deploy.sh` script automates the steps required to prepare the project and deploy the resources.
+The `install.sh` script automates the steps required to prepare the project and deploy the resources.
 - Refer to the [Bootstrap](#bootstrap) and [Automate Deployments with Cloud Build](#automate-deployments-with-cloud-build) sections for details on individual steps.
 
-Source the `all_deploy.sh` script to install the `answer-app`.
+Source the `install.sh` script to install the `answer-app`.
 ```sh
-source scripts/all_deploy.sh # change the path if necessary
+source scripts/install.sh # change the path if necessary
 ```
 
 
@@ -298,7 +303,7 @@ Example output:
 ```
 
 - Open the URL in a web browser to access the client app.
-On Mac or Linux, you can use the `open` command to open the URL in your default browser.
+On Mac or Linux, you can use the `open` command.
 ```sh
 cd terraform/main # change the path if necessary
 /usr/bin/open -a "/Applications/Google Chrome.app" $(terraform output -raw client_app_uri)
@@ -308,6 +313,19 @@ cd terraform/main # change the path if necessary
 - Hover over the inline citations to view details about the source document chunks used to generate the answer.
 - Click on inline citations or the links in the Citations footer to view the source documents in a new tab.
 ![Web Client](assets/web_client.png)
+
+
+&nbsp;
+# UNINSTALL
+([return to top](#vertex-ai-agent-builder-answer-app))
+
+The `uninstall.sh` script destroys all Terraform-provisioned infrastructure and removes project prerequisites by calling the [`un_bootstrap.sh` script](#un-bootstrap). 
+
+
+Source the `uninstall.sh` script to remove all `answer-app` resources from the project.
+```sh
+source scripts/uninstall.sh # change the path if necessary
+```
 
 
 &nbsp;
@@ -467,21 +485,6 @@ source scripts/bootstrap.sh # change the path if necessary
 
 
 &nbsp;
-# Un-Bootstrap
-([return to top](#vertex-ai-agent-builder-answer-app))
-
-The `un_bootstrap.sh` script automates `gcloud` commands to remove these project resources created by the `bootstrap` script. It does not disable any APIs. 
-- Terraform state bucket
-- Terraform service account project role bindings
-- Terraform service account resource
-
-Source the `un_bootstrap.sh` script to remove the resources.
-```sh
-source scripts/un_bootstrap.sh # change the path if necessary
-```
-
-
-&nbsp;
 # Automate Deployments with Cloud Build
 ([return to top](#vertex-ai-agent-builder-answer-app))
 
@@ -596,6 +599,23 @@ terraform init -backend-config="bucket=$BUCKET" -backend-config="impersonate_ser
 3. Apply the Terraform configuration to provision the cloud resources.
 ```sh
 terraform apply
+```
+
+
+&nbsp;
+# Un-Bootstrap
+([return to top](#vertex-ai-agent-builder-answer-app))
+
+<span style="color: red;">**WARNING: THIS WILL DELETE YOUR TERRAFORM STATE**</span>
+
+The `un_bootstrap.sh` script automates `gcloud` commands to remove these project resources created by the `bootstrap` script. It does not disable any APIs. 
+- Terraform state bucket
+- Terraform service account project role bindings
+- Terraform service account resource
+
+Source the `un_bootstrap.sh` script to remove the resources.
+```sh
+source scripts/un_bootstrap.sh # change the path if necessary
 ```
 
 
