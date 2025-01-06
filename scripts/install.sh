@@ -20,6 +20,12 @@ fi
 # Source the bootstrap script to prepare the target project.
 source "$SCRIPT_DIR/bootstrap.sh"
 
+# Exit if the bootstrap script fails.
+if [ $? -ne 0 ]; then
+  echo "ERROR: The bootstrap script failed."
+  return 1
+fi
+
 # Ensure the Cloud Build service account has the necessary permissions.
 echo "IAM POLICY PROPAGATION - CLOUD BUILD SERVICE ACCOUNT:"
 cloudbuild_sa_email=$(
@@ -45,7 +51,7 @@ while [ $? -ne 0 ]; do
   elapsed=$((elapsed + sleep))
   if [ $elapsed -ge $limit ]; then
     echo ""
-    echo "ERROR: The Cloud Build service account does not have the necessary permissions. Exiting..."
+    echo "ERROR: The Cloud Build service account does not have the necessary permissions."
     return 1
   fi
   gcloud projects get-iam-policy $PROJECT --format=json | jq -r '.bindings[] | select(.role == "roles/cloudbuild.builds.builder") | .members[]' | grep -q $cloudbuild_sa_email > /dev/null 2>&1
@@ -67,7 +73,7 @@ while [ $? -ne 0 ]; do
   elapsed=$((elapsed + sleep))
   if [ $elapsed -ge $limit ]; then
     echo ""
-    echo "ERROR: The Cloud Build service account does not have the necessary permissions. Exiting..."
+    echo "ERROR: The Cloud Build service account does not have the necessary permissions."
     return 1
   fi
   gcloud iam service-accounts get-iam-policy $TF_VAR_terraform_service_account --format=json | jq -r '.bindings[] | select(.role == "roles/iam.serviceAccountTokenCreator") | .members[]' | grep -q $cloudbuild_sa_email > /dev/null 2>&1
@@ -76,6 +82,18 @@ echo "The Cloud Build service account has the Service Account Token Creator role
 echo ""
 echo ""
 
+# Sleep to allow the IAM policy changes to propagate.
+echo "Sleeping to allow the IAM policy changes to propagate..."
+sleep=3
+elapsed=0
+limit=90
+while [ $elapsed -lt $limit ]; do
+  printf "\rSleeping... $((limit - elapsed)) seconds remaining"
+  sleep $sleep
+  elapsed=$((elapsed + sleep))
+done
+echo -e "\nDone."
+
 # Deploy the answer-app services.
 echo "DEPLOYING THE ANSWER-APP SERVICES WITH CLOUD BUILD:"
 echo ""
@@ -83,6 +101,13 @@ echo ""
 cd "$SCRIPT_DIR/.."
 gcloud builds submit . --config=cloudbuild.yaml --project=$PROJECT --region=$REGION --substitutions="_RUN_TYPE=apply"
 )
+
+# Exit if the Cloud Build deployment fails.
+if [ $? -ne 0 ]; then
+  echo "ERROR: The Cloud Build deployment failed."
+  return 1
+fi
+
 echo ""
 echo ""
 

@@ -5,6 +5,13 @@
 # gcloud config set project 'my-project-id' # replace 'my-project-id' with your project ID
 # [OPTIONAL] gcloud config set compute/region us-central1
 
+# Confirm the user configured Application Default Credentials.
+gcloud auth application-default print-access-token > /dev/null 2>&1
+if [ $? -ne 0 ]; then
+  echo "ERROR: No valid Application Default Credentials found. Run 'gcloud auth application-default login'."
+  return 1
+fi
+
 # Set the PROJECT variable.
 export PROJECT=$(gcloud config list --format='value(core.project)')
 

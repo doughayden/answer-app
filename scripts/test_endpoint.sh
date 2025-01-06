@@ -12,9 +12,23 @@ else
   SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 fi
 
-# Get the custom audience, and get an impersonated ID token.
+# Get the custom audience.
 source "$SCRIPT_DIR/set_audience.sh"
+
+# Exit if the set_audience script fails.
+if [ $? -ne 0 ]; then
+  echo "ERROR: The set_audience script failed."
+  return 1
+fi
+
+# Get an impersonated ID token.
 source "$SCRIPT_DIR/set_token.sh"
+
+# Exit if the set_token script fails.
+if [ $? -ne 0 ]; then
+  echo "ERROR: The set_token script failed."
+  return 1
+fi
 
 # Test the API endpoint.
 echo "CURL RESULTS:"

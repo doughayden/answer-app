@@ -22,6 +22,12 @@ echo ""
 echo "ENVIRONMENT VARIABLES:"
 source "$SCRIPT_DIR/set_variables.sh"
 
+# Exit if the set_variables script fails.
+if [ $? -ne 0 ]; then
+  echo "ERROR: The set_variables script failed."
+  return 1
+fi
+
 # Enable required APIs.
 services=(
   "cloudresourcemanager.googleapis.com"
@@ -34,7 +40,7 @@ services=(
 echo "REQUIRED APIS:"
 echo ""
 for service in "${services[@]}"; do
-  gcloud services list --format="value(name)" --filter="name:$service" | grep -q $service
+  gcloud services list --format="value(config.name)" --filter="config.name=$service" | grep -q $service
   if [ $? -ne 0 ]; then
     echo "Enabling the $service API..."
     gcloud services enable $service
@@ -70,7 +76,7 @@ if [ ! -f "$roles_file" ]; then
   return 1
 fi
 
-while IFS= read -r role; do
+while IFS= read -r role || [ -n "$role" ]; do
   gcloud projects get-iam-policy $PROJECT --flatten="bindings[].members" --format="table(bindings.role)" --filter="bindings.members:$TF_VAR_terraform_service_account" | grep -q $role
   if [ $? -ne 0 ]; then
     echo "Granting the $role role to the service account..."

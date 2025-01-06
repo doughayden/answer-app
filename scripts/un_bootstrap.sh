@@ -29,6 +29,12 @@ echo ""
 echo "ENVIRONMENT VARIABLES:"
 source "$SCRIPT_DIR/set_variables.sh"
 
+# Exit if the set_variables script fails.
+if [ $? -ne 0 ]; then
+  echo "ERROR: The set_variables script failed."
+  return 1
+fi
+
 # Delete the Terraform state bucket.
 echo "TERRAFORM STATE BUCKET:"
 echo ""
