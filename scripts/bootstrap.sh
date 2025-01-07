@@ -28,13 +28,14 @@ if [ $? -ne 0 ]; then
   return 1
 fi
 
-# Enable required APIs.
+# Enable required APIs. These are not enabled by default in new projects.
+# Ref: https://cloud.google.com/service-usage/docs/enabled-service
+# The Service Usage API (serviceusage.googleapis.com) is also required but is enabled by default and does not support restriction.
+# Ref: https://cloud.google.com/resource-manager/docs/organization-policy/restricting-resources-supported-services
 services=(
   "cloudresourcemanager.googleapis.com"
   "iam.googleapis.com"
   "iamcredentials.googleapis.com"
-  "serviceusage.googleapis.com"
-  "storage.googleapis.com"
 )
 
 echo "REQUIRED APIS:"
@@ -161,10 +162,31 @@ terraform init -backend-config="bucket=$BUCKET" -backend-config="impersonate_ser
 terraform apply -auto-approve
 )
 
-# Exit if the Terraform apply command fails.
+# Retry applying the bootstrap module if it fails once.
+# This is a workaround for a known issue where creating the Artifact Registry repo fails on the first run due to propagation delays.
 if [ $? -ne 0 ]; then
   echo ""
-  echo "ERROR: The Terraform apply command failed."
+  echo "ERROR: Retrying the Terraform apply command for the bootstrap module in 30s..."
+  sleep=3
+  elapsed=0
+  limit=30
+  while [ $elapsed -lt $limit ]; do
+    printf "\rSleeping... $((limit - elapsed)) seconds remaining"
+    sleep $sleep
+    elapsed=$((elapsed + sleep))
+  done
+  echo -e "\nDone."
+  echo ""
+  (
+    cd "$SCRIPT_DIR/../terraform/bootstrap"
+    terraform apply -auto-approve
+  )
+fi
+
+# Exit if the Terraform apply command fails for the bootstrap module after 2 attempts.
+if [ $? -ne 0 ]; then
+  echo ""
+  echo "ERROR: Terraform failed to apply the bootstrap module configuration."
   echo ""
   return 1
 fi

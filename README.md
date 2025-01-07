@@ -197,8 +197,9 @@ source scripts/install.sh # change the path if necessary
 # Add an A record to the DNS Managed Zone
 ([return to top](#vertex-ai-agent-builder-answer-app))
 
-- **You do not need to configure DNS if you set `loadbalancer_domain` to `null` in [`config.yaml`](src/config.yaml) and instead used the default `nip.io` domain.**
-- Use the public IP address created by Terraform as the A record in your DNS host. Steps vary by DNS provider.
+**NOTE: You do not need to configure DNS if you set `loadbalancer_domain` to `null` in [`config.yaml`](src/config.yaml) and instead used the default `nip.io` domain.**
+- Use the load balancer public IP address created by Terraform as the [A record in your DNS zone](https://cloud.google.com/load-balancing/docs/ssl-certificates/google-managed-certs#update-dns). Steps vary by DNS host/provider. ([Cloudflare example](https://developers.cloudflare.com/dns/zone-setups/full-setup/setup/))
+- Disable any proxy for the A record to avoid SSL errors until Google validates the managed certificate domain. ([Cloudflare example](https://developers.cloudflare.com/dns/manage-dns-records/reference/proxied-dns-records/)) 
 
 
 &nbsp;

@@ -10,7 +10,9 @@ locals {
     "logging.googleapis.com",
     "monitoring.googleapis.com",
     "run.googleapis.com",
+    "storage.googleapis.com",
   ]
+  # bigquery, logging, monitoring, and storage are enabled by default in all new projects
   cloudbuild_iam_roles = ["roles/cloudbuild.builds.builder"]
 }
 
