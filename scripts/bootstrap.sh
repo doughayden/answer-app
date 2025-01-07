@@ -95,7 +95,7 @@ echo ""
 user=$(gcloud config list --format='value(core.account)')
 echo "SERVICE ACCOUNT IMPERSONATION FOR USER $user:"
 echo ""
-gcloud iam service-accounts get-iam-policy $TF_VAR_terraform_service_account --format="table(bindings.role)" --flatten="bindings[].members" --filter="bindings.members:$user" | grep -q "roles/iam.serviceAccountTokenCreator"
+gcloud iam service-accounts get-iam-policy $TF_VAR_terraform_service_account --format="table(bindings.role)" --flatten="bindings[].members" --filter="bindings.members:$user" --verbosity=error | grep -q "roles/iam.serviceAccountTokenCreator"
 if [ $? -eq 0 ]; then
   echo "The caller already has the roles/iam.serviceAccountTokenCreator role."
 else
@@ -160,5 +160,14 @@ cd "$SCRIPT_DIR/../terraform/bootstrap"
 terraform init -backend-config="bucket=$BUCKET" -backend-config="impersonate_service_account=$TF_VAR_terraform_service_account" -reconfigure
 terraform apply -auto-approve
 )
+
+# Exit if the Terraform apply command fails.
+if [ $? -ne 0 ]; then
+  echo ""
+  echo "ERROR: The Terraform apply command failed."
+  echo ""
+  return 1
+fi
+
 echo ""
 echo ""

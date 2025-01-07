@@ -1,14 +1,8 @@
-coverage
 fastapi
 google-api-core
 google-auth
 google-cloud-bigquery
 google-cloud-discoveryengine
-httpx
 pydantic
-pytest
-pytest-asyncio
-pytest-cov
-pytz
 pyyaml
 uvicorn

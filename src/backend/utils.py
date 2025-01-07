@@ -294,6 +294,7 @@ class UtilHandler:
         self._search_agent = DiscoveryEngineAgent(
             location=self._config["location"],
             engine_id=self._config["search_engine_id"],
+            preamble=self._config.get("preamble", "Give a detailed answer."),
             project_id=self._project,
         )
 

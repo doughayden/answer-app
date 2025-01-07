@@ -6,7 +6,6 @@ from google.api_core.client_options import ClientOptions
 from google.auth import default
 from google.cloud import discoveryengine_v1 as discoveryengine
 from google.cloud.discoveryengine_v1.types import AnswerQueryResponse
-from google.protobuf.json_format import MessageToJson
 
 
 logger = logging.getLogger(__name__)
@@ -19,6 +18,7 @@ class DiscoveryEngineAgent:
         self,
         location: str,
         engine_id: str,
+        preamble: str,
         project_id: str | None = None,
     ) -> None:
         """Initialize the DiscoveryEngineAgent class.
@@ -30,6 +30,7 @@ class DiscoveryEngineAgent:
         """
         self._location = location
         self._engine_id = engine_id
+        self._preamble = preamble
         self._project_id = project_id if project_id else default()[1]
         self._client = self._initialize_client()
         self._log_attributes()
@@ -41,6 +42,7 @@ class DiscoveryEngineAgent:
         logger.debug(f"Search Agent project: {self._project_id}")
         logger.debug(f"Search Agent location: {self._location}")
         logger.debug(f"Search Agent engine ID: {self._engine_id}")
+        logger.debug(f"Search Agent preamble: {self._preamble}")
         logger.debug(f"Search Agent client: {self._client.transport.host}")
 
         return
@@ -117,7 +119,7 @@ class DiscoveryEngineAgent:
                 model_version="gemini-1.5-flash-001/answer_gen/v2",  # Optional: Model to use for answer generation
             ),
             prompt_spec=discoveryengine.AnswerQueryRequest.AnswerGenerationSpec.PromptSpec(
-                preamble="Give a detailed answer.",  # Optional: Natural language instructions for customizing the answer.
+                preamble=self._preamble,  # Optional: Natural language instructions for customizing the answer
             ),
             include_citations=True,  # Optional: Include citations in the response
             answer_language_code="en",  # Optional: Language code of the answer

@@ -13,7 +13,7 @@ from utils import (
     _response_to_dict,
     _answer_to_markdown,
 )
-from model import AnswerResponse, ClientCitation
+from model import AnswerResponse
 from google.api_core.datetime_helpers import DatetimeWithNanoseconds
 
 

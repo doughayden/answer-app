@@ -310,6 +310,7 @@ terraform.rc
 *.txt
 !terraform_service_account_roles.txt
 !requirements.txt
+!requirements-test.txt
 
 # folders
 .vscode/
