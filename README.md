@@ -1,7 +1,23 @@
 # VERTEX AI AGENT BUILDER ANSWER APP
 
 ## Overview
-The Answer App uses [Vertex AI Agent Builder](https://cloud.google.com/generative-ai-app-builder/docs/introduction) and the [Discovery Engine API](https://cloud.google.com/generative-ai-app-builder/docs/reference/rest) to serve a conversational search experience with generative answers grounded on document data.
+
+The Answer App uses [Vertex AI Agent Builder](https://cloud.google.com/generative-ai-app-builder/docs/introduction) and the [Discovery Engine API](https://cloud.google.com/generative-ai-app-builder/docs/reference/rest) to serve a [conversational search experience](https://cloud.google.com/generative-ai-app-builder/docs/answer) with generative answers grounded on document data.
+
+### Why would I want to use this?
+
+- **Production-capable performance**: Autoscaling, concurrency, and regional redundancy via multiple Cloud Run services.
+- **Integration flexibility**: Authenticated external HTTPS endpoint for 3rd party systems (using Google-managed TLS).
+- **Resource observability**: Single-pane-of-glass Cloud Monitoring dashboard with customizable metrics and alerts.
+- **Explainable and debuggable results**: Investigate generative answers using the full RAG pipeline results logged to BigQuery.
+- **Data-driven LLM-ops**: Tune the conversational search agent using question/answer pairs labelled with user feedback.
+- **Identity-Aware Proxy**: Secure access control.
+- **Automated deployments**: One-click install and uninstall with Terraform and Cloud Build.
+
+
+### Why would I not want to use this?
+
+When all you want to do is test or demonstrate Vertex AI conversational search, [create a search app](https://cloud.google.com/generative-ai-app-builder/docs/create-engine-es) and [preview the widget](https://cloud.google.com/generative-ai-app-builder/docs/configure-widget-attributes) in the Cloud Console or [embed it in a web page](https://cloud.google.com/generative-ai-app-builder/docs/add-widget).
 
 ## Architecture
 - [Diagram](#diagram)
@@ -29,6 +45,10 @@ The Answer App uses [Vertex AI Agent Builder](https://cloud.google.com/generativ
 - [Error creating a DataStore (named DataStore being deleted)](#error-creating-a-datastore-named-datastore-being-deleted)
 - [Errors adding users to Identity-Aware Proxy](#errors-adding-users-to-identity-aware-proxy)
 - [Errors reading or editing Terraform resources](#errors-reading-or-editing-terraform-resources)
+- [The Search Agent refuses to answer questions](#the-search-agent-refuses-to-answer-questions)
+
+## Next Steps
+- [Features to add](#features-to-add)
 
 ## Reference Information
 - [Bootstrap](#bootstrap)
@@ -454,6 +474,45 @@ Example:
 ### Solution
 Retry the operation to clear the error. If the error persists, check your network or VPN connection and try again.
 
+
+## The Search Agent refuses to answer questions
+([return to top](#vertex-ai-agent-builder-answer-app))
+
+### Problem
+- The Search agent responds with `"No results could be found. Try rephrasing the search query."` when the query is valid and should be answerable from the data store documents.
+- Cloud Run logs do not include citations or references for the answer response.
+- The Big Query `answer-app.conversations` table includes `null` values for the `answer.citations`, `answer.references`, or `answer.related_questions` columns.
+- The search preview in the Vertex AI Agent Builder console also does not return any results.
+- The data store documents appear to be properly imported with no errors in the Vertex AI Agent Builder console.
+
+### Solution
+Importing documents using the [refresh options](https://cloud.google.com/generative-ai-app-builder/docs/refresh-data) without first purging the data store in separate step may result in this issue. The import operation may actually not have imported and indexed the documents properly. [Purge the data store](https://cloud.google.com/generative-ai-app-builder/docs/delete-datastores) and re-import the documents to resolve the issue.
+
+
+&nbsp;
+# NEXT STEPS
+([return to top](#vertex-ai-agent-builder-answer-app))
+
+## Features to add
+- [] [stream answers](https://cloud.google.com/generative-ai-app-builder/docs/stream-answer) **NOT AVAILABLE YET**
+- [] add document processing utilities
+- [] provide example questions to ask the agent in the client app
+- [] provide a walkthrough of connecting the search agent to spark/agentspace
+- [] mimic the answer format returned by the console widget (expand inline citations on click)
+- [] set up cloud logging
+- [] set up a monitoring dashboard
+- [] implement unique user IDs to establish sessions
+- [] implement end user authentication with identity platform or firebase
+- [] collect user feedback for each question and answer pair and log to BQ
+- [] resumable conversation sessions (lookup available active sessions per user ID)
+- [] replace architecture diagram with one consistent with google cloud style
+- [] demonstrate workload identity federation for client apps not within GCP
+- [] add multiple data stores
+- [] establish a 'golden Q&A' to evaluate the model's performance (consider using notebooklm to generate the golden Q&A)
+- [] automate RAG evaluation (using golden Q&A) - run with each new doc import and save results to BQ for offline analysis
+- [] automate load testing (an extension of automated evaluation) to test the pipeline's autoscaling capabilities - save results to BQ for offline analysis
+- [] add example (saved) queries in BQ to demonstrate common debugging and evaluation reports
+- [] add a looker dashboard with question and answer pairs along with relevancy scores and user feedback - graph relevancy and user feedback over time
 
 
 &nbsp;
