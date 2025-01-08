@@ -47,8 +47,17 @@ class UtilHandler:
             stream_handler = logging.StreamHandler()
             handlers = [stream_handler]
         else:
+            # Determine the directory of the script.
+            script_dir = os.path.dirname(os.path.abspath(__file__))
+            log_dir = os.path.join(script_dir, ".log")
+            log_filename = os.path.join(log_dir, "client.log")
+
+            # Ensure the log directory exists.
+            os.makedirs(log_dir, exist_ok=True)
+            
+            # Create a file handler.
             file_handler = logging.FileHandler(
-                filename=".log/client.log",
+                filename=log_filename,
                 mode="w",
                 encoding="utf-8",
             )
