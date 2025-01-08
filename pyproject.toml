@@ -1,0 +1,53 @@
+[project]
+name = "answer-app"
+version = "0.1.0"
+description = "Vertex AI Agent Builder Answer App"
+authors = [{ name = "Your Name", email = "you@example.com" }]
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "fastapi (>=0.115.6,<0.116.0)",
+    "google-api-core (>=2.24.0,<3.0.0)",
+    "google-auth (>=2.37.0,<3.0.0)",
+    "google-cloud-bigquery (>=3.27.0,<4.0.0)",
+    "google-cloud-discoveryengine (>=0.13.5,<0.14.0)",
+    "pydantic (>=2.10.4,<3.0.0)",
+    "pyyaml (>=6.0.2,<7.0.0)",
+    "uvicorn (>=0.34.0,<0.35.0)",
+]
+
+
+[tool.poetry]
+package-mode = false
+
+
+[tool.poetry.group.backend.dependencies]
+fastapi = "^0.115.6"
+google-api-core = "^2.24.0"
+google-auth = "^2.37.0"
+google-cloud-bigquery = "^3.27.0"
+google-cloud-discoveryengine = "^0.13.5"
+pydantic = "^2.10.4"
+pyyaml = "^6.0.2"
+uvicorn = "^0.34.0"
+
+
+[tool.poetry.group.client.dependencies]
+google-auth = "^2.37.0"
+requests = "^2.32.3"
+rich = "^13.9.4"
+streamlit = "^1.41.1"
+watchdog = "^6.0.0"
+
+[tool.poetry.group.dev.dependencies]
+coverage = "^7.6.10"
+httpx = "^0.28.1"
+pytest = "^8.3.4"
+pytest-asyncio = "^0.25.1"
+pytest-cov = "^6.0.0"
+pytz = "^2024.2"
+
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
