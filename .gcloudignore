@@ -1,6 +1,11 @@
 # https://cloud.google.com/sdk/gcloud/reference/topic/gcloudignore
 # gcloud meta list-files-for-upload
 
+# unit tests
+tests/
+test/
+pytest.ini
+
 # Git
 **/.git
 **/.git/*
@@ -336,8 +341,4 @@ terraform.rc
 # folders
 .vscode/
 .history/
-
-# unit tests
-tests/
-test/
-pytest.ini
+.venv*

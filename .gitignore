@@ -315,3 +315,4 @@ terraform.rc
 # folders
 .vscode/
 .history/
+.venv*
