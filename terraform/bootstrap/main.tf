@@ -1,5 +1,5 @@
 locals {
-  config = yamldecode(file("../../src/backend/config.yaml"))
+  config = yamldecode(file("../../src/answer_app/config.yaml"))
   services = [
     "artifactregistry.googleapis.com",
     "bigquery.googleapis.com",

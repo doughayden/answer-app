@@ -18,7 +18,7 @@ import os
 from rich.console import Console
 from rich.markdown import Markdown
 
-from utils import UtilHandler
+from utils import UtilHandler  # type: ignore
 
 logger = logging.getLogger(__name__)
 

@@ -27,7 +27,6 @@ steps:
 - id: build-answer-app-backend
   name: 'gcr.io/cloud-builders/docker'
   waitFor: ['tree']
-  dir: 'src/backend'
   args: [
     'build',
     '-t', '${_DOCKER_IMAGE_ANSWER_APP}:latest',
@@ -39,28 +38,25 @@ steps:
 - id: push-answer-app-backend
   name: 'gcr.io/cloud-builders/docker'
   waitFor: ['build-answer-app-backend']
-  dir: 'src/backend'
   args: ['push', '--all-tags', '${_DOCKER_IMAGE_ANSWER_APP}']
 
 - id: build-answer-app-client
   name: 'gcr.io/cloud-builders/docker'
   waitFor: ['tree']
-  dir: 'src/client'
   args: [
     'build',
     '-t', '${_DOCKER_IMAGE_ANSWER_APP_CLIENT}:latest',
     '-t', '${_DOCKER_IMAGE_ANSWER_APP_CLIENT}:${BUILD_ID}',
-    '-f', 'Dockerfile',
+    '-f', 'src/client/Dockerfile',
     '.'
   ]
 
 - id: push-answer-app-client
   name: 'gcr.io/cloud-builders/docker'
   waitFor: ['build-answer-app-client']
-  dir: 'src/client'
   args: ['push', '--all-tags', '${_DOCKER_IMAGE_ANSWER_APP_CLIENT}']
 
-# test image names in the terraform builder
+# Test image names in the terraform builder.
 - id: test_image_names
   name: 'hashicorp/terraform:latest'
   env:

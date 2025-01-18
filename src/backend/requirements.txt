@@ -1,8 +1,0 @@
-fastapi
-google-api-core
-google-auth
-google-cloud-bigquery
-google-cloud-discoveryengine
-pydantic
-pyyaml
-uvicorn

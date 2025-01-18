@@ -1,9 +1,0 @@
--r requirements.txt
-
-# Test dependencies
-coverage
-httpx # starlette.testclient module dependency
-pytest
-pytest-asyncio
-pytest-cov
-pytz

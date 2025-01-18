@@ -12,7 +12,7 @@ WORKDIR /app
 COPY pyproject.toml poetry.lock ./
 RUN touch README.md
 
-RUN poetry install --without dev --no-root && rm -rf $POETRY_CACHE_DIR
+RUN poetry install --without dev --without client --no-root && rm -rf $POETRY_CACHE_DIR
 
 FROM python:3.13-slim-bookworm AS runtime
 
@@ -23,9 +23,8 @@ WORKDIR /app
 
 COPY --from=builder ${VIRTUAL_ENV} ${VIRTUAL_ENV}
 
-COPY src/client ./client
-COPY .streamlit .streamlit
+COPY src/answer_app ./answer_app
 
 EXPOSE 8080
 
-ENTRYPOINT ["streamlit", "run", "client/streamlit_app.py", "--server.port=8080", "--server.address=0.0.0.0"]
+CMD ["uvicorn", "answer_app.main:app", "--host", "0.0.0.0", "--port", "8080"]

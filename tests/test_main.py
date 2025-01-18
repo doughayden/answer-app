@@ -7,7 +7,7 @@ from unittest.mock import patch, MagicMock
 from fastapi.testclient import TestClient
 from google.cloud.discoveryengine_v1.types import AnswerQueryResponse, Answer, Session
 
-from main import app
+from answer_app.main import app
 
 
 client = TestClient(app)
@@ -21,8 +21,8 @@ def set_env_vars() -> Generator[None, None, None]:
 
 
 @pytest.mark.asyncio
-@patch("utils.DiscoveryEngineAgent.answer_query")
-@patch("utils.bigquery.Client.insert_rows_json")
+@patch("answer_app.utils.DiscoveryEngineAgent.answer_query")
+@patch("answer_app.utils.bigquery.Client.insert_rows_json")
 async def test_answer_no_session_id(
     mock_insert_rows_json: MagicMock, mock_answer_query: MagicMock
 ) -> None:
@@ -43,8 +43,8 @@ async def test_answer_no_session_id(
 
 
 @pytest.mark.asyncio
-@patch("utils.DiscoveryEngineAgent.answer_query")
-@patch("utils.bigquery.Client.insert_rows_json")
+@patch("answer_app.utils.DiscoveryEngineAgent.answer_query")
+@patch("answer_app.utils.bigquery.Client.insert_rows_json")
 async def test_answer_with_session_id(
     mock_insert_rows_json: MagicMock, mock_answer_query: MagicMock
 ) -> None:
@@ -78,8 +78,8 @@ async def test_answer_with_session_id(
 
 
 @pytest.mark.asyncio
-@patch("utils.DiscoveryEngineAgent.answer_query")
-@patch("utils.bigquery.Client.insert_rows_json")
+@patch("answer_app.utils.DiscoveryEngineAgent.answer_query")
+@patch("answer_app.utils.bigquery.Client.insert_rows_json")
 async def test_answer_with_wildcard_session_id(
     mock_insert_rows_json: MagicMock, mock_answer_query: MagicMock
 ) -> None:
@@ -134,8 +134,8 @@ def test_get_env_variable_not_set() -> None:
 
 
 @pytest.mark.asyncio
-@patch("utils.UtilHandler.bq_insert_row_data")
-@patch("utils.DiscoveryEngineAgent.answer_query")
+@patch("answer_app.utils.UtilHandler.bq_insert_row_data")
+@patch("answer_app.utils.DiscoveryEngineAgent.answer_query")
 async def test_answer_with_bq_insert_error(
     mock_answer_query: MagicMock, mock_bq_insert_row_data: MagicMock
 ) -> None:
@@ -159,8 +159,8 @@ async def test_answer_with_bq_insert_error(
 
 
 @pytest.mark.asyncio
-@patch("utils.UtilHandler.bq_insert_row_data")
-@patch("utils.DiscoveryEngineAgent.answer_query")
+@patch("answer_app.utils.UtilHandler.bq_insert_row_data")
+@patch("answer_app.utils.DiscoveryEngineAgent.answer_query")
 async def test_answer_with_bq_insert_exception(
     mock_answer_query: MagicMock, mock_bq_insert_row_data: MagicMock
 ) -> None:

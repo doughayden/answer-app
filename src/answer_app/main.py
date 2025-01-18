@@ -4,13 +4,13 @@ import time
 
 from fastapi import FastAPI, HTTPException, Query
 
-from model import (
+from answer_app.model import (
     QuestionRequest,
     AnswerResponse,
     HealthCheckResponse,
     EnvVarResponse,
 )
-from utils import sanitize, UtilHandler
+from answer_app.utils import sanitize, UtilHandler
 
 
 logger = logging.getLogger(__name__)
