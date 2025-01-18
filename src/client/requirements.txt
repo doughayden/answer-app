@@ -1,5 +1,0 @@
-google-auth
-requests
-rich
-streamlit
-watchdog
