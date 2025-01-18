@@ -1,6 +1,7 @@
 import asyncio
 import base64
 import logging
+import os
 import time
 from typing import Any
 
@@ -11,8 +12,8 @@ from google.cloud.discoveryengine_v1.types import Answer, AnswerQueryResponse, S
 from google.protobuf.json_format import MessageToJson
 import yaml
 
-from discoveryengine_utils import DiscoveryEngineAgent
-from model import AnswerResponse, ClientCitation
+from answer_app.discoveryengine_utils import DiscoveryEngineAgent
+from answer_app.model import AnswerResponse, ClientCitation
 
 
 logger = logging.getLogger(__name__)
@@ -321,12 +322,14 @@ class UtilHandler:
         """Load the configuration file and ensure required keys are set.
 
         Args:
-            filepath (str): The path to the configuration file.
+            filepath (str): The relative path to the configuration file.
 
         Returns:
             dict[str, Any]: The configuration settings.
         """
-        with open(filepath, "r") as file:
+        this_directory = os.path.dirname(os.path.abspath(__file__))
+        abs_filepath = os.path.join(this_directory, filepath)
+        with open(abs_filepath, "r") as file:
             config: dict = yaml.safe_load(file)
         logger.debug(f"Loaded configuration: {config}")
 

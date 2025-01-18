@@ -54,7 +54,7 @@ class UtilHandler:
 
             # Ensure the log directory exists.
             os.makedirs(log_dir, exist_ok=True)
-            
+
             # Create a file handler.
             file_handler = logging.FileHandler(
                 filename=log_filename,

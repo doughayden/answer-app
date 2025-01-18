@@ -5,7 +5,7 @@ import os
 
 import streamlit as st
 
-from utils import UtilHandler
+from utils import UtilHandler  # type: ignore
 
 logger = logging.getLogger(__name__)
 

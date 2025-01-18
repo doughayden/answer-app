@@ -38,6 +38,7 @@ When all you want to do is test or demonstrate Vertex AI conversational search, 
 
 ## Tests
 - [Unit Tests](#unit-tests)
+- [Run locally](#run-locally)
 
 ## Known Issues
 - [Failure to create the Artifact Registry repository](#failure-to-create-the-artifact-registry-repository)
@@ -355,19 +356,115 @@ source scripts/uninstall.sh # change the path if necessary
 ## Unit Tests
 ([return to top](#vertex-ai-agent-builder-answer-app))
 
-The `src/backend/tests` directory contains unit tests for the `answer-app` backend service. Use the `pytest` command to run the tests.
-- Run all tests in the `src/tests` directory using `pytest` from the `src/backend` directory.
+Run `pytest` using `poetry`.
+1. [Install Poetry](https://python-poetry.org/docs/#installation)
+
+2. [Install dependencies](https://python-poetry.org/docs/basic-usage/#installing-dependencies).
 ```sh
-cd src/backend # change the path if necessary
-pytest
+cd answer-app # the root of the repository where this README and the pyproject.toml file is located - change the path if necessary
+poetry install
 ```
 
-- Generate a coverage report with the `--cov` flag.
+3. Run the tests.
 ```sh
-cd src/backend # change the path if necessary
-pytest --cov=.
+poetry run pytest
 ```
 
+4. Optionally run `pytest` with `coverage` and view the report.
+```sh
+poetry run coverage run -m pytest
+poetry run coverage report -m
+```
+
+## Run locally
+([return to top](#vertex-ai-agent-builder-answer-app))
+
+### Setup
+- Complete the [User Account and Local Development Environment](#1-user-account-and-local-development-environment) steps to configure `gcloud`.
+- [Set environment variables]((#2-set-environment-variables)).
+```sh
+source scripts/set_variables.sh # change the path if necessary
+```
+- Install Poetry and the project dependencies (see [Unit Tests](#unit-tests)).
+
+### Poetry
+`answer-app`
+- The service will listen on local port 8888.
+```sh
+poetry run uvicorn main:app --app-dir src/answer_app --reload --host localhost --port 8888
+```
+
+`client`
+- With the environment variables set using the [`set_variables.sh` script](#2-set-environment-variables), the `client` app automatically gets and impersonated ID token for the Terraform service account on behalf of the user and sets the target audience for requests to `localhost:8888`.
+- To solve unexpected communication issues, restart a fresh shell session to clear the environment, then re-source the `set_variables.sh` script.
+```sh
+poetry run streamlit run src/client/streamlit_app.py 
+```
+
+### Docker
+#### Build
+`answer-app`
+- Uses the `Dockerfile` in the root of the repo
+```sh
+docker build -t local-answer-app:0.1.0 . # change image name and tag as needed
+```
+
+`client`
+- Uses a `Dockerfile` in the `src/client` directory
+```sh
+docker build -t local-answer-app-client:0.1.0 -f ./src/client/Dockerfile . # change image name tag as needed
+```
+
+#### Run
+- Use `--rm` to remove the container when it exits.
+- Use `-v` to mount the host's `gcloud` configuration directory to the container's `/root/.config/gcloud` directory to allow the app to use [Application Default Credentials](https://stackoverflow.com/questions/38938216/pass-google-default-application-credentials-in-local-docker-run) for authentication.
+- Use `-e` to set container environment variables for the [Google Cloud project](https://stackoverflow.com/questions/74866327/oserror-whilst-trying-to-run-a-python-app-inside-a-docker-container-using-appl), log level, target service account, and audience.
+- Use `-p` to map the container's port 8080 to the host's port 8888 or 8080 (specify port mapping as `-p <host-port>:<container-port>`).
+- The `$PROJECT` and `$TF_VAR_terraform_service_account` environment variables will already be set after you ran the [`set_variables.sh`](#2-set-environment-variables) script.
+
+`answer-app`: map container port 8080 to localhost:8888
+```sh
+docker run --rm -v $HOME/.config/gcloud:/root/.config/gcloud \
+-e GOOGLE_CLOUD_PROJECT=$PROJECT \
+-e LOG_LEVEL=DEBUG \
+-p 8888:8080 local-answer-app:0.1.0 # change image name and tag as needed
+```
+
+`client`: map container port 8080 to localhost:8080 and call the **LOCAL** `answer-app` service at localhost:8888
+```sh
+docker run --rm -v $HOME/.config/gcloud:/root/.config/gcloud \
+-e GOOGLE_CLOUD_PROJECT=$PROJECT \
+-e LOG_LEVEL=DEBUG \
+-e "TF_VAR_terraform_service_account=$TF_VAR_terraform_service_account" \
+-p 8080:8080 local-answer-app-client:0.1.0 # change env vars and image name and tag as needed
+```
+- Open your browser to `http://localhost:8080`.
+```sh
+open -a "/Applications/Google Chrome.app" http://localhost:8080
+```
+
+`client`: map container port 8080 to localhost:8080 and call the **DEPLOYED** `answer-app` service at `https://app.mydomain.com/answer-app`
+- To target the deployed `answer-app` backend service, set the `AUDIENCE` environment variable to the custom audience for the `answer-app` service (see [Use the Helper Scripts](#3-use-the-helper-scripts)).
+- **NOTE**: You may want to unset the `AUDIENCE` environment variable after testing the deployed service if you want to continue local-only testing afterward.
+```sh
+source scripts/set_audience.sh # change the path if necessary
+docker run --rm -v $HOME/.config/gcloud:/root/.config/gcloud \
+-e GOOGLE_CLOUD_PROJECT=$PROJECT \
+-e LOG_LEVEL=DEBUG \
+-e "TF_VAR_terraform_service_account=$TF_VAR_terraform_service_account" \
+-e "AUDIENCE=$AUDIENCE" \
+-p 8080:8080 local-answer-app-client:0.1.0 # change env vars and image name and tag as needed
+```
+- Open your browser to `http://localhost:8080`.
+```sh
+open -a "/Applications/Google Chrome.app" http://localhost:8080
+```
+
+#### Debug
+- Open a `sh` shell in the container image.
+```sh
+docker run --entrypoint /bin/sh --rm -it local-answer-app-client:0.1.0 # change image name and tag as needed
+```
 
 &nbsp;
 # KNOWN ISSUES
@@ -579,7 +676,7 @@ gcloud builds submit . --config=cloudbuild.yaml --project=$PROJECT --region=$REG
 
 Edit and verify these files to connect the Cloud Run services to an existing load balancer.
 
-### [`config.yaml`](src/backend/config.yaml#L18)
+### [`config.yaml`](src/answer_app/config.yaml#L30)
 - Set `create_loadbalancer = false` **AND** set `loadbalancer_domain` to the value of the existing load balancer domain.
 
 ### [`cloudrun.tf`](terraform/modules/answer-app/cloudrun.tf#L65)

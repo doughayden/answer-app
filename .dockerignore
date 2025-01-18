@@ -1,0 +1,12 @@
+# Python pycache
+**/__pycache__
+
+# Logs
+**/*.log
+**/.log
+
+# Mac
+**/.DS_Store
+
+# Docker
+**/Dockerfile

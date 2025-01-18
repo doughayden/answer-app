@@ -10,12 +10,12 @@ from google.cloud.discoveryengine_v1 import (
     Query,
 )
 
-from discoveryengine_utils import DiscoveryEngineAgent
+from answer_app.discoveryengine_utils import DiscoveryEngineAgent
 
 
 @pytest.fixture
 def mock_default() -> Generator[MagicMock, None, None]:
-    with patch("discoveryengine_utils.default") as mock_default:
+    with patch("answer_app.discoveryengine_utils.default") as mock_default:
         mock_default.return_value = (MagicMock(), "test-project-id")
         yield mock_default
 
@@ -23,7 +23,7 @@ def mock_default() -> Generator[MagicMock, None, None]:
 @pytest.fixture
 def mock_discoveryengine_client() -> Generator[MagicMock, None, None]:
     with patch(
-        "discoveryengine_utils.discoveryengine.ConversationalSearchServiceAsyncClient"
+        "answer_app.discoveryengine_utils.discoveryengine.ConversationalSearchServiceAsyncClient"
     ) as mock_client:
         yield mock_client
 

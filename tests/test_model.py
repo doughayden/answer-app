@@ -2,7 +2,7 @@ import pytest
 
 from pydantic import ValidationError
 
-from model import (
+from answer_app.model import (
     QuestionRequest,
     AnswerResponse,
     HealthCheckResponse,
