@@ -291,7 +291,9 @@ class UtilHandler:
         self._config = self._load_config("config.yaml")
         self._credentials, self._project = google.auth.default()
         self._bq_client = self._load_bigquery_client()
-        self._table = self._compose_table()
+        self._table = self._compose_table(
+            dataset_key="dataset_id", table_key="table_id"
+        )
         self._search_agent = DiscoveryEngineAgent(
             location=self._config["location"],
             engine_id=self._config["search_engine_id"],
@@ -349,15 +351,21 @@ class UtilHandler:
 
         return client
 
-    def _compose_table(self) -> str:
+    def _compose_table(
+        self,
+        dataset_key: str,
+        table_key: str,
+    ) -> str:
         """Compose the BigQuery table name.
+
+        Args:
+            dataset_id (str): The config key for the dataset ID.
+            table_id (str): The config key for the table ID.
 
         Returns:
             str: The BigQuery table name.
         """
-        table = (
-            f"{self._project}.{self._config['dataset_id']}.{self._config['table_id']}"
-        )
+        table = f"{self._project}.{self._config[dataset_key]}.{self._config[table_key]}"
         logger.debug(f"Table: {table}")
 
         return table

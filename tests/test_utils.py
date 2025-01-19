@@ -45,6 +45,7 @@ def mock_load_config() -> Generator[MagicMock, None, None]:
             "search_engine_id": "test-engine-id",
             "dataset_id": "test-dataset",
             "table_id": "test-table",
+            "feedback_table_id": "test-feedback-table",
         }
         yield mock_load_config
 
@@ -73,7 +74,7 @@ def test_compose_table(
     mock_google_auth_default: MagicMock, mock_load_config: MagicMock
 ) -> None:
     handler = UtilHandler(log_level="DEBUG")
-    table = handler._compose_table()
+    table = handler._compose_table(dataset_key="dataset_id", table_key="table_id")
     assert table == "test-project-id.test-dataset.test-table"
 
 
