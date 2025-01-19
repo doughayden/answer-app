@@ -294,6 +294,9 @@ class UtilHandler:
         self._table = self._compose_table(
             dataset_key="dataset_id", table_key="table_id"
         )
+        self._feedback_table = self._compose_table(
+            dataset_key="dataset_id", table_key="feedback_table_id"
+        )
         self._search_agent = DiscoveryEngineAgent(
             location=self._config["location"],
             engine_id=self._config["search_engine_id"],
@@ -417,11 +420,13 @@ class UtilHandler:
     async def bq_insert_row_data(
         self,
         data: dict[str, Any],
+        feedback: bool = False,
     ) -> list[dict[str, Any]] | None:
         """Insert rows into a BigQuery table.
 
         Args:
             data (dict[str, Any]): The row data to insert.
+            feedback (bool, optional): Whether to insert into the feedback table.
 
         Returns:
             list[dict] | None: A list of errors, if any occurred.
@@ -430,10 +435,13 @@ class UtilHandler:
         # Start the timer.
         start_time = time.time()
 
+        # Choose the table to insert the data.
+        table = self._feedback_table if feedback else self._table
+
         # Insert the rows into the BigQuery table.
         errors = await asyncio.to_thread(
             self._bq_client.insert_rows_json,
-            table=self._table,
+            table=table,
             json_rows=[data],
         )
 
