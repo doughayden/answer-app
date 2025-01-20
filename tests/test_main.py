@@ -181,3 +181,66 @@ async def test_answer_with_bq_insert_exception(
     assert response.status_code == 500
     data = response.json()
     assert data["detail"] == "Test exception"
+
+
+@pytest.mark.asyncio
+@patch("answer_app.utils.UtilHandler.bq_insert_row_data")
+async def test_feedback(mock_bq_insert_row_data: MagicMock) -> None:
+    mock_bq_insert_row_data.return_value = []
+    response = client.post(
+        "/feedback",
+        json={
+            "answer_query_token": "token1",
+            "feedback_value": 1,
+            "feedback_text": "This is a test feedback",
+        },
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data == {
+        "answer_query_token": "token1",
+        "message": "Feedback logged successfully.",
+    }
+
+
+@pytest.mark.asyncio
+@patch("answer_app.utils.UtilHandler.bq_insert_row_data")
+async def test_feedback_missing_fields(mock_bq_insert_row_data: MagicMock) -> None:
+    response = client.post(
+        "/feedback",
+        json={
+            "feedback_value": 1,
+        },
+    )
+    assert response.status_code == 422
+
+
+@pytest.mark.asyncio
+@patch("answer_app.utils.UtilHandler.bq_insert_row_data")
+async def test_feedback_invalid_value(mock_bq_insert_row_data: MagicMock) -> None:
+    response = client.post(
+        "/feedback",
+        json={
+            "answer_query_token": "token1",
+            "feedback_value": 10,
+            "feedback_text": "This is a test feedback",
+        },
+    )
+    assert response.status_code == 422
+
+
+@pytest.mark.asyncio
+@patch("answer_app.utils.UtilHandler.bq_insert_row_data")
+async def test_feedback_insert_errors(mock_bq_insert_row_data: MagicMock) -> None:
+    mock_bq_insert_row_data.return_value = [{"index": 0, "errors": ["error"]}]
+    response = client.post(
+        "/feedback",
+        json={
+            "answer_query_token": "token1",
+            "feedback_value": 1,
+            "feedback_text": "This is a test feedback",
+        },
+    )
+    assert response.status_code == 500
+    data = response.json()
+    assert data["detail"] == "[{'index': 0, 'errors': ['error']}]"

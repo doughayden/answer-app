@@ -1,6 +1,7 @@
+from enum import Enum
 from urllib.parse import quote
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class QuestionRequest(BaseModel):
@@ -57,3 +58,19 @@ class ClientCitation(BaseModel):
 
     def count_chars(self):
         return len(self.get_inline_link())
+
+
+class UserFeedback(int, Enum):
+    THUMBS_UP = 1
+    THUMBS_DOWN = 0
+
+
+class FeedbackRequest(BaseModel):
+    answer_query_token: str
+    feedback_value: UserFeedback = Field(exclude=True)
+    feedback_text: str | None = None
+
+
+class FeedbackResponse(BaseModel):
+    answer_query_token: str
+    message: str = "Feedback logged successfully."

@@ -8,6 +8,9 @@ from answer_app.model import (
     HealthCheckResponse,
     EnvVarResponse,
     ClientCitation,
+    UserFeedback,
+    FeedbackRequest,
+    FeedbackResponse,
 )
 
 
@@ -109,3 +112,50 @@ def test_client_citation() -> None:
     assert citation.count_chars() == len(
         " _[[2](https://storage.cloud.google.com/bucket/file.txt \"Test 'content'\")]_"
     )
+
+
+def test_feedback_request() -> None:
+    # Valid input thumbs up.
+    feedback = FeedbackRequest(
+        answer_query_token="token1",
+        feedback_value=1,
+        feedback_text="Test feedback text.",
+    )
+    assert feedback.answer_query_token == "token1"
+    assert feedback.feedback_value == 1
+    assert feedback.feedback_value == UserFeedback.THUMBS_UP
+    assert feedback.feedback_text == "Test feedback text."
+
+    # Valid input thumbs down.
+    feedback = FeedbackRequest(
+        answer_query_token="token1",
+        feedback_value=0,
+        feedback_text="Test feedback text.",
+    )
+    assert feedback.answer_query_token == "token1"
+    assert feedback.feedback_value == 0
+    assert feedback.feedback_value == UserFeedback.THUMBS_DOWN
+    assert feedback.feedback_text == "Test feedback text."
+
+    # Invalid input (missing required field)
+    with pytest.raises(ValidationError):
+        FeedbackRequest()
+
+    # Invalid input (invalid feedback_value)
+    with pytest.raises(ValidationError):
+        FeedbackRequest(
+            answer_query_token="token1",
+            feedback_value=2,
+            feedback_text="Test feedback text.",
+        )
+
+
+def test_feedback_response() -> None:
+    # Valid input
+    feedback = FeedbackResponse(answer_query_token="token1")
+    assert feedback.answer_query_token == "token1"
+    assert feedback.message == "Feedback logged successfully."
+
+    # Invalid input (missing required field)
+    with pytest.raises(ValidationError):
+        FeedbackResponse()
