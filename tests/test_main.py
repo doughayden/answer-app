@@ -1,8 +1,6 @@
 import base64
-import os
 import pytest
-from typing import Generator
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock
 
 from fastapi.testclient import TestClient
 from google.cloud.discoveryengine_v1.types import AnswerQueryResponse, Answer, Session
@@ -13,20 +11,13 @@ from answer_app.main import app
 client = TestClient(app)
 
 
-@pytest.fixture(autouse=True)
-def set_env_vars() -> Generator[None, None, None]:
-    os.environ["MY_ENV_VAR"] = "test_value"
-    yield
-    del os.environ["MY_ENV_VAR"]
-
-
 @pytest.mark.asyncio
-@patch("answer_app.utils.DiscoveryEngineAgent.answer_query")
-@patch("answer_app.utils.bigquery.Client.insert_rows_json")
 async def test_answer_no_session_id(
-    mock_insert_rows_json: MagicMock, mock_answer_query: MagicMock
+    mock_bq_insert_row_data: MagicMock, mock_answer_query: MagicMock
 ) -> None:
-    mock_insert_rows_json.return_value = []  # Simulate successful insert with no errors
+    mock_bq_insert_row_data.return_value = (
+        []
+    )  # Simulate successful insert with no errors
     mock_answer_query.return_value = AnswerQueryResponse(
         answer=Answer(answer_text="**Paris**"),
         session=None,
@@ -43,12 +34,12 @@ async def test_answer_no_session_id(
 
 
 @pytest.mark.asyncio
-@patch("answer_app.utils.DiscoveryEngineAgent.answer_query")
-@patch("answer_app.utils.bigquery.Client.insert_rows_json")
 async def test_answer_with_session_id(
-    mock_insert_rows_json: MagicMock, mock_answer_query: MagicMock
+    mock_bq_insert_row_data: MagicMock, mock_answer_query: MagicMock
 ) -> None:
-    mock_insert_rows_json.return_value = []  # Simulate successful insert with no errors
+    mock_bq_insert_row_data.return_value = (
+        []
+    )  # Simulate successful insert with no errors
     mock_answer_query.return_value = AnswerQueryResponse(
         answer=Answer(answer_text="**Paris**"),
         session=Session(name="test-session"),
@@ -74,16 +65,16 @@ async def test_answer_with_session_id(
     assert data["session"]["name"] == "test-session"
     assert data["answer_query_token"] == "token1"
 
-    mock_insert_rows_json.assert_called_once()
+    mock_bq_insert_row_data.assert_called_once()
 
 
 @pytest.mark.asyncio
-@patch("answer_app.utils.DiscoveryEngineAgent.answer_query")
-@patch("answer_app.utils.bigquery.Client.insert_rows_json")
 async def test_answer_with_wildcard_session_id(
-    mock_insert_rows_json: MagicMock, mock_answer_query: MagicMock
+    mock_bq_insert_row_data: MagicMock, mock_answer_query: MagicMock
 ) -> None:
-    mock_insert_rows_json.return_value = []  # Simulate successful insert with no errors
+    mock_bq_insert_row_data.return_value = (
+        []
+    )  # Simulate successful insert with no errors
     mock_answer_query.return_value = AnswerQueryResponse(
         answer=Answer(answer_text="**Paris**"),
         session=Session(name="new-session"),
@@ -109,7 +100,7 @@ async def test_answer_with_wildcard_session_id(
     assert data["session"]["name"] == "new-session"
     assert data["answer_query_token"] == "token1"
 
-    mock_insert_rows_json.assert_called_once()
+    mock_bq_insert_row_data.assert_called_once()
 
 
 def test_health_check() -> None:
@@ -134,8 +125,6 @@ def test_get_env_variable_not_set() -> None:
 
 
 @pytest.mark.asyncio
-@patch("answer_app.utils.UtilHandler.bq_insert_row_data")
-@patch("answer_app.utils.DiscoveryEngineAgent.answer_query")
 async def test_answer_with_bq_insert_error(
     mock_answer_query: MagicMock, mock_bq_insert_row_data: MagicMock
 ) -> None:
@@ -159,8 +148,6 @@ async def test_answer_with_bq_insert_error(
 
 
 @pytest.mark.asyncio
-@patch("answer_app.utils.UtilHandler.bq_insert_row_data")
-@patch("answer_app.utils.DiscoveryEngineAgent.answer_query")
 async def test_answer_with_bq_insert_exception(
     mock_answer_query: MagicMock, mock_bq_insert_row_data: MagicMock
 ) -> None:
@@ -184,7 +171,6 @@ async def test_answer_with_bq_insert_exception(
 
 
 @pytest.mark.asyncio
-@patch("answer_app.utils.UtilHandler.bq_insert_row_data")
 async def test_feedback(mock_bq_insert_row_data: MagicMock) -> None:
     mock_bq_insert_row_data.return_value = []
     response = client.post(
@@ -204,7 +190,6 @@ async def test_feedback(mock_bq_insert_row_data: MagicMock) -> None:
 
 
 @pytest.mark.asyncio
-@patch("answer_app.utils.UtilHandler.bq_insert_row_data")
 async def test_feedback_missing_fields(mock_bq_insert_row_data: MagicMock) -> None:
     response = client.post(
         "/feedback",
@@ -216,7 +201,6 @@ async def test_feedback_missing_fields(mock_bq_insert_row_data: MagicMock) -> No
 
 
 @pytest.mark.asyncio
-@patch("answer_app.utils.UtilHandler.bq_insert_row_data")
 async def test_feedback_invalid_value(mock_bq_insert_row_data: MagicMock) -> None:
     response = client.post(
         "/feedback",
@@ -230,7 +214,6 @@ async def test_feedback_invalid_value(mock_bq_insert_row_data: MagicMock) -> Non
 
 
 @pytest.mark.asyncio
-@patch("answer_app.utils.UtilHandler.bq_insert_row_data")
 async def test_feedback_insert_errors(mock_bq_insert_row_data: MagicMock) -> None:
     mock_bq_insert_row_data.return_value = [{"index": 0, "errors": ["error"]}]
     response = client.post(

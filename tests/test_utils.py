@@ -1,53 +1,16 @@
 import base64
 import pytest
-from typing import Generator
-from unittest.mock import patch, MagicMock, AsyncMock
+from unittest.mock import MagicMock, AsyncMock
 
 from google.api_core.datetime_helpers import DatetimeWithNanoseconds
 from google.cloud.discoveryengine_v1 import AnswerQueryResponse, Answer, Session
-from google.auth.credentials import Credentials
 import pytz
 
-from answer_app.utils import (
-    UtilHandler,
-    _timestamp_to_string,
-    _response_to_dict,
-    _answer_to_markdown,
-)
+from answer_app.utils import UtilHandler
+from answer_app.utils import _timestamp_to_string
+from answer_app.utils import _response_to_dict
+from answer_app.utils import _answer_to_markdown
 from answer_app.model import AnswerResponse
-
-
-@pytest.fixture
-def mock_google_auth_default() -> Generator[MagicMock, None, None]:
-    with patch("answer_app.utils.google.auth.default") as mock_default:
-        mock_credentials = MagicMock(spec=Credentials)
-        mock_default.return_value = (mock_credentials, "test-project-id")
-        yield mock_default
-
-
-@pytest.fixture
-def mock_bigquery_client() -> Generator[MagicMock, None, None]:
-    with patch("answer_app.utils.bigquery.Client") as mock_client:
-        yield mock_client
-
-
-@pytest.fixture
-def mock_discoveryengine_agent() -> Generator[MagicMock, None, None]:
-    with patch("answer_app.utils.DiscoveryEngineAgent") as mock_agent:
-        yield mock_agent
-
-
-@pytest.fixture
-def mock_load_config() -> Generator[MagicMock, None, None]:
-    with patch("answer_app.utils.UtilHandler._load_config") as mock_load_config:
-        mock_load_config.return_value = {
-            "location": "us-central1",
-            "search_engine_id": "test-engine-id",
-            "dataset_id": "test-dataset",
-            "table_id": "test-table",
-            "feedback_table_id": "test-feedback-table",
-        }
-        yield mock_load_config
 
 
 def test_initialization(
