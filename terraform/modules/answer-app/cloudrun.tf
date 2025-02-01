@@ -4,13 +4,15 @@ locals {
   }
   run_app_client_env = {
     LOG_LEVEL = "INFO"
-    AUDIENCE  = google_cloud_run_v2_service.run_app.custom_audiences[0]
+    AUDIENCE  = google_cloud_run_v2_service.run_app[var.region].custom_audiences[0]
   }
+  regions = concat([var.region], var.additional_regions)
 }
 
 resource "google_cloud_run_v2_service" "run_app" {
+  for_each            = toset(local.regions)
   name                = var.app_name
-  location            = var.region
+  location            = each.value
   deletion_protection = false
   launch_stage        = "GA"
   ingress             = "INGRESS_TRAFFIC_INTERNAL_LOAD_BALANCER"
@@ -68,11 +70,12 @@ resource "google_cloud_run_v2_service" "run_app" {
 }
 
 resource "google_compute_region_network_endpoint_group" "run_app" {
+  for_each              = toset(local.regions)
   name                  = var.app_name
   network_endpoint_type = "SERVERLESS"
-  region                = var.region
+  region                = each.value
   cloud_run {
-    service = google_cloud_run_v2_service.run_app.name
+    service = google_cloud_run_v2_service.run_app[each.value].name
   }
 }
 
@@ -86,8 +89,11 @@ resource "google_compute_backend_service" "run_app" {
 
   load_balancing_scheme = "EXTERNAL_MANAGED"
 
-  backend {
-    group = google_compute_region_network_endpoint_group.run_app.id
+  dynamic "backend" {
+    for_each = toset(local.regions)
+    content {
+      group = google_compute_region_network_endpoint_group.run_app[backend.key].id
+    }
   }
 
   # Identity-Aware Proxy (IAP) for external apps requires manual configuration - ignore those changes.
@@ -102,9 +108,6 @@ resource "google_cloud_run_v2_service" "run_app_client" {
   deletion_protection = false
   launch_stage        = "GA"
   ingress             = "INGRESS_TRAFFIC_INTERNAL_LOAD_BALANCER"
-  # custom_audiences = [
-  #   "https://${var.lb_domain}/${var.app_name}-client",
-  # ]
 
   template {
     service_account       = google_service_account.client_app_service_account.email

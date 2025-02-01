@@ -24,7 +24,13 @@
         "description": "The feedback value"
     },
     {
-        "name": "fedback_text",
+        "name": "feedback_name",
+        "type": "STRING",
+        "mode": "REQUIRED",
+        "description": "The feedback name coresponding to the feedback value"
+    },
+    {
+        "name": "feedback_text",
         "type": "STRING",
         "mode": "NULLABLE",
         "description": "The optional feedback text"

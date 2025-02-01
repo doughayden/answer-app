@@ -10,7 +10,7 @@ variable "region" {
 
 variable "additional_regions" {
   type        = list(string)
-  description = "Additional regions to deploy the Cloud Run service."
+  description = "Additional regions to deploy the Cloud Run service and backend NEG."
   default     = []
 }
 
