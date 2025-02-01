@@ -1,7 +1,7 @@
 from enum import Enum
 from urllib.parse import quote
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 
 class QuestionRequest(BaseModel):
@@ -69,7 +69,7 @@ class FeedbackRequest(BaseModel):
     answer_query_token: str
     question: str
     answer_text: str
-    feedback_value: UserFeedback = Field(exclude=True)
+    feedback_value: UserFeedback
     feedback_text: str | None = None
 
 

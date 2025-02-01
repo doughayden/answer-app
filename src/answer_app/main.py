@@ -84,7 +84,8 @@ async def log_feedback(request: FeedbackRequest) -> FeedbackResponse:
     # Log the request.
     logger.info(f"Received answer_query_token: {sanitize(request.answer_query_token)}")
     logger.info(f"Received feedback: {sanitize(request.feedback_value.name)}")
-    logger.info(f"Received feedback text: {sanitize(request.feedback_text)}")
+    if request.feedback_text:
+        logger.info(f"Received feedback text: {sanitize(request.feedback_text)}")
 
     # Dump the feedback model to a dictionary for loading to BigQuery.
     data = request.model_dump()

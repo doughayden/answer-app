@@ -19,6 +19,8 @@ The Answer App uses [Vertex AI Agent Builder](https://cloud.google.com/generativ
 
 When all you want to do is test or demonstrate Vertex AI conversational search, [create a search app](https://cloud.google.com/generative-ai-app-builder/docs/create-engine-es) and [preview the widget](https://cloud.google.com/generative-ai-app-builder/docs/configure-widget-attributes) in the Cloud Console or [embed it in a web page](https://cloud.google.com/generative-ai-app-builder/docs/add-widget).
 
+<details><summary>Expand to view the Table of Contents</summary>
+
 ## Architecture
 - [Diagram](#diagram)
 - [Description](#description)
@@ -52,6 +54,7 @@ When all you want to do is test or demonstrate Vertex AI conversational search, 
 - [Features to add](#features-to-add)
 
 ## Reference Information
+- [Helper Scripts](#helper-scripts)
 - [Bootstrap](#bootstrap)
 - [Automate Deployments with Cloud Build](#automate-deployments-with-cloud-build)
 - [Connect cloud run services to an existing load balancer](#connect-cloud-run-services-to-an-existing-load-balancer)
@@ -60,6 +63,7 @@ When all you want to do is test or demonstrate Vertex AI conversational search, 
 - [Un-Bootstrap](#un-bootstrap)
 - [Service Account Impersonation](#service-account-impersonation)
 - [Terraform Overview](#terraform-overview)
+</details>
 
 
 &nbsp;
@@ -90,7 +94,6 @@ When all you want to do is test or demonstrate Vertex AI conversational search, 
 Complete the prerequisite steps before deploying the resources with Terraform:
 1. [User Account and Local Development Environment](#1-user-account-and-local-development-environment)
 2. [Clone the Repo](#2-clone-the-repo)
-3. [Use the Helper Scripts](#3-use-the-helper-scripts)
 
 ## 1. User Account and Local Development Environment
 ([return to prerequisites](#prerequisites))
@@ -98,7 +101,7 @@ Complete the prerequisite steps before deploying the resources with Terraform:
 - Your Google user account must be a [Project Owner](https://cloud.google.com/iam/docs/understanding-roles#owner) in the target Google Cloud project.
 - Terraform will deploy resources to your [`gcloud` CLI](https://cloud.google.com/sdk/gcloud/reference) configuration default project.
 
-### OPTION 1: Deploying from Google Cloud Shell:
+#### OPTION 1: Deploying from Google Cloud Shell:
 Use [Google Cloud Shell](https://cloud.google.com/shell/docs/using-cloud-shell) for a convenient environment with `gcloud` and `terraform` pre-installed. Your user account (`core.account`) and default project (`core.project`) should already be set up in the Cloud Shell environment.
 
 1. Select your target deployment project in the [Cloud Console](https://console.cloud.google.com/projectselector2/home/dashboard).
@@ -122,30 +125,14 @@ metrics:
   environment: devshell
 ```
 
-3. Optionally, set the default compute region (`compute.region`). The helper script will default to 'us-central1' if your `gcloud` configuration does not specify a region.
+3. Optionally, set the default compute region (`compute.region`). The helper script will default to `us-central1` if your `gcloud` configuration does not specify a region.
 ```sh
 gcloud config set compute/region 'region' # replace with your preferred region if it's not 'us-central1'
-```
-Example output after setting the region to `us-west1`:
-```yaml
-accessibility:
-  screen_reader: 'True'
-component_manager:
-  disable_update_check: 'True'
-compute:
-  gce_metadata_read_timeout_sec: '30'
-  region: us-west1
-core:
-  account: project-owner@example.com
-  disable_usage_reporting: 'False'
-  project: my-project-id
-metrics:
-  environment: devshell
 ```
 
 4. Set any other [configuration values](https://cloud.google.com/sdk/gcloud/reference/config/set) as needed.
 
-### OPTION 2: Deploying outside of Google Cloud Shell:
+#### OPTION 2: Deploying outside of Google Cloud Shell:
 1. Install [Terraform](https://learn.hashicorp.com/tutorials/terraform/install-cli).
 2. Install the [Google Cloud SDK](https://cloud.google.com/sdk/docs/install).
 3. Authenticate.
@@ -163,7 +150,7 @@ gcloud config set project 'my-project-id' # replace with your project ID
 gcloud auth application-default login
 ```
 
-6. Optionally, set the default compute region (`compute.region`). The helper script will default to 'us-central1' if your `gcloud` configuration does not specify a region.
+6. Optionally, set the default compute region (`compute.region`). The helper script will default to `us-central1` if your `gcloud` configuration does not specify a region.
 ```sh
 gcloud config set compute/region 'region' # replace with your preferred region if it's not 'us-central1'
 ```
@@ -174,31 +161,6 @@ gcloud config set compute/region 'region' # replace with your preferred region i
 
 [Clone the repository](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository) and open a terminal session in the `answer-app` directory.
 - If you're using Cloud Shell, consider using Personal Access Tokens (PATs) to [clone the repo](https://docs.github.com/en/github/authenticating-to-github/keeping-your-account-and-data-secure/creating-a-personal-access-token) if you encounter issues with SSH keys.
-
-&nbsp;
-## 3. Use the Helper Scripts
-([return to prerequisites](#prerequisites))
-
-Shell scripts in the `terraform/scripts` directory automate common tasks.
-- `install.sh`: Deploy the resources for the `answer-app` service. (Combines other scripts to set up the project and deploy the resources.)
-- `bootstrap.sh`: Prepare the target deployment project. (Used by the `install.sh` script.)
-- `set_audience.sh`: Set the custom audience used to call the `answer-app` service. (Used by the `test_endpoint.sh` script.)
-- `set_token.sh`: Set the ID token used to call the `answer-app` service. (Used by the `test_endpoint.sh` script.)
-- `set_variables.sh`: Set the environment variables for the shell session. (Used by the `bootstrap.sh`, `set_audience.sh`, `un_bootstrap.sh`, and `uninstall.sh` scripts and by Cloud Build.). Variables:
-  - `PROJECT`: The Google Cloud project ID.
-  - `REGION`: The default compute region.
-  - `BUCKET`: The staging bucket for Vertex AI Data Store documents.
-  - `TF_VAR_project_id`: The Google Cloud project ID for Terraform. (Automatically read by Terraform.)
-  - `TF_VAR_terraform_service_account`: The Terraform service account email address. (Automatically read by Terraform.)
-- `terraform_service_account_roles.txt`: The IAM roles granted to the Terraform service account. (Used by the `bootstrap.sh` script.)
-- `test_endpoint.sh`: Test the `answer-app` endpoint with a `curl` request.
-- `un_bootstrap.sh`: Remove the resources created by the `bootstrap.sh` script. (Used by the `uninstall.sh` script.)
-- `uninstall.sh`: Remove the `answer-app` resources from the project. (Combines other scripts to remove the resources and clean up the project.)
-
-Make the helper scripts executable.
-```sh
-chmod +x scripts/*.sh # change the path if necessary
-```
 
 
 &nbsp;
@@ -313,7 +275,7 @@ scripts/test_endpoint.sh # change the path if necessary
 ([return to top](#vertex-ai-agent-builder-answer-app))
 
 Terraform deploys a `streamlit` [web client](src/client/streamlit_app.py) to Cloud Run that's accessible via the load balancer domain.
-- Get the client app URL from Terraform output.(It's in the format `https://<load_balancer_domain>/answer-app-client`)
+- Get the client app URL from Terraform output.(It's in the format `https://<load_balancer_domain>`)
 ```sh
 cd terraform/main # change the path if necessary
 terraform output client_app_uri
@@ -321,7 +283,7 @@ terraform output client_app_uri
 
 Example output:
 ```
-"https://34.8.148.243.nip.io/answer-app-client"
+"https://34.8.148.243.nip.io"
 ```
 
 - Open the URL in a web browser to access the client app.
@@ -357,6 +319,9 @@ source scripts/uninstall.sh # change the path if necessary
 ([return to top](#vertex-ai-agent-builder-answer-app))
 
 Run `pytest` using `poetry`.
+
+**NOTE**: The tests will fail if you've used the [Helper Scripts](#helper-scripts) to set the environment variables. Open a new shell session with a clean environment to run the tests.
+
 1. [Install Poetry](https://python-poetry.org/docs/#installation)
 
 2. [Install dependencies](https://python-poetry.org/docs/basic-usage/#installing-dependencies).
@@ -579,6 +544,7 @@ Retry the operation to clear the error. If the error persists, check your networ
 - The Search agent responds with `"No results could be found. Try rephrasing the search query."` when the query is valid and should be answerable from the data store documents.
 - Cloud Run logs do not include citations or references for the answer response.
 - The Big Query `answer-app.conversations` table includes `null` values for the `answer.citations`, `answer.references`, or `answer.related_questions` columns.
+- The Big Query `answer-app.conversations` table might list some but not all of the documents expected to be returned in the search results.
 - The search preview in the Vertex AI Agent Builder console also does not return any results.
 - The data store documents appear to be properly imported with no errors in the Vertex AI Agent Builder console.
 
@@ -591,21 +557,23 @@ Importing documents using the [refresh options](https://cloud.google.com/generat
 ([return to top](#vertex-ai-agent-builder-answer-app))
 
 ## Features to add
+### Priority
 - [] [stream answers](https://cloud.google.com/generative-ai-app-builder/docs/stream-answer) **NOT AVAILABLE YET**
-- [] add document processing utilities
-- [] provide example questions to ask the agent in the client app
-<!-- - [] provide a walkthrough of connecting the search agent to spark/agentspace -->
-- [] mimic the answer format returned by the console widget (expand inline citations on click)
-- [] set up cloud logging
-- [] set up a monitoring dashboard
-- [] implement unique user IDs to establish sessions
-- [] implement end user authentication with identity platform or firebase
 - [x] collect user feedback for each question and answer pair and log to BQ
-- [] resumable conversation sessions (lookup available active sessions per user ID)
+- [x] implement an optional list of regions to support multiple cloud run backends
+- [] deploy a templated monitoring dashboard via Terraform
+- [] add document processing utilities (use async)
+- [] add structured prompt preamble to the client app `config.yaml`
+- [] create a separate run invoker service account for the client app
+- [] add a cloud logging handler to the `answer-app` server
+- [] provide a walkthrough of connecting the search agent to spark/agentspace (via a DFCX steering bot)
 - [] replace architecture diagram with one consistent with google cloud style
-- [] demonstrate workload identity federation for client apps not within GCP
-- [] add multiple data stores - create at least 2 when creating the search app (one can be empty)
-- [] implement an optional list of regions to support multiple cloud run backends
+- [x] option to add multiple data stores 
+    - create at least 2 when creating the search app (one can be empty) to support adding/removing data stores later
+    - a search app created with only one data store doesn't support adding more later
+- [] demonstrate IAP for service account auth to call the `answer-app` service
+
+### Pipeline analysis
 - [] establish a 'golden Q&A' to evaluate the model's performance (consider using notebooklm to generate the golden Q&A)
     - alternatively use deep-eval RAG triad without needing golden Q&A
 - [] automate RAG evaluation (using golden Q&A) - run with each new doc import and save results to BQ for offline analysis
@@ -613,9 +581,39 @@ Importing documents using the [refresh options](https://cloud.google.com/generat
 - [] add example (saved) queries in BQ to demonstrate common debugging and evaluation reports
 - [] add a looker dashboard with question and answer pairs along with relevancy scores and user feedback - graph relevancy and user feedback over time
 
+### Client
+- [] provide example questions to ask the search agent
+- [] mimic the answer format returned by the console widget (expand inline citations on click)
+- [] implement unique user IDs to establish sessions
+- [] implement end user authentication with identity platform or firebase
+- [] resumable conversation sessions (lookup available active sessions per user ID)
+- [] demonstrate workload identity federation for client apps not within GCP
+
 
 &nbsp;
 # REFERENCE INFORMATION
+
+
+
+&nbsp;
+# Helper Scripts
+([return to top](#vertex-ai-agent-builder-answer-app))
+
+Shell scripts in the `terraform/scripts` directory automate common tasks.
+- `install.sh`: Deploy the resources for the `answer-app` service. (Combines other scripts to set up the project and deploy the resources.)
+- `bootstrap.sh`: Prepare the target deployment project. (Used by the `install.sh` script.)
+- `set_audience.sh`: Set the custom audience used to call the `answer-app` service. (Used by the `test_endpoint.sh` script.)
+- `set_token.sh`: Set the ID token used to call the `answer-app` service. (Used by the `test_endpoint.sh` script.)
+- `set_variables.sh`: Set the environment variables for the shell session. (Used by the `bootstrap.sh`, `set_audience.sh`, `un_bootstrap.sh`, and `uninstall.sh` scripts and by Cloud Build.). Variables:
+  - `PROJECT`: The Google Cloud project ID.
+  - `REGION`: The default compute region.
+  - `BUCKET`: The staging bucket for Vertex AI Data Store documents.
+  - `TF_VAR_project_id`: The Google Cloud project ID for Terraform. (Automatically read by Terraform.)
+  - `TF_VAR_terraform_service_account`: The Terraform service account email address. (Automatically read by Terraform.)
+- `terraform_service_account_roles.txt`: The IAM roles granted to the Terraform service account. (Used by the `bootstrap.sh` script.)
+- `test_endpoint.sh`: Test the `answer-app` endpoint with a `curl` request.
+- `un_bootstrap.sh`: Remove the resources created by the `bootstrap.sh` script. (Used by the `uninstall.sh` script.)
+- `uninstall.sh`: Remove the `answer-app` resources from the project. (Combines other scripts to remove the resources and clean up the project.)
 
 
 &nbsp;
