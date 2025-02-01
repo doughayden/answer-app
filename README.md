@@ -552,6 +552,29 @@ Retry the operation to clear the error. If the error persists, check your networ
 Importing documents using the [refresh options](https://cloud.google.com/generative-ai-app-builder/docs/refresh-data) without first purging the data store in separate step may result in this issue. The import operation may actually not have imported and indexed the documents properly. [Purge the data store](https://cloud.google.com/generative-ai-app-builder/docs/delete-datastores) and re-import the documents to resolve the issue.
 
 
+## Failure to remove regional backends
+([return to top](#vertex-ai-agent-builder-answer-app))
+
+### Problem
+Terraform fails to remove the regional backend Network Endpoint Groups connected to the backend service. It will throw a 'resource in use by another resource' error.
+
+### Solution
+Apply changes in multiple steps to remove the regional backends:
+1. Edit the backend service to include only the default regional backend group.
+    - Change line 95 in `terraform/modules/answer-app/cloudrun.tf` (`module.answer-app.google_compute_backend_service.run_app`) from
+    ```
+    group = google_compute_region_network_endpoint_group.run_app[backend.key].id
+    ```
+    to
+    ```
+    group = google_compute_region_network_endpoint_group.run_app[var.region].id
+    ```
+2. Apply the changes to update the backend service while leaving the `additional_regions` variable list full with the backends you wish to later remove.
+3. Remove the regions you want to destroy from the `additional_regions` list variable.
+4. Apply the changes to remove the regional backend NEGs and their associated Cloud Run Services.
+5. Revert the change to Change line 95 in `terraform/modules/answer-app/cloudrun.tf` back to `group = google_compute_region_network_endpoint_group.run_app[backend.key].id` and apply the changes to confirm the configuration works.
+
+
 &nbsp;
 # NEXT STEPS
 ([return to top](#vertex-ai-agent-builder-answer-app))
