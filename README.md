@@ -594,18 +594,20 @@ Importing documents using the [refresh options](https://cloud.google.com/generat
 - [] [stream answers](https://cloud.google.com/generative-ai-app-builder/docs/stream-answer) **NOT AVAILABLE YET**
 - [] add document processing utilities
 - [] provide example questions to ask the agent in the client app
-- [] provide a walkthrough of connecting the search agent to spark/agentspace
+<!-- - [] provide a walkthrough of connecting the search agent to spark/agentspace -->
 - [] mimic the answer format returned by the console widget (expand inline citations on click)
 - [] set up cloud logging
 - [] set up a monitoring dashboard
 - [] implement unique user IDs to establish sessions
 - [] implement end user authentication with identity platform or firebase
-- [] collect user feedback for each question and answer pair and log to BQ
+- [x] collect user feedback for each question and answer pair and log to BQ
 - [] resumable conversation sessions (lookup available active sessions per user ID)
 - [] replace architecture diagram with one consistent with google cloud style
 - [] demonstrate workload identity federation for client apps not within GCP
-- [] add multiple data stores
+- [] add multiple data stores - create at least 2 when creating the search app (one can be empty)
+- [] implement an optional list of regions to support multiple cloud run backends
 - [] establish a 'golden Q&A' to evaluate the model's performance (consider using notebooklm to generate the golden Q&A)
+    - alternatively use deep-eval RAG triad without needing golden Q&A
 - [] automate RAG evaluation (using golden Q&A) - run with each new doc import and save results to BQ for offline analysis
 - [] automate load testing (an extension of automated evaluation) to test the pipeline's autoscaling capabilities - save results to BQ for offline analysis
 - [] add example (saved) queries in BQ to demonstrate common debugging and evaluation reports

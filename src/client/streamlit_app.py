@@ -4,6 +4,7 @@ import logging
 import os
 
 import streamlit as st
+from streamlit_feedback import streamlit_feedback
 
 from utils import UtilHandler  # type: ignore
 
@@ -25,37 +26,71 @@ st.set_page_config(
 )
 st.title("Answer App")
 
-# Sidebar for session ID input
-st.sidebar.header("Session Settings")
+# Initialize session state variables.
+if "answer_query_token" not in st.session_state:
+    st.session_state.answer_query_token = ""
+if "question" not in st.session_state:
+    st.session_state.question = ""
+if "answer_text" not in st.session_state:
+    st.session_state.answer_text = ""
 if "session_id" not in st.session_state:
     st.session_state.session_id = "-"
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
 
+
+# Sidebar for session ID input.
+st.sidebar.header("Session Settings")
 session_id = st.sidebar.text_input("Session ID", value=st.session_state.session_id)
 
-# Option to clear chat history
+# Option to clear chat history.
 if st.sidebar.button("Clear Chat History"):
     st.session_state.chat_history = []
     st.session_state.session_id = "-"
 
-# Handle form submission
+# Display chat history.
+avatars = {"user": "🦖", "assistant": "🤖"}
+for message in st.session_state.chat_history:
+    avatar = avatars[message["type"]]
+    with st.chat_message(message["type"], avatar=avatar):
+        st.markdown(message["content"])
+
+# Handle form submission.
 if question := st.chat_input("Enter your question:"):
-    with st.spinner("Sending request..."):
-        st.session_state.chat_history.append({"type": "user", "content": question})
+
+    # Update the session state with the question.
+    st.session_state.question = question
+    st.session_state.chat_history.append({"type": "user", "content": question})
+
+    # Display the user's question in the chat.
+    st.chat_message("user", avatar=avatars["user"]).write(question)
+
+    # Initialize and empty AI chat bubble in a context manager.
+    with st.chat_message("assistant", avatar=avatars["assistant"]):
+        message_placeholder = st.empty()
 
         # Send the question to the Conversational Search Agent backend.
-        response = utils.send_request(question, session_id)
+        data = {"question": question, "session_id": session_id}
+        route = "/answer"
+        response = utils.send_request(data=data, route=route)
         logger.debug(f"Response: {json.dumps(response, indent=2)}")
+
+        # Get the encoded markdown-formatted answer from the backend.
         try:
             encoded_markdown = response["markdown"]
         except KeyError:
             st.error("No markdown returned.")
             encoded_markdown = ""
 
-        # Decode the markdown and escape dollar signs to prevent rendering as MathJax or LaTeX.
+        # Decode it and escape dollar signs to prevent rendering as MathJax or LaTeX.
         decoded_markdown = (
             base64.b64decode(encoded_markdown).decode("utf-8").replace("$", "\\$")
+        )
+
+        # Display the formatted answer and update the chat history.
+        message_placeholder.markdown(decoded_markdown)
+        st.session_state.chat_history.append(
+            {"type": "assistant", "content": decoded_markdown}
         )
 
         # Write it to a local file for offline debugging.
@@ -64,31 +99,93 @@ if question := st.chat_input("Enter your question:"):
                 logger.debug(f"Writing markdown to .log/answer.md...")
                 f.write(decoded_markdown)
 
-        # Get the session ID if it was returned in the response.
-        session_id = response.get("session", {}).get("name", "").split("/")[-1]
-
-        # Get the latency.
+        # Get the answer text and update the session state.
         try:
-            latency = response["latency"]
+            st.session_state.answer_text = response["answer"]["answer_text"]
+            logger.debug(f"Answer text: {st.session_state.answer_text}")
+        except KeyError:
+            st.error("No answer text returned.")
+            st.session_state.answer_text = ""
+
+        # Get the session ID if it was returned in the response and update the sidebar.
+        st.session_state.session_id = (
+            response.get("session", {}).get("name", "").split("/")[-1]
+        )
+        st.sidebar.markdown(f"**Session ID:** {st.session_state.session_id}")
+
+        # Get the latency and update the sidebar.
+        try:
+            st.session_state.latency = response["latency"]
         except KeyError:
             st.error("No latency returned.")
             latency = 9999
+        st.sidebar.markdown(f"**Latency:** {st.session_state.latency:.2f} seconds")
 
-        # Update chat history
-        st.session_state.chat_history.append(
-            {"type": "assistant", "content": decoded_markdown}
-        )
+        # Get the answer query token.
+        try:
+            st.session_state.answer_query_token = response["answer_query_token"]
+            logger.debug(f"Answer query token: {st.session_state.answer_query_token}")
+        except KeyError:
+            st.error("No answer query token returned.")
+            st.session_state.answer_query_token = ""
 
-        # Update the session ID and latency to 2 decimal places in the session state.
-        st.session_state.session_id = session_id
-        st.session_state.latency = f"{latency:.2f} seconds"
 
-        # Update the sidebar with the session information.
-        st.sidebar.markdown(f"**Session ID:** {st.session_state.session_id}")
-        st.sidebar.markdown(f"**Latency:** {st.session_state.latency}")
+def send_feedback(feedback: dict) -> None:
+    """Send feedback to the backend."""
+    logger.debug(f"Feedback: {feedback}")
 
-# Display chat history.
-avatars = {"user": "🦖", "assistant": "🤖"}
-for message in st.session_state.chat_history:
-    avatar = avatars[message["type"]]
-    st.chat_message(message["type"], avatar=avatar).write(message["content"])
+    # Map the streamlit_feedback "score" return symbol to a numerical score.
+    scores = {"👍": 1, "👎": 0}
+    score = scores.get(feedback["score"])
+
+    # Send the feedback to the backend.
+    data = {
+        "answer_query_token": st.session_state.answer_query_token,
+        "question": st.session_state.question,
+        "answer_text": st.session_state.answer_text,
+        "feedback_value": score,
+        "feedback_text": feedback.get("text"),
+    }
+    logger.debug(f"Feedback data: {data}")
+    response = utils.send_request(data=data, route="/feedback")
+    logger.debug(f"Feedback response: {response}")
+
+    # Display a success message.
+    st.success("Feedback submitted. Thank you!")
+
+    pass
+
+
+# Display a user feedback form.
+if st.session_state.get("answer_query_token"):
+    feedback = streamlit_feedback(
+        feedback_type="thumbs",
+        optional_text_label="Please provide feedback on the answer.",
+        on_submit=send_feedback,
+        key=f"feedback_{st.session_state.answer_query_token}",
+    )
+
+    # if feedback:
+    # logger.debug(f"Feedback: {feedback}")
+
+    # # Map the streamlit_feedback "score" return symbol to a numerical score.
+    # scores = {"👍": 1, "👎": 0}
+    # score = scores.get(feedback["score"])
+
+    # # Send the feedback to the backend.
+    # data = {
+    #     "answer_query_token": st.session_state.answer_query_token,
+    #     "question": st.session_state.question,
+    #     "answer_text": st.session_state.answer_text,
+    #     "feedback_value": score,
+    #     "feedback_text": feedback.get("text"),
+    # }
+    # logger.debug(f"Feedback data: {data}")
+    # response = utils.send_request(data=data, route="/feedback")
+    # logger.debug(f"Feedback response: {response}")
+
+    # # Display a success message.
+    # st.success("Feedback submitted. Thank you!")
+
+# Log the full session state.
+logger.debug(f"Session state: {st.session_state}")

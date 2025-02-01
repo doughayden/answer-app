@@ -125,10 +125,12 @@ def test_send_request_success(
     mock_requests_post.return_value.json.return_value = {
         "answer": "This is a test answer"
     }
+    data = {
+        "question": "What is the capital of France?",
+        "session_id": "test-session",
+    }
+    response = mock_util_handler.send_request(data=data, route="/answer")
 
-    response = mock_util_handler.send_request(
-        question="What is the capital of France?", session_id="test-session"
-    )
     assert response == {"answer": "This is a test answer"}
     mock_requests_post.assert_called_once_with(
         "http://localhost:8888/answer",
@@ -150,9 +152,12 @@ def test_send_request_error(
     mock_requests_post.return_value.status_code = 500
     mock_requests_post.return_value.text = "Internal Server Error"
 
-    response = mock_util_handler.send_request(
-        question="What is the capital of France?", session_id="test-session"
-    )
+    data = {
+        "question": "What is the capital of France?",
+        "session_id": "test-session",
+    }
+    response = mock_util_handler.send_request(data=data, route="/answer")
+
     assert response == {"error": "Internal Server Error"}
     mock_requests_post.assert_called_once_with(
         "http://localhost:8888/answer",
@@ -177,9 +182,12 @@ def test_send_request_token_refresh(
         "answer": "This is a test answer"
     }
 
-    response = mock_util_handler.send_request(
-        question="What is the capital of France?", session_id="test-session"
-    )
+    data = {
+        "question": "What is the capital of France?",
+        "session_id": "test-session",
+    }
+    response = mock_util_handler.send_request(data=data, route="/answer")
+
     assert response == {"answer": "This is a test answer"}
     mock_requests_post.assert_called_once_with(
         "http://localhost:8888/answer",

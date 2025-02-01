@@ -177,6 +177,8 @@ async def test_feedback(mock_bq_insert_row_data: MagicMock) -> None:
         "/feedback",
         json={
             "answer_query_token": "token1",
+            "question": "What is the capital of France?",
+            "answer_text": "Paris",
             "feedback_value": 1,
             "feedback_text": "This is a test feedback",
         },
@@ -206,6 +208,8 @@ async def test_feedback_invalid_value(mock_bq_insert_row_data: MagicMock) -> Non
         "/feedback",
         json={
             "answer_query_token": "token1",
+            "question": "What is the capital of France?",
+            "answer_text": "Paris",
             "feedback_value": 10,
             "feedback_text": "This is a test feedback",
         },
@@ -220,6 +224,8 @@ async def test_feedback_insert_errors(mock_bq_insert_row_data: MagicMock) -> Non
         "/feedback",
         json={
             "answer_query_token": "token1",
+            "question": "What is the capital of France?",
+            "answer_text": "Paris",
             "feedback_value": 1,
             "feedback_text": "This is a test feedback",
         },

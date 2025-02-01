@@ -67,6 +67,8 @@ class UserFeedback(int, Enum):
 
 class FeedbackRequest(BaseModel):
     answer_query_token: str
+    question: str
+    answer_text: str
     feedback_value: UserFeedback = Field(exclude=True)
     feedback_text: str | None = None
 
