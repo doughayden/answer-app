@@ -1,31 +1,13 @@
 import pytest
-from typing import Generator
-from unittest.mock import patch, MagicMock, AsyncMock
+from unittest.mock import MagicMock, AsyncMock
 
-from google.cloud.discoveryengine_v1 import (
-    Answer,
-    AnswerQueryResponse,
-    AnswerQueryRequest,
-    Session,
-    Query,
-)
+from google.cloud.discoveryengine_v1 import Answer
+from google.cloud.discoveryengine_v1 import AnswerQueryResponse
+from google.cloud.discoveryengine_v1 import AnswerQueryRequest
+from google.cloud.discoveryengine_v1 import Session
+from google.cloud.discoveryengine_v1 import Query
 
 from answer_app.discoveryengine_utils import DiscoveryEngineAgent
-
-
-@pytest.fixture
-def mock_default() -> Generator[MagicMock, None, None]:
-    with patch("answer_app.discoveryengine_utils.default") as mock_default:
-        mock_default.return_value = (MagicMock(), "test-project-id")
-        yield mock_default
-
-
-@pytest.fixture
-def mock_discoveryengine_client() -> Generator[MagicMock, None, None]:
-    with patch(
-        "answer_app.discoveryengine_utils.discoveryengine.ConversationalSearchServiceAsyncClient"
-    ) as mock_client:
-        yield mock_client
 
 
 def test_initialization_with_project_id(mock_default: MagicMock) -> None:

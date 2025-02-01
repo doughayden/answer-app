@@ -9,6 +9,8 @@ from answer_app.model import (
     AnswerResponse,
     HealthCheckResponse,
     EnvVarResponse,
+    FeedbackRequest,
+    FeedbackResponse,
 )
 from answer_app.utils import sanitize, UtilHandler
 
@@ -74,3 +76,28 @@ def get_env_variable(name: str = Query(...)) -> EnvVarResponse:
     Ref: https://cloud.google.com/run/docs/testing/local#cloud-code-emulator_1
     """
     return EnvVarResponse(name=name, value=os.environ.get(name, None))
+
+
+@app.post("/feedback", response_model=FeedbackResponse)
+async def log_feedback(request: FeedbackRequest) -> FeedbackResponse:
+    """Log feedback from the user."""
+    # Log the request.
+    logger.info(f"Received answer_query_token: {sanitize(request.answer_query_token)}")
+    logger.info(f"Received feedback: {sanitize(request.feedback_value.name)}")
+    if request.feedback_text:
+        logger.info(f"Received feedback text: {sanitize(request.feedback_text)}")
+
+    # Dump the feedback model to a dictionary for loading to BigQuery.
+    data = request.model_dump()
+
+    # Add the feedback name to the data dictionary.
+    data["feedback_name"] = request.feedback_value.name
+
+    # Log the feedback to BigQuery.
+    errors = await utils.bq_insert_row_data(data=data, feedback=True)
+
+    if errors:
+        logger.error(f"Errors loading to Big Query: {errors}")
+        raise HTTPException(status_code=500, detail=str(errors))
+
+    return FeedbackResponse(answer_query_token=request.answer_query_token)

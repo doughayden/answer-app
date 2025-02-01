@@ -2,6 +2,7 @@ import logging
 import os
 import requests
 import time
+from typing import Any
 
 import google.auth
 import google.auth.transport.requests
@@ -158,14 +159,14 @@ class UtilHandler:
 
     def send_request(
         self,
-        question: str,
-        session_id: str = "-",
-    ) -> dict:
+        data: dict[str, Any],
+        route: str,
+    ) -> dict[str, Any]:
         """Send a request to the Discovery Engine API.
 
         Args:
-            question (str): The question to ask the Agent Builder Search Engine.
-            session_id (str): The session ID for the question.
+            data (dict): The data to send in the request.
+            route (str): The API route to receive the request.
 
         Returns:
             dict: The response from the Discovery Engine API.
@@ -178,13 +179,12 @@ class UtilHandler:
         logger.debug(f"Token refresh time: {time.time() - start_time:.4f} seconds")
 
         # Construct and send the request.
-        url = f"{self._audience}/answer"
+        url = f"{self._audience}{route}"
         logger.info(f"URL: {url}")
         headers = {
             "Authorization": f"Bearer {self._token}",
             "Content-Type": "application/json",
         }
-        data = {"question": question, "session_id": session_id}
         logger.info(f"Request data: {data}")
         response = requests.post(url, headers=headers, json=data)
         logger.info(f"Response status code: {response.status_code}")

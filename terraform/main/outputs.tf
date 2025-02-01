@@ -55,5 +55,5 @@ output "terraform_service_account" {
 
 output "client_app_uri" {
   description = "The URI to access the web client application."
-  value       = local.config.create_loadbalancer ? "https://${local.lb_domain}/answer-app-client" : module.answer_app.client_service_uri
+  value       = local.config.create_loadbalancer ? "https://${local.lb_domain}" : module.answer_app.client_service_uri
 }

@@ -8,6 +8,12 @@ variable "region" {
   description = "The Compute API default region."
 }
 
+variable "additional_regions" {
+  type        = list(string)
+  description = "Additional regions to deploy the Cloud Run service and backend NEG."
+  default     = []
+}
+
 variable "iap_sa_member" {
   description = "The IAP service agent member."
   type        = string
@@ -42,7 +48,11 @@ variable "dataset_id" {
 variable "table_id" {
   description = "The BigQuery table ID."
   type        = string
+}
 
+variable "feedback_table_id" {
+  description = "The BigQuery feedback table ID."
+  type        = string
 }
 
 variable "data_stores" {

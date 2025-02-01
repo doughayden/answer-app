@@ -1,52 +1,16 @@
 import base64
 import pytest
-from typing import Generator
-from unittest.mock import patch, MagicMock, AsyncMock
+from unittest.mock import MagicMock, AsyncMock
 
 from google.api_core.datetime_helpers import DatetimeWithNanoseconds
 from google.cloud.discoveryengine_v1 import AnswerQueryResponse, Answer, Session
-from google.auth.credentials import Credentials
 import pytz
 
-from answer_app.utils import (
-    UtilHandler,
-    _timestamp_to_string,
-    _response_to_dict,
-    _answer_to_markdown,
-)
+from answer_app.utils import UtilHandler
+from answer_app.utils import _timestamp_to_string
+from answer_app.utils import _response_to_dict
+from answer_app.utils import _answer_to_markdown
 from answer_app.model import AnswerResponse
-
-
-@pytest.fixture
-def mock_google_auth_default() -> Generator[MagicMock, None, None]:
-    with patch("answer_app.utils.google.auth.default") as mock_default:
-        mock_credentials = MagicMock(spec=Credentials)
-        mock_default.return_value = (mock_credentials, "test-project-id")
-        yield mock_default
-
-
-@pytest.fixture
-def mock_bigquery_client() -> Generator[MagicMock, None, None]:
-    with patch("answer_app.utils.bigquery.Client") as mock_client:
-        yield mock_client
-
-
-@pytest.fixture
-def mock_discoveryengine_agent() -> Generator[MagicMock, None, None]:
-    with patch("answer_app.utils.DiscoveryEngineAgent") as mock_agent:
-        yield mock_agent
-
-
-@pytest.fixture
-def mock_load_config() -> Generator[MagicMock, None, None]:
-    with patch("answer_app.utils.UtilHandler._load_config") as mock_load_config:
-        mock_load_config.return_value = {
-            "location": "us-central1",
-            "search_engine_id": "test-engine-id",
-            "dataset_id": "test-dataset",
-            "table_id": "test-table",
-        }
-        yield mock_load_config
 
 
 def test_initialization(
@@ -60,6 +24,7 @@ def test_initialization(
     assert handler._bq_client is not None
     assert handler._search_agent is not None
     assert handler._table == "test-project-id.test-dataset.test-table"
+    assert handler._feedback_table == "test-project-id.test-dataset.test-feedback-table"
 
 
 def test_setup_logging(caplog: pytest.LogCaptureFixture) -> None:
@@ -73,8 +38,12 @@ def test_compose_table(
     mock_google_auth_default: MagicMock, mock_load_config: MagicMock
 ) -> None:
     handler = UtilHandler(log_level="DEBUG")
-    table = handler._compose_table()
+    table = handler._compose_table(dataset_key="dataset_id", table_key="table_id")
     assert table == "test-project-id.test-dataset.test-table"
+    feedback_table = handler._compose_table(
+        dataset_key="dataset_id", table_key="feedback_table_id"
+    )
+    assert feedback_table == "test-project-id.test-dataset.test-feedback-table"
 
 
 def test_timestamp_to_string() -> None:
@@ -316,6 +285,46 @@ async def test_bq_insert_row_data(
     data = {"key": "value"}
     errors = await handler.bq_insert_row_data(data=data)
     assert errors == []
+    mock_client_instance.insert_rows_json.assert_called_once_with(
+        table="test-project-id.test-dataset.test-table", json_rows=[data]
+    )
+
+
+@pytest.mark.asyncio
+async def test_bq_insert_row_data_feedback(
+    mock_google_auth_default: MagicMock,
+    mock_bigquery_client: MagicMock,
+    mock_load_config: MagicMock,
+) -> None:
+    mock_client_instance = mock_bigquery_client.return_value
+    mock_client_instance.insert_rows_json.return_value = []
+
+    handler = UtilHandler(log_level="DEBUG")
+    data = {"key": "value"}
+    errors = await handler.bq_insert_row_data(data=data, feedback=True)
+    assert errors == []
+    mock_client_instance.insert_rows_json.assert_called_once_with(
+        table="test-project-id.test-dataset.test-feedback-table", json_rows=[data]
+    )
+
+
+@pytest.mark.asyncio
+async def test_bq_insert_row_data_error(
+    mock_google_auth_default: MagicMock,
+    mock_bigquery_client: MagicMock,
+    mock_load_config: MagicMock,
+) -> None:
+    mock_client_instance = mock_bigquery_client.return_value
+    mock_client_instance.insert_rows_json.return_value = [
+        {"index": 0, "errors": [{"reason": "invalid", "message": "Invalid data"}]}
+    ]
+
+    handler = UtilHandler(log_level="DEBUG")
+    data = {"key": "value"}
+    errors = await handler.bq_insert_row_data(data=data)
+    assert errors == [
+        {"index": 0, "errors": [{"reason": "invalid", "message": "Invalid data"}]}
+    ]
     mock_client_instance.insert_rows_json.assert_called_once_with(
         table="test-project-id.test-dataset.test-table", json_rows=[data]
     )

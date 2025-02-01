@@ -1,0 +1,38 @@
+[
+    {
+        "name": "answer_query_token",
+        "type": "STRING",
+        "mode": "REQUIRED",
+        "description": "The answer query token"
+    },
+    {
+        "name": "question",
+        "type": "STRING",
+        "mode": "REQUIRED",
+        "description": "The user's question"
+    },
+    {
+        "name": "answer_text",
+        "type": "STRING",
+        "mode": "REQUIRED",
+        "description": "The answer text"
+    },
+    {
+        "name": "feedback_value",
+        "type": "INTEGER",
+        "mode": "REQUIRED",
+        "description": "The feedback value"
+    },
+    {
+        "name": "feedback_name",
+        "type": "STRING",
+        "mode": "REQUIRED",
+        "description": "The feedback name coresponding to the feedback value"
+    },
+    {
+        "name": "feedback_text",
+        "type": "STRING",
+        "mode": "NULLABLE",
+        "description": "The optional feedback text"
+    }
+]

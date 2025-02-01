@@ -36,3 +36,4 @@ loadbalancer_domain: null
 # Big Query dataset and table IDs to store conversation details.
 dataset_id: answer_app
 table_id: conversations
+feedback_table_id: feedback
