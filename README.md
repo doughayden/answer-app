@@ -6,6 +6,7 @@ The Answer App uses [Vertex AI Agent Builder](https://cloud.google.com/generativ
 
 ### Why would I want to use this?
 
+- **Fully-managed conversational search**: Use the [Answer method](https://cloud.google.com/generative-ai-app-builder/docs/reference/rpc/google.cloud.discoveryengine.v1#conversationalsearchservice) ([REST reference](https://cloud.google.com/generative-ai-app-builder/docs/reference/rest/v1/projects.locations.dataStores.servingConfigs/answer)) for a stateful multi-turn conversational search with generative answers.
 - **Production-capable performance**: Autoscaling, concurrency, and regional redundancy via multiple Cloud Run services.
 - **Integration flexibility**: Authenticated external HTTPS endpoint for 3rd party systems (using Google-managed TLS).
 - **Resource observability**: Single-pane-of-glass Cloud Monitoring dashboard with customizable metrics and alerts.
@@ -584,10 +585,10 @@ Apply changes in multiple steps to remove the regional backends:
 - [] [stream answers](https://cloud.google.com/generative-ai-app-builder/docs/stream-answer) **NOT AVAILABLE YET**
 - [x] collect user feedback for each question and answer pair and log to BQ
 - [x] implement an optional list of regions to support multiple cloud run backends
-- [] deploy a templated monitoring dashboard via Terraform
+- [x] deploy a templated monitoring dashboard via Terraform
 - [] add document processing utilities (use async)
-- [] add structured prompt preamble to the client app `config.yaml`
-- [] create a separate run invoker service account for the client app
+- [x] add structured prompt preamble to the client app `config.yaml`
+- [x] create a separate run invoker service account for the client app
 - [] add a cloud logging handler to the `answer-app` server
 - [] provide a walkthrough of connecting the search agent to spark/agentspace (via a DFCX steering bot)
 - [] replace architecture diagram with one consistent with google cloud style

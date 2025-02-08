@@ -46,18 +46,18 @@ resource "google_project_service_identity" "iap_sa" {
 }
 
 module "answer_app" {
-  source     = "../modules/answer-app"
-  project_id = var.project_id
-  region     = var.region
-  # additional_regions = ["us-west1", "us-east4"]
-  iap_sa_member     = google_project_service_identity.iap_sa.member
-  app_name          = local.config.app_name
-  lb_domain         = local.lb_domain
-  docker_image      = local.docker_image
-  location          = local.config.location
-  dataset_id        = local.config.dataset_id
-  table_id          = local.config.table_id
-  feedback_table_id = local.config.feedback_table_id
+  source             = "../modules/answer-app"
+  project_id         = var.project_id
+  region             = var.region
+  additional_regions = ["us-west1", "us-east4"]
+  iap_sa_member      = google_project_service_identity.iap_sa.member
+  app_name           = local.config.app_name
+  lb_domain          = local.lb_domain
+  docker_image       = local.docker_image
+  location           = local.config.location
+  dataset_id         = local.config.dataset_id
+  table_id           = local.config.table_id
+  feedback_table_id  = local.config.feedback_table_id
 
   data_stores = {
     "${local.config.app_name}-default" = {
