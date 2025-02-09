@@ -76,13 +76,15 @@ When all you want to do is test or demonstrate Vertex AI conversational search, 
 
 ## Description
 ([return to top](#vertex-ai-agent-builder-answer-app))
-- Queries reach the application through the [Cloud Load Balancer](https://cloud.google.com/load-balancing/docs/https).
+- Client requests reach the application through the [Cloud Load Balancer](https://cloud.google.com/load-balancing/docs/https).
 - The [backend service](https://cloud.google.com/load-balancing/docs/backend-service) is the interface for regional [serverless network endpoint group](https://cloud.google.com/load-balancing/docs/backend-service#serverless_network_endpoint_groups) backends composed of [Cloud Run](https://cloud.google.com/run/docs/overview/what-is-cloud-run) services.
-    - Regional failover: Cloud Run services [replicate](https://cloud.google.com/run/docs/resource-model#services) across multiple zones within a [Compute region](https://cloud.google.com/run/docs/locations) to prevent outages for a single zonal failure.
+    - Zonal failover: Cloud Run services [replicate](https://cloud.google.com/run/docs/resource-model#services) across multiple zones within a [Compute region](https://cloud.google.com/run/docs/locations) to prevent outages for a single zonal failure.
     - [Autoscaling](https://cloud.google.com/run/docs/about-instance-autoscaling): add/remove group instances to match demand and maintain a minimum number of instances for high availability.
+    - [Concurrency](https://cloud.google.com/run/docs/about-concurrency): multiple requests processed simultaneously by a given instance.
+    - [Regional redundancy](https://cloud.google.com/run/docs/multiple-regions): deploy services across multiple regions to deliver low latency and higher availability in case of regional outages.
 - [Vertex AI Agent Builder](https://cloud.google.com/generative-ai-app-builder/docs/introduction) provides the [Search App and Data Store](https://cloud.google.com/generative-ai-app-builder/docs/create-datastore-ingest) for document search and retrieval.
-- The application asynchronously writes log data to [BigQuery](https://cloud.google.com/bigquery/docs/introduction) for offline analysis.
 - The Vertex AI Search [answer method](https://cloud.google.com/generative-ai-app-builder/docs/answer) uses Gemini-based [answer generation models](https://cloud.google.com/generative-ai-app-builder/docs/answer-generation-models) to power [generative answers](https://cloud.google.com/vertex-ai/generative-ai/docs/overview).
+- The application asynchronously writes log data and user feedback responses to [BigQuery](https://cloud.google.com/bigquery/docs/introduction) for offline analysis.
 
 
 &nbsp;
@@ -591,7 +593,7 @@ Apply changes in multiple steps to remove the regional backends:
 - [x] create a separate run invoker service account for the client app
 - [] add a cloud logging handler to the `answer-app` server
 - [] provide a walkthrough of connecting the search agent to spark/agentspace (via a DFCX steering bot)
-- [] replace architecture diagram with one consistent with google cloud style
+- [x] replace architecture diagram with one consistent with google cloud style
 - [x] option to add multiple data stores 
     - create at least 2 when creating the search app (one can be empty) to support adding/removing data stores later
     - a search app created with only one data store doesn't support adding more later
