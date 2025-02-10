@@ -588,6 +588,9 @@ Apply changes in multiple steps to remove the regional backends:
 - [x] collect user feedback for each question and answer pair and log to BQ
 - [x] implement an optional list of regions to support multiple cloud run backends
 - [x] deploy a templated monitoring dashboard via Terraform
+- [] replace manual `utils._response_to_dict()` with native protobuf serialization `json_format.MessageToDict()`
+    - update downstream features as needed (bq conversations table, client app attribute extraction) to use the native serialization format
+    - use `preserving_proto_field_name=True` (and optionally `always_print_fields_with_no_presence=True`, [reference](https://protobuf.dev/news/v26/#JSON)) to maintain the original field names and minimize or eliminate downstream changes
 - [] add document processing utilities (use async)
 - [x] add structured prompt preamble to the client app `config.yaml`
 - [x] create a separate run invoker service account for the client app
