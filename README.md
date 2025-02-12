@@ -1,7 +1,5 @@
 # VERTEX AI AGENT BUILDER ANSWER APP
 
-## Overview
-
 The Answer App uses [Vertex AI Agent Builder](https://cloud.google.com/generative-ai-app-builder/docs/introduction) and the [Discovery Engine API](https://cloud.google.com/generative-ai-app-builder/docs/reference/rest) to serve a [conversational search experience](https://cloud.google.com/generative-ai-app-builder/docs/answer) with generative answers grounded on document data.
 
 ### Why would I want to use this?
@@ -20,13 +18,15 @@ The Answer App uses [Vertex AI Agent Builder](https://cloud.google.com/generativ
 
 When all you want to do is test or demonstrate Vertex AI conversational search, [create a search app](https://cloud.google.com/generative-ai-app-builder/docs/create-engine-es) and [preview the widget](https://cloud.google.com/generative-ai-app-builder/docs/configure-widget-attributes) in the Cloud Console or [embed it in a web page](https://cloud.google.com/generative-ai-app-builder/docs/add-widget).
 
-<details><summary>Expand to view the Table of Contents</summary>
 
-## Architecture
+&nbsp;
+## TABLE OF CONTENTS
+
+### Architecture
 - [Diagram](#diagram)
 - [Description](#description)
 
-## Installation
+### Installation
 - [Prerequisites](#prerequisites)
 - [One-Click Deployment](#one-click-deployment)
 - [Add an A record to the DNS Managed Zone](#add-an-a-record-to-the-dns-managed-zone)
@@ -36,14 +36,14 @@ When all you want to do is test or demonstrate Vertex AI conversational search, 
 - [Configure Identity-Aware Proxy](#configure-identity-aware-proxy)
 - [Use the app](#use-the-app)
 
-## Un-Installation
+### Un-Installation
 - [Uninstall](#uninstall)
 
-## Tests
+### Tests
 - [Unit Tests](#unit-tests)
 - [Run locally](#run-locally)
 
-## Known Issues
+### Known Issues
 - [Failure to create the Artifact Registry repository](#failure-to-create-the-artifact-registry-repository)
 - [Cloud Build fails with a Cloud Storage 403 permission denied error](#cloud-build-fails-with-a-cloud-storage-403-permission-denied-error)
 - [Error creating a DataStore (named DataStore being deleted)](#error-creating-a-datastore-named-datastore-being-deleted)
@@ -51,10 +51,10 @@ When all you want to do is test or demonstrate Vertex AI conversational search, 
 - [Errors reading or editing Terraform resources](#errors-reading-or-editing-terraform-resources)
 - [The Search Agent refuses to answer questions](#the-search-agent-refuses-to-answer-questions)
 
-## Next Steps
+### Next Steps
 - [Features to add](#features-to-add)
 
-## Reference Information
+### Reference Information
 - [Helper Scripts](#helper-scripts)
 - [Bootstrap](#bootstrap)
 - [Automate Deployments with Cloud Build](#automate-deployments-with-cloud-build)
@@ -64,17 +64,16 @@ When all you want to do is test or demonstrate Vertex AI conversational search, 
 - [Un-Bootstrap](#un-bootstrap)
 - [Service Account Impersonation](#service-account-impersonation)
 - [Terraform Overview](#terraform-overview)
-</details>
 
 
 &nbsp;
 # ARCHITECTURE
 
-## Diagram
+### Diagram
 ([return to top](#vertex-ai-agent-builder-answer-app))\
 ![Application Architecture](assets/answer_app.png)
 
-## Description
+### Description
 ([return to top](#vertex-ai-agent-builder-answer-app))
 - Client requests reach the application through the [Cloud Load Balancer](https://cloud.google.com/load-balancing/docs/https).
 - The [backend service](https://cloud.google.com/load-balancing/docs/backend-service) is the interface for regional [serverless network endpoint group](https://cloud.google.com/load-balancing/docs/backend-service#serverless_network_endpoint_groups) backends composed of [Cloud Run](https://cloud.google.com/run/docs/overview/what-is-cloud-run) services.
@@ -90,15 +89,14 @@ When all you want to do is test or demonstrate Vertex AI conversational search, 
 &nbsp;
 # INSTALLATION
 
-&nbsp;
-# Prerequisites
+## Prerequisites
 ([return to top](#vertex-ai-agent-builder-answer-app))
 
 Complete the prerequisite steps before deploying the resources with Terraform:
 1. [User Account and Local Development Environment](#1-user-account-and-local-development-environment)
 2. [Clone the Repo](#2-clone-the-repo)
 
-## 1. User Account and Local Development Environment
+### 1. User Account and Local Development Environment
 ([return to prerequisites](#prerequisites))
 
 - Your Google user account must be a [Project Owner](https://cloud.google.com/iam/docs/understanding-roles#owner) in the target Google Cloud project.
@@ -159,7 +157,7 @@ gcloud config set compute/region 'region' # replace with your preferred region i
 ```
 
 &nbsp;
-## 2. Clone the Repo
+### 2. Clone the Repo
 ([return to prerequisites](#prerequisites))
 
 [Clone the repository](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository) and open a terminal session in the `answer-app` directory.
@@ -167,7 +165,7 @@ gcloud config set compute/region 'region' # replace with your preferred region i
 
 
 &nbsp;
-# One-Click Deployment
+## One-Click Deployment
 ([return to top](#vertex-ai-agent-builder-answer-app))
 
 The `install.sh` script automates the steps required to prepare the project and deploy the resources.
@@ -180,7 +178,7 @@ source scripts/install.sh # change the path if necessary
 
 
 &nbsp;
-# Add an A record to the DNS Managed Zone
+## Add an A record to the DNS Managed Zone
 ([return to top](#vertex-ai-agent-builder-answer-app))
 
 **NOTE: You do not need to configure DNS if you set `loadbalancer_domain` to `null` in [`config.yaml`](src/config.yaml) and instead used the default `nip.io` domain.**
@@ -189,7 +187,7 @@ source scripts/install.sh # change the path if necessary
 
 
 &nbsp;
-# Enable Vertex AI Agent Builder
+## Enable Vertex AI Agent Builder
 ([return to top](#vertex-ai-agent-builder-answer-app))
 
 A project Owner must [enable Vertex AI Agent Builder](https://cloud.google.com/generative-ai-app-builder/docs/before-you-begin#turn-on-discovery-engine) in the Cloud Console to use the Discovery Engine API and the Agent Builder console. It's a one-time setup to accept terms for the project for as long as the API remains enabled. (Checking the box to agree to model sampling is optional.)
@@ -197,7 +195,7 @@ A project Owner must [enable Vertex AI Agent Builder](https://cloud.google.com/g
 
 
 &nbsp;
-# Test the endpoint
+## Test the endpoint
 ([return to top](#vertex-ai-agent-builder-answer-app))
 
 - A newly-created managed TLS certificate may take anywhere from 10-15 minutes up to 24 hours for the CA to sign [after DNS propagates](#add-an-a-record-to-the-dns-managed-zone).
@@ -225,7 +223,7 @@ scripts/test_endpoint.sh # change the path if necessary
 
 
 &nbsp;
-# Import documents
+## Import documents
 ([return to top](#vertex-ai-agent-builder-answer-app))
 
 - Refer to the Vertex AI Agent Builder Data Store documentation to [prepare data for ingestion](https://cloud.google.com/generative-ai-app-builder/docs/prepare-data).
@@ -233,13 +231,13 @@ scripts/test_endpoint.sh # change the path if necessary
 
 
 &nbsp;
-# Configure Identity-Aware Proxy
+## Configure Identity-Aware Proxy
 ([return to top](#vertex-ai-agent-builder-answer-app))
 - Configuring IAP for an 'External' app is only possible from the Google Cloud Console.
 - Ref - [Enable IAP for Cloud Run](https://cloud.google.com/iap/docs/enabling-cloud-run)
 - Ref - [Setting up your OAuth consent screen](https://support.google.com/cloud/answer/10311615)
 
-## Steps
+### Steps
 1. Search for Identity-Aware Proxy (or "IAP") in the Console to navigate to it, then select "Enable API". Once the API is enabled, select "Go to Identity-Aware Proxy".  
 2. You will be prompted to "Configure Consent Screen". A consent screen is what is shown to a user to display which elements of their information are requested by the app and to let them choose whether to proceed. Select "Configure Consent Screen".
 
@@ -274,7 +272,7 @@ scripts/test_endpoint.sh # change the path if necessary
 
 
 &nbsp;
-# Use the app
+## Use the app
 ([return to top](#vertex-ai-agent-builder-answer-app))
 
 Terraform deploys a `streamlit` [web client](src/client/streamlit_app.py) to Cloud Run that's accessible via the load balancer domain.
@@ -344,6 +342,7 @@ poetry run coverage run -m pytest
 poetry run coverage report -m
 ```
 
+&nbsp;
 ## Run locally
 ([return to top](#vertex-ai-agent-builder-answer-app))
 
@@ -395,7 +394,7 @@ docker build -t local-answer-app-client:0.1.0 -f ./src/client/Dockerfile . # cha
 docker run --rm -v $HOME/.config/gcloud:/root/.config/gcloud \
 -e GOOGLE_CLOUD_PROJECT=$PROJECT \
 -e LOG_LEVEL=DEBUG \
--p 8888:8080 local-answer-app:0.1.0 # change image name and tag as needed
+-p 8888:8080 local-answer-app:0.1.2 # change image name and tag as needed
 ```
 
 `client`: map container port 8080 to localhost:8080 and call the **LOCAL** `answer-app` service at localhost:8888
@@ -470,6 +469,7 @@ Example:
 The error occurs on the first run of the `bootstrap` module due to a race condition between the Artifact Registry API activation and applying the Terraform plan. The API activation can take a few minutes to complete. Rerun the `bootstrap.sh` script or manually re-apply the `bootstrap` module configuration.
 
 
+&nbsp;
 ## Cloud Build fails with a Cloud Storage 403 permission denied error
 ([return to top](#vertex-ai-agent-builder-answer-app))
 ### Problem
@@ -487,6 +487,7 @@ ERROR: (gcloud.builds.submit) INVALID_ARGUMENT: could not resolve source: google
 The error can occur shortly after setting up a new project with the `bootstrap` module for the first time. It's a race condition where the Cloud Build service account IAM role bindings have not yet propagated. Rerun the Cloud Build job to resolve the error.
 
 
+&nbsp;
 ## Error creating a DataStore (named DataStore being deleted)
 ([return to top](#vertex-ai-agent-builder-answer-app))
 
@@ -508,6 +509,8 @@ Choose one of the following solutions:
 - Wait for the DataStore deletion to complete before re-running the Terraform configuration.
 - Change the DataStore ID in the Terraform configuration to create a new DataStore. Re-apply Terraform.
 
+
+&nbsp;
 ## Errors adding users to Identity-Aware Proxy
 ([return to top](#vertex-ai-agent-builder-answer-app))
 ### Problem
@@ -520,6 +523,7 @@ When [adding members to the IAP-secured backend service](#configure-identity-awa
 3. Re-enable the policy.
 
 
+&nbsp;
 ## Errors reading or editing Terraform resources
 ([return to top](#vertex-ai-agent-builder-answer-app))
 ### Problem
@@ -540,6 +544,7 @@ Example:
 Retry the operation to clear the error. If the error persists, check your network or VPN connection and try again.
 
 
+&nbsp;
 ## The Search Agent refuses to answer questions
 ([return to top](#vertex-ai-agent-builder-answer-app))
 
@@ -555,6 +560,7 @@ Retry the operation to clear the error. If the error persists, check your networ
 Importing documents using the [refresh options](https://cloud.google.com/generative-ai-app-builder/docs/refresh-data) without first purging the data store in separate step may result in this issue. The import operation may actually not have imported and indexed the documents properly. [Purge the data store](https://cloud.google.com/generative-ai-app-builder/docs/delete-datastores) and re-import the documents to resolve the issue.
 
 
+&nbsp;
 ## Failure to remove regional backends
 ([return to top](#vertex-ai-agent-builder-answer-app))
 
@@ -588,7 +594,7 @@ Apply changes in multiple steps to remove the regional backends:
 - [x] collect user feedback for each question and answer pair and log to BQ
 - [x] implement an optional list of regions to support multiple cloud run backends
 - [x] deploy a templated monitoring dashboard via Terraform
-- [] replace manual `utils._response_to_dict()` with native protobuf serialization `json_format.MessageToDict()`
+- [x] replace manual `utils._response_to_dict()` with native protobuf serialization `json_format.MessageToDict()`
     - update downstream features as needed (bq conversations table, client app attribute extraction) to use the native serialization format
     - use `preserving_proto_field_name=True` (and optionally `always_print_fields_with_no_presence=True`, [reference](https://protobuf.dev/news/v26/#JSON)) to maintain the original field names and minimize or eliminate downstream changes
 - [] add document processing utilities (use async)
@@ -597,9 +603,10 @@ Apply changes in multiple steps to remove the regional backends:
 - [] add a cloud logging handler to the `answer-app` server
 - [] provide a walkthrough of connecting the search agent to spark/agentspace (via a DFCX steering bot)
 - [x] replace architecture diagram with one consistent with google cloud style
-- [x] option to add multiple data stores 
-    - create at least 2 when creating the search app (one can be empty) to support adding/removing data stores later
-    - a search app created with only one data store doesn't support adding more later
+- [] add multiple data stores 
+    - create at least 2 when creating the search app (one can be empty) to support adding/removing data stores later (a search app created with only one data must always have only one)
+    - [website data, structured data, structured content (media), structured content for third-party data sources (maybe omit this), unstructured data (exists), healthcare FHIR data (maybe omit this)]
+    - [Agent Builder ref](https://cloud.google.com/generative-ai-app-builder/docs/create-datastore-ingest#datastores-engines), [Terraform ref](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/discovery_engine_data_store)
 - [] demonstrate IAP for service account auth to call the `answer-app` service
 
 ### Pipeline analysis
@@ -623,9 +630,7 @@ Apply changes in multiple steps to remove the regional backends:
 # REFERENCE INFORMATION
 
 
-
-&nbsp;
-# Helper Scripts
+## Helper Scripts
 ([return to top](#vertex-ai-agent-builder-answer-app))
 
 Shell scripts in the `terraform/scripts` directory automate common tasks.
@@ -646,7 +651,7 @@ Shell scripts in the `terraform/scripts` directory automate common tasks.
 
 
 &nbsp;
-# Bootstrap
+## Bootstrap
 ([return to top](#vertex-ai-agent-builder-answer-app))
 
 The `bootstrap.sh` script automates the `gcloud` and `terraform` commands required to prepare the project.
@@ -671,24 +676,24 @@ source scripts/bootstrap.sh # change the path if necessary
 
 
 &nbsp;
-# Automate Deployments with Cloud Build
+## Automate Deployments with Cloud Build
 ([return to top](#vertex-ai-agent-builder-answer-app))
 
 Use [`gcloud builds submit`](https://cloud.google.com/build/docs/running-builds/submit-build-via-cli-api) with [build config files](https://cloud.google.com/build/docs/configuring-builds/create-basic-configuration) to plan and deploy project resources.
 
-## 1. Set configuration values in `config.yaml`.
+### 1. Set configuration values in `config.yaml`.
 Verify/Change parameters as needed:
 - [`config.yaml`](src/config.yaml)
 - Refer to [Connect cloud run services to an existing load balancer](#connect-cloud-run-services-to-an-existing-load-balancer) for configuration requirements when using a Load Balancer managed outside of this Terraform configuration.
 
-## 2. Set environment variables.
+### 2. Set environment variables.
 Source the `set_variables.sh` script to configure the shell environment if you restarted your shell session or made changes to the environment variables.
 - The `bootstrap.sh` script sources this file to set the environment variables and it's not necessary to run it again in the same shell session.
 ```sh
 source scripts/set_variables.sh # change the path if necessary
 ```
 
-## 3. Build & push the docker images and apply the Terraform configuration
+### 3. Build & push the docker images and apply the Terraform configuration
 Use `gcloud` to submit the build from the `answer-app` root directory (the location of this README file) as the build context.
 - [OPTIONAL] Omit the `_RUN_TYPE=apply` substitution to run a plan-only build and review the Terraform changes before applying.
 ```sh
@@ -700,7 +705,7 @@ gcloud builds submit . --config=cloudbuild.yaml --project=$PROJECT --region=$REG
 
 
 &nbsp;
-# Connect cloud run services to an existing load balancer
+## Connect cloud run services to an existing load balancer
 ([return to top](#vertex-ai-agent-builder-answer-app))
 
 Edit and verify these files to connect the Cloud Run services to an existing load balancer.
@@ -717,24 +722,24 @@ Edit and verify these files to connect the Cloud Run services to an existing loa
 
 
 &nbsp;
-# Rollbacks
+## Rollbacks
 ([return to top](#vertex-ai-agent-builder-answer-app))
 
-## Option 1: Use the Cloud Console to switch Cloud Run service traffic to a different revision
-### **THIS WILL CHANGE STATE OUTSIDE OF TERRAFORM CONTROL**
+### Option 1: Use the Cloud Console to switch Cloud Run service traffic to a different revision
+#### **THIS WILL CHANGE STATE OUTSIDE OF TERRAFORM CONTROL**
 - Navigate to the Cloud Run service in the Cloud Console.
 - Click the 'Revisions' tab.
 - Click 'MANAGE TRAFFIC'.
 - Select the target revision and traffic percentage (100% to rollback completely to another revision).
 - Click 'SAVE'.
 
-## Option 2: Rollback to a different Docker image using Terraform
+### Option 2: Rollback to a different Docker image using Terraform
 - Identify the rollback target Docker image.
 - Pass the target image name and tag to the `docker_image` [input variable](https://developer.hashicorp.com/terraform/language/values/variables#assigning-values-to-root-module-variables) in the `main` root module.
     - Use a `.tfvars` file, the `-var` command line argument, or the `TF_VAR_` [environment variable](https://developer.hashicorp.com/terraform/language/values/variables#environment-variables).
 - Apply the Terraform configuration to update the Cloud Run service to the rollback target.
 
-### Example: select an image by digest or tag from Artifact Registry.
+#### Example: select an image by digest or tag from Artifact Registry.
 1. Source the `set_variables.sh` script to configure the shell environment (provides variables including `PROJECT` and `BUCKET`). Refer to the [Prerequisites](#prerequisites) section for details on configuring the `gcloud` CLI.
 ```sh
 source scripts/set_variables.sh # change the path if necessary
@@ -764,7 +769,7 @@ terraform apply
 
 
 &nbsp;
-# Execute Terraform to apply infrastructure-only changes to the `bootstrap` or `main` module.
+## Execute Terraform to apply infrastructure-only changes to the `bootstrap` or `main` module.
 ([return to top](#vertex-ai-agent-builder-answer-app))
 
 Applying the resources from the `bootstrap` module is a one-time setup for a new project. You can re-run it, for example, to add or enable additional APIs to support future development. You can apply infrastructure-only changes to the `main` module to update cloud resources without rebuilding the Docker images (and without using Cloud Build). If you don't provide docker image names as input variables, the `main` retrieves the last-deployed Docker images from the module state and reuses them in the Cloud Run services.
@@ -789,7 +794,7 @@ terraform apply
 
 
 &nbsp;
-# Un-Bootstrap
+## Un-Bootstrap
 ([return to top](#vertex-ai-agent-builder-answer-app))
 
 <span style="color: red;">**WARNING: THIS WILL DELETE YOUR TERRAFORM STATE**</span>
@@ -806,7 +811,7 @@ source scripts/un_bootstrap.sh # change the path if necessary
 
 
 &nbsp;
-# [Service account impersonation](https://cloud.google.com/iam/docs/service-account-impersonation)
+## [Service account impersonation](https://cloud.google.com/iam/docs/service-account-impersonation)
 ([return to top](#vertex-ai-agent-builder-answer-app))
 
 Instead of creating and managing Service Account keys for authentication, this code uses an [impersonation pattern for Terraform](https://cloud.google.com/blog/topics/developers-practitioners/using-google-cloud-service-account-impersonation-your-terraform-code) to fetch access tokens on behalf of a Google Cloud IAM Service Account.
@@ -827,10 +832,9 @@ gcloud iam service-accounts add-iam-policy-binding "terraform-service-account@${
 &nbsp;
 # Terraform Overview
 ([return to top](#vertex-ai-agent-builder-answer-app))
-This overview document provides general instructions to initialize a Terraform workspace/environment, set up a backend configuration and bucket for storing Terraform state, and lists some known issues.
+General instructions to initialize a Terraform workspace/environment and set up a backend configuration and bucket for storing Terraform state.
 
 
-- [Terraform command alias](#terraform-command-alias)
 - [Initialize](#initialize)
 - [Workspaces](#workspaces)
 - [Terraform Backends](#terraform-backends)
@@ -839,18 +843,13 @@ This overview document provides general instructions to initialize a Terraform w
 - [Plan and Apply](#plan-and-apply)
 
 
-## Terraform command alias
-([return to Terraform Overview](#terraform-overview))
-
-Commands in this section assume `tf` is an [alias](https://cloud.google.com/docs/terraform/best-practices-for-terraform#aliases) for `terraform` in your shell.
-
 ## Initialize
 ([return to Terraform Overview](#terraform-overview))
 
 The Terraform working directory must be [initialized](https://developer.hashicorp.com/terraform/cli/init) to set up configuration files and download provider plugins.
 ```sh
 # Initialize the working directory.
-tf init
+terraform init
 ```
 
 ## Workspaces
@@ -860,19 +859,19 @@ tf init
 
 ```sh
 # View the active and available workspaces (Terraform starts with only the 'default' workspace).
-tf workspace list
+terraform workspace list
 
 # Set an environment variable for the deployment environment/workspace name.
 export ENVIRONMENT='sandbox'
 
 # Create an environment-specific workspace.
-tf workspace new $ENVIRONMENT
+terraform workspace new $ENVIRONMENT
 
 # Choose a workspace.
-tf workspace select default
+terraform workspace select default
 
 # Select a workspace or create it if it doesn't exist.
-tf workspace select -or-create nonprod
+terraform workspace select -or-create nonprod
 ```
 
 ## Terraform Backends
@@ -940,12 +939,12 @@ impersonate_service_account = "terraform-service-account@my-project-id.iam.gserv
 EOF
 
 # Initialize the remote state
-tf init -backend-config="backend_$ENVIRONMENT.gcs.tfbackend"
+terraform init -backend-config="backend_$ENVIRONMENT.gcs.tfbackend"
 ```
 
 - Example 2 - initialize a partial backend using command-line arguments:
 ```sh
-tf init -backend-config="bucket=terraform-state-my-project-id" -backend-config="impersonate_service_account=terraform-service-account@my-project-id.iam.gserviceaccount.com"
+terraform init -backend-config="bucket=terraform-state-my-project-id" -backend-config="impersonate_service_account=terraform-service-account@my-project-id.iam.gserviceaccount.com"
 ```
 
 
@@ -954,7 +953,7 @@ tf init -backend-config="bucket=terraform-state-my-project-id" -backend-config="
 
 To force Terraform to use a new backend without [migrating](https://spacelift.io/blog/terraform-migrate-state) state data from an existing backend, [initialize](https://developer.hashicorp.com/terraform/cli/commands/init#backend-initialization) with the `-reconfigure` flag. The existing state in the old backend is left unchanged and not copied to the new backend.
 ```sh
-tf init -reconfigure -backend-config="backend_$ENVIRONMENT.gcs.tfbackend
+terraform init -reconfigure -backend-config="backend_$ENVIRONMENT.gcs.tfbackend
 ```
 
 ## Plan and Apply
@@ -973,9 +972,9 @@ zone                      = "us-central1-a"
 EOF
 
 # View the Terraform plan.
-tf plan -var-file="vars_$ENVIRONMENT.tfvars"
+terraform plan -var-file="vars_$ENVIRONMENT.tfvars"
 
 # Apply changes.
-tf apply -var-file="vars_$ENVIRONMENT.tfvars"
+terraform apply -var-file="vars_$ENVIRONMENT.tfvars"
 
 ```

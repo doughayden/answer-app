@@ -2,15 +2,11 @@ import base64
 import pytest
 from unittest.mock import MagicMock, AsyncMock
 
-from google.api_core.datetime_helpers import DatetimeWithNanoseconds
 from google.cloud.discoveryengine_v1 import AnswerQueryResponse, Answer, Session
-import pytz
 
-from answer_app.utils import UtilHandler
-from answer_app.utils import _timestamp_to_string
-from answer_app.utils import _response_to_dict
-from answer_app.utils import _answer_to_markdown
 from answer_app.model import AnswerResponse
+from answer_app.utils import UtilHandler
+from answer_app.utils import _answer_to_markdown
 
 
 def test_initialization(
@@ -44,54 +40,6 @@ def test_compose_table(
         dataset_key="dataset_id", table_key="feedback_table_id"
     )
     assert feedback_table == "test-project-id.test-dataset.test-feedback-table"
-
-
-def test_timestamp_to_string() -> None:
-    timestamp = DatetimeWithNanoseconds(2023, 1, 1, 12, 0, 0, tzinfo=pytz.UTC)
-    assert _timestamp_to_string(timestamp) == "2023-01-01T12:00:00.000000Z"
-    assert _timestamp_to_string(None) is None
-
-
-def test_response_to_dict() -> None:
-    utc = pytz.UTC
-    response = AnswerQueryResponse(
-        answer=Answer(
-            name="answer1",
-            state=Answer.State.SUCCEEDED,
-            answer_text="This is an answer",
-            citations=[],
-            references=[],
-            related_questions=[],
-            steps=[],
-            query_understanding_info=Answer.QueryUnderstandingInfo(
-                query_classification_info=[]
-            ),
-            answer_skipped_reasons=[],
-            create_time=DatetimeWithNanoseconds(2023, 1, 1, 12, 0, 0, tzinfo=utc),
-            complete_time=DatetimeWithNanoseconds(2023, 1, 1, 12, 0, 1, tzinfo=utc),
-        ),
-        session=Session(
-            name="session1",
-            state=Session.State.IN_PROGRESS,
-            user_pseudo_id="user1",
-            turns=[],
-            start_time=DatetimeWithNanoseconds(2023, 1, 1, 12, 0, 0, tzinfo=utc),
-            end_time=DatetimeWithNanoseconds(2023, 1, 1, 12, 0, 1, tzinfo=utc),
-        ),
-        answer_query_token="token1",
-    )
-    response_dict = _response_to_dict(response)
-    assert response_dict["answer"]["name"] == "answer1"
-    assert response_dict["answer"]["state"] == "SUCCEEDED"
-    assert response_dict["answer"]["answer_text"] == "This is an answer"
-    assert response_dict["answer"]["create_time"] == "2023-01-01T12:00:00.000000Z"
-    assert response_dict["answer"]["complete_time"] == "2023-01-01T12:00:01.000000Z"
-    assert response_dict["session"]["name"] == "session1"
-    assert response_dict["session"]["state"] == "IN_PROGRESS"
-    assert response_dict["session"]["user_pseudo_id"] == "user1"
-    assert response_dict["session"]["start_time"] == "2023-01-01T12:00:00.000000Z"
-    assert response_dict["session"]["end_time"] == "2023-01-01T12:00:01.000000Z"
-    assert response_dict["answer_query_token"] == "token1"
 
 
 def test_answer_to_markdown() -> None:

@@ -93,24 +93,6 @@ def mock_google_auth_transport_requests() -> Generator[MagicMock, None, None]:
         yield mock_request
 
 
-# @pytest.fixture
-# def mock_default_id_token() -> Generator[MagicMock, None, None]:
-#     with patch(
-#         "client.utils.UtilHandler._get_default_id_token"
-#     ) as mock_default_id_token:
-#         mock_default_id_token.return_value = "default-token"
-#         yield mock_default_id_token
-
-
-# @pytest.fixture
-# def mock_impersonated_id_token() -> Generator[MagicMock, None, None]:
-#     with patch(
-#         "client.utils.UtilHandler._get_impersonated_id_token"
-#     ) as mock_impersonated_id_token:
-#         mock_impersonated_id_token.return_value = "impersonated-token"
-#         yield mock_impersonated_id_token
-
-
 @pytest.fixture
 def mock_fetch_id_token() -> Generator[MagicMock, None, None]:
     with patch(
