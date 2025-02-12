@@ -4,14 +4,12 @@ import time
 
 from fastapi import FastAPI, HTTPException, Query
 
-from answer_app.model import (
-    QuestionRequest,
-    AnswerResponse,
-    HealthCheckResponse,
-    EnvVarResponse,
-    FeedbackRequest,
-    FeedbackResponse,
-)
+from answer_app.model import QuestionRequest
+from answer_app.model import AnswerResponse
+from answer_app.model import HealthCheckResponse
+from answer_app.model import EnvVarResponse
+from answer_app.model import FeedbackRequest
+from answer_app.model import FeedbackResponse
 from answer_app.utils import sanitize, UtilHandler
 
 

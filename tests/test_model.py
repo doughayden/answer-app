@@ -26,18 +26,43 @@ def test_answer_response() -> None:
     # Valid input
     response = AnswerResponse(
         question="What is the capital of France?",
-        answer={"answer_text": "Paris"},
+        markdown="**Paris**",
         latency=0.1234,
+        answer={"answer_text": "Paris"},
         session={"name": "session1"},
         answer_query_token="token1",
-        markdown="**Paris**",
     )
     assert response.question == "What is the capital of France?"
-    assert response.answer == {"answer_text": "Paris"}
+    assert response.markdown == "**Paris**"
     assert response.latency == 0.1234
+    assert response.answer == {"answer_text": "Paris"}
     assert response.session == {"name": "session1"}
     assert response.answer_query_token == "token1"
+
+    # Invalid input (missing required answer_query_token field)
+    with pytest.raises(ValidationError):
+        AnswerResponse(
+            question="What is the capital of France?",
+            markdown="**Paris**",
+            latency=0.1234,
+            answer={"answer_text": "Paris"},
+            session={"name": "session1"},
+        )
+
+    # Valid input with None session
+    response = AnswerResponse(
+        question="What is the capital of France?",
+        markdown="**Paris**",
+        latency=0.1234,
+        answer={"answer_text": "Paris"},
+        answer_query_token="token1",
+    )
+    assert response.question == "What is the capital of France?"
     assert response.markdown == "**Paris**"
+    assert response.latency == 0.1234
+    assert response.answer == {"answer_text": "Paris"}
+    assert response.session is None
+    assert response.answer_query_token == "token1"
 
 
 def test_health_check_response() -> None:

@@ -5,11 +5,9 @@ import os
 import time
 from typing import Any
 
-from google.api_core.datetime_helpers import DatetimeWithNanoseconds
 import google.auth
 from google.cloud import bigquery
-from google.cloud.discoveryengine_v1.types import Answer, AnswerQueryResponse, Session
-from google.protobuf.json_format import MessageToJson
+from google.cloud.discoveryengine_v1.types import Answer, AnswerQueryResponse
 import yaml
 
 from answer_app.discoveryengine_utils import DiscoveryEngineAgent
@@ -30,174 +28,6 @@ def sanitize(text: str) -> str:
         str: The sanitized text.
     """
     return text.replace("\r\n", "").replace("\n", "")
-
-
-def _timestamp_to_string(timestamp: DatetimeWithNanoseconds | None) -> str | None:
-    """Convert a protobuf Timestamp to a standard timestamp-formatted string.
-
-    Args:
-        timestamp: (DatetimeWithNanoseconds): The protobuf Timestamp object.
-        Subclass of datetime.datetime with nanosecond precision from the
-        google.api_core.datetime_helpers module.
-
-    Returns:
-        str: The timestamp-formatted string. If the input is None, return None.
-    """
-    return timestamp.rfc3339() if timestamp else None
-
-
-def _response_to_dict(response: AnswerQueryResponse) -> dict[str, Any]:
-    """Unpack the response object to a dictionary.
-
-    Args:
-        response (AnswerQueryResponse): The response object.
-
-    Returns:
-        dict[str, Any]: The response dictionary.
-    """
-    return {
-        "answer": {
-            "name": response.answer.name,
-            "state": Answer.State(response.answer.state).name,
-            "answer_text": response.answer.answer_text,
-            "citations": [
-                {
-                    "start_index": citation.start_index,
-                    "end_index": citation.end_index,
-                    "sources": [
-                        {
-                            "reference_id": source.reference_id,
-                        }
-                        for source in citation.sources
-                    ],
-                }
-                for citation in response.answer.citations
-            ],
-            "references": [
-                {
-                    "unstructured_document_info": {
-                        "document": ref.unstructured_document_info.document,
-                        "uri": ref.unstructured_document_info.uri,
-                        "title": ref.unstructured_document_info.title,
-                        "chunk_contents": [
-                            {
-                                "content": chunk.content,
-                                "page_identifier": chunk.page_identifier,
-                                "relevance_score": chunk.relevance_score,
-                            }
-                            for chunk in ref.unstructured_document_info.chunk_contents
-                        ],
-                        "struct_data": (
-                            MessageToJson(ref.unstructured_document_info.struct_data)
-                            if ref.unstructured_document_info.struct_data
-                            else ""
-                        ),
-                    },
-                    "chunk_info": {
-                        "content": ref.chunk_info.content,
-                        "relevance_score": ref.chunk_info.relevance_score,
-                        "document_metadata": {
-                            "document": ref.chunk_info.document_metadata.document,
-                            "uri": ref.chunk_info.document_metadata.uri,
-                            "title": ref.chunk_info.document_metadata.title,
-                        },
-                    },
-                    "structured_document_info": {
-                        "document": ref.structured_document_info.document,
-                        "struct_data": (
-                            MessageToJson(ref.structured_document_info.struct_data)
-                            if ref.structured_document_info.struct_data
-                            else ""
-                        ),
-                    },
-                }
-                for ref in response.answer.references
-            ],
-            "related_questions": [
-                question for question in response.answer.related_questions
-            ],
-            "steps": [
-                {
-                    "state": Answer.Step.State(step.state).name,
-                    "description": step.description,
-                    "thought": step.thought,
-                    "actions": [
-                        {
-                            "search_action": {
-                                "query": action.search_action.query,
-                            },
-                            "observation": {
-                                "search_results": [
-                                    {
-                                        "document": result.document,
-                                        "uri": result.uri,
-                                        "title": result.title,
-                                        "snippet_info": [
-                                            {
-                                                "snippet": snippet_info.snippet,
-                                                "snippet_status": snippet_info.snippet_status,
-                                            }
-                                            for snippet_info in result.snippet_info
-                                        ],
-                                        "chunk_info": [
-                                            {
-                                                "chunk": chunk_info.chunk,
-                                                "content": chunk_info.content,
-                                                "relevance_score": chunk_info.relevance_score,
-                                            }
-                                            for chunk_info in result.chunk_info
-                                        ],
-                                        "struct_data": (
-                                            MessageToJson(result.struct_data)
-                                            if result.struct_data
-                                            else ""
-                                        ),
-                                    }
-                                    for result in action.observation.search_results
-                                ],
-                            },
-                        }
-                        for action in step.actions
-                    ],
-                }
-                for step in response.answer.steps
-            ],
-            "query_understanding_info": {
-                "query_classification_info": [
-                    {
-                        "type": Answer.QueryUnderstandingInfo.QueryClassificationInfo.Type(
-                            info.type_
-                        ).name,
-                        "positive": info.positive,
-                    }
-                    for info in response.answer.query_understanding_info.query_classification_info
-                ],
-            },
-            "answer_skipped_reasons": [
-                reason for reason in response.answer.answer_skipped_reasons
-            ],
-            "create_time": (_timestamp_to_string(response.answer.create_time)),
-            "complete_time": (_timestamp_to_string(response.answer.complete_time)),
-        },
-        "session": {
-            "name": response.session.name,
-            "state": Session.State(response.session.state).name,
-            "user_pseudo_id": response.session.user_pseudo_id,
-            "turns": [
-                {
-                    "query": {
-                        "query_id": turn.query.query_id,
-                        "text": turn.query.text,
-                    },
-                    "answer": turn.answer,
-                }
-                for turn in response.session.turns
-            ],
-            "start_time": (_timestamp_to_string(response.session.start_time)),
-            "end_time": (_timestamp_to_string(response.session.end_time)),
-        },
-        "answer_query_token": response.answer_query_token,
-    }
 
 
 def _answer_to_markdown(answer: Answer) -> str:
@@ -408,7 +238,10 @@ class UtilHandler:
 
         # Create a markdown string of the answer text and citations and a dictionary of the full response.
         markdown = _answer_to_markdown(response.answer)
-        response_dict = _response_to_dict(response)
+        response_dict = AnswerQueryResponse.to_dict(
+            instance=response,
+            use_integers_for_enums=False,
+        )
 
         return AnswerResponse(
             question=query_text,

@@ -1,4 +1,5 @@
 from enum import Enum
+from typing import Any
 from urllib.parse import quote
 
 from pydantic import BaseModel
@@ -13,9 +14,9 @@ class AnswerResponse(BaseModel):
     question: str
     markdown: str
     latency: float
-    answer: dict
-    session: dict | None
-    answer_query_token: str | None
+    answer: dict[str, Any]
+    session: dict[str, Any] | None = None
+    answer_query_token: str
 
 
 class HealthCheckResponse(BaseModel):

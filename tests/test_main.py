@@ -30,7 +30,7 @@ async def test_answer_no_session_id(
     data = response.json()
     assert "answer" in data
     assert "latency" in data
-    assert data["session"]["name"] == ""
+    assert data["session"] is None
 
 
 @pytest.mark.asyncio

@@ -91,7 +91,7 @@
                                 "name": "document",
                                 "type": "STRING",
                                 "mode": "NULLABLE",
-                                "description": "The document ID"
+                                "description": "The document resource name"
                             },
                             {
                                 "name": "uri",
@@ -133,9 +133,9 @@
                             },
                             {
                                 "name": "struct_data",
-                                "type": "STRING",
+                                "type": "JSON",
                                 "mode": "NULLABLE",
-                                "description": "Structured data of the document"
+                                "description": "The structured JSON metadata for the document"
                             }
                         ]
                     },
@@ -146,10 +146,16 @@
                         "description": "Chunk information",
                         "fields": [
                             {
+                                "name": "chunk",
+                                "type": "STRING",
+                                "mode": "NULLABLE",
+                                "description": "The chunk resource name"
+                            },
+                            {
                                 "name": "content",
                                 "type": "STRING",
                                 "mode": "NULLABLE",
-                                "description": "The content of the chunk"
+                                "description": "The chunk text content"
                             },
                             {
                                 "name": "relevance_score",
@@ -167,7 +173,7 @@
                                         "name": "document",
                                         "type": "STRING",
                                         "mode": "NULLABLE",
-                                        "description": "The document ID"
+                                        "description": "Document resource name"
                                     },
                                     {
                                         "name": "uri",
@@ -180,6 +186,18 @@
                                         "type": "STRING",
                                         "mode": "NULLABLE",
                                         "description": "The title of the document"
+                                    },
+                                    {
+                                        "name": "page_identifier",
+                                        "type": "STRING",
+                                        "mode": "NULLABLE",
+                                        "description": "The document page identifier"
+                                    },
+                                    {
+                                        "name": "struct_data",
+                                        "type": "JSON",
+                                        "mode": "NULLABLE",
+                                        "description": "The structured JSON metadata for the document"
                                     }
                                 ]
                             }
@@ -199,9 +217,9 @@
                             },
                             {
                                 "name": "struct_data",
-                                "type": "STRING",
+                                "type": "JSON",
                                 "mode": "NULLABLE",
-                                "description": "Structured data of the document"
+                                "description": "Structured search data"
                             }
                         ]
                     }
@@ -360,7 +378,7 @@
                         "description": "Query classification information",
                         "fields": [
                             {
-                                "name": "type",
+                                "name": "type_",
                                 "type": "STRING",
                                 "mode": "NULLABLE",
                                 "description": "The type of the query classification"
