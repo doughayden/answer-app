@@ -51,10 +51,12 @@ def main(
 
     # Loop to get questions from the user. Exit on empty input.
     while question := input(prompt.format(session_id=session_id)):
-        response = utils.send_request(
-            question=question,
-            session_id=session_id,
-        )
+        data = {
+            "question": question,
+            "session_id": session_id,
+        }
+        route = "/answer"
+        response = utils.send_request(data=data, route=route)
         logger.debug(f"Response: {json.dumps(response, indent=2)}")
 
         try:
@@ -65,9 +67,13 @@ def main(
 
         # Decode the markdown and write it to a local file for offline debugging.
         decoded_markdown = base64.b64decode(encoded_markdown).decode("utf-8")
-        with open(".log/answer.md", "w") as f:
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        log_dir = os.path.join(script_dir, ".log")
+        markdown_filename = os.path.join(log_dir, "answer.md")
+        with open(markdown_filename, "w") as f:
             f.write(decoded_markdown)
 
+        # Print the markdown to the console.
         markdown = Markdown(decoded_markdown)
         print(2 * "\n")
         print("ANSWER: \n\n")
@@ -75,7 +81,10 @@ def main(
         print(2 * "\n")
 
         # Update the session ID if it was returned in the response.
-        session_id = response.get("session", {}).get("name", "").split("/")[-1]
+        try:
+            session_id = response["session"]["name"].split("/")[-1]
+        except:
+            session_id = None
 
 
 if __name__ == "__main__":
