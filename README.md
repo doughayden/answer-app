@@ -374,7 +374,7 @@ poetry run streamlit run src/client/streamlit_app.py
 `answer-app`
 - Uses the `Dockerfile` in the root of the repo
 ```sh
-docker build -t local-answer-app:0.1.0 . # change image name and tag as needed
+docker build -t local-answer-app:0.1.0 -f ./src/answer_app/Dockerfile . # change image name and tag as needed
 ```
 
 `client`

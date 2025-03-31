@@ -31,7 +31,7 @@ steps:
     'build',
     '-t', '${_DOCKER_IMAGE_ANSWER_APP}:latest',
     '-t', '${_DOCKER_IMAGE_ANSWER_APP}:${BUILD_ID}',
-    '-f', 'Dockerfile',
+    '-f', 'src/answer_app/Dockerfile',
     '.'
   ]
 
