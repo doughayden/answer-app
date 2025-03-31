@@ -1,17 +1,18 @@
-"""Ref: https://cloud.google.com/generative-ai-app-builder/docs/answer"""
-
 import logging
 
 from google.api_core.client_options import ClientOptions
-from google.auth import default
+import google.auth
 from google.cloud import discoveryengine_v1 as discoveryengine
-from google.cloud.discoveryengine_v1.types import AnswerQueryResponse
+from google.cloud.discoveryengine_v1.types import AnswerQueryResponse, Session
+from google.cloud.discoveryengine_v1.services.conversational_search_service.pagers import (
+    ListSessionsAsyncPager,
+)
 
 
 logger = logging.getLogger(__name__)
 
 
-class DiscoveryEngineAgent:
+class DiscoveryEngineHandler:
     """A class to interact with the Conversational Search Service."""
 
     def __init__(
@@ -21,29 +22,21 @@ class DiscoveryEngineAgent:
         preamble: str,
         project_id: str | None = None,
     ) -> None:
-        """Initialize the DiscoveryEngineAgent class.
+        """Initialize the DiscoveryEngineHandler class.
 
         Args:
             location (str): The location of the search engine.
             engine_id (str): The ID of the search engine.
+            preamble (str): The preamble for the answer generation.
             project_id (str, optional): The ID of the Google Cloud project. Defaults to None.
         """
         self._location = location
         self._engine_id = engine_id
         self._preamble = preamble
-        self._project_id = project_id if project_id else default()[1]
+        self._project_id = project_id if project_id else google.auth.default()[1]
         self._client = self._initialize_client()
+        self._engine = self._engine_path()
         self._log_attributes()
-
-        return
-
-    def _log_attributes(self) -> None:
-        """Log the attributes of the class."""
-        logger.debug(f"Search Agent project: {self._project_id}")
-        logger.debug(f"Search Agent location: {self._location}")
-        logger.debug(f"Search Agent engine ID: {self._engine_id}")
-        logger.debug(f"Search Agent preamble: {self._preamble}")
-        logger.debug(f"Search Agent client: {self._client.transport.host}")
 
         return
 
@@ -55,9 +48,9 @@ class DiscoveryEngineAgent:
         Returns:
             discoveryengine.ConversationalSearchServiceAsyncClient:
             The async client for the Conversational Search Service.
+
+        Ref: https://cloud.google.com/generative-ai-app-builder/docs/locations#specify_a_multi-region_for_your_data_store
         """
-        #  For more information, refer to:
-        # https://cloud.google.com/generative-ai-app-builder/docs/locations#specify_a_multi-region_for_your_data_store
         client_options = (
             ClientOptions(
                 api_endpoint=f"{self._location}-discoveryengine.googleapis.com"
@@ -66,15 +59,31 @@ class DiscoveryEngineAgent:
             else None
         )
 
-        # Create an async client
+        # Create an async client.
         return discoveryengine.ConversationalSearchServiceAsyncClient(
             client_options=client_options
         )
+
+    def _engine_path(self) -> str:
+        """Return the full resource name of the Search engine."""
+        return f"projects/{self._project_id}/locations/{self._location}/collections/default_collection/engines/{self._engine_id}"
+
+    def _log_attributes(self) -> None:
+        """Log the attributes of the class instance."""
+        logger.debug(f"VAIS Handler project: {self._project_id}")
+        logger.debug(f"VAIS Handler location: {self._location}")
+        logger.debug(f"VAIS Handler engine ID: {self._engine_id}")
+        logger.debug(f"VAIS Handler client: {self._client.transport.host}")
+        logger.debug(f"VAIS Handler engine: {self._engine}")
+        logger.debug(f"VAIS Handler preamble: {self._preamble}")
+
+        return
 
     async def answer_query(
         self,
         query_text: str,
         session_id: str | None,
+        user_pseudo_id: str,
     ) -> AnswerQueryResponse:
         """Call the answer method and return a generated answer and a list of search results,
         with links to the sources.
@@ -82,18 +91,16 @@ class DiscoveryEngineAgent:
         Args:
             query_text (str): The text of the query to be answered.
             session_id (str, optional): The session ID to continue a conversation.
+            user_pseudo_id (str): The unique ID of the active user.
 
         Returns:
             AnswerQueryResponse: The response from the Conversational Search Service,
             containing the generated answer and selected references.
 
-        Ref: https://cloud.google.com/generative-ai-app-builder/docs/answer#search-answer-basic
+        Ref: https://cloud.google.com/generative-ai-app-builder/docs/answer
         """
-        # The full resource name of the Search engine.
-        engine = f"projects/{self._project_id}/locations/{self._location}/collections/default_collection/engines/{self._engine_id}"
-
         # The full resource name of the Search serving config.
-        serving_config = f"{engine}/servingConfigs/default_serving_config"
+        serving_config = f"{self._engine}/servingConfigs/default_serving_config"
 
         # Optional: Options for query phase
         query_understanding_spec = discoveryengine.AnswerQueryRequest.QueryUnderstandingSpec(
@@ -127,7 +134,7 @@ class DiscoveryEngineAgent:
 
         # Construct the session name using the engine as the serving config.
         # Ref: https://cloud.google.com/python/docs/reference/discoveryengine/latest/google.cloud.discoveryengine_v1.types.AnswerQueryRequest
-        session = f"{engine}/sessions/{session_id}" if session_id else None
+        session = f"{self._engine}/sessions/{session_id}" if session_id else None
 
         # Initialize request argument(s).
         request = discoveryengine.AnswerQueryRequest(
@@ -136,6 +143,7 @@ class DiscoveryEngineAgent:
             session=session,  # Optional: include previous session ID to continue a conversation
             query_understanding_spec=query_understanding_spec,
             answer_generation_spec=answer_generation_spec,
+            user_pseudo_id=user_pseudo_id,  # Optional: User pseudo ID
         )
 
         # Make the request.
@@ -146,3 +154,58 @@ class DiscoveryEngineAgent:
         logger.info(f"Answer: {response.answer.answer_text}")
 
         return response
+
+    async def get_user_sessions(
+        self,
+        user_pseudo_id: str,
+    ) -> list[Session]:
+        """Get a list of user sessions.
+
+        Args:
+            user_pseudo_id (str): The unique ID of the active user.
+
+        Returns:
+            list[Session]: A list of Session objects for the user.
+
+        Ref: https://googleapis.dev/python/google-api-core/latest/page_iterator.html
+        """
+        logger.info(f"Getting sessions for user {user_pseudo_id}...")
+
+        sessions: list[Session] = []
+        page_result: ListSessionsAsyncPager
+
+        page_result = await self._client.list_sessions(
+            request=discoveryengine.ListSessionsRequest(
+                parent=self._engine,
+                filter=f'user_pseudo_id = {user_pseudo_id} AND state = "IN_PROGRESS"',  # Optional: Filter requests by userPseudoId or state
+                order_by="update_time",  # Optional: Sort results
+            )
+        )
+
+        async for session in page_result:
+            sessions.append(session)
+            logger.debug(f"Session ID: {session.name.split('/')[-1]}")
+            logger.debug(f"Session State: {session.state}")
+            logger.debug(f"Session user_pseudo_id: {session.user_pseudo_id}")
+
+        logger.info(f"Number of sessions: {len(sessions)}")
+
+        return sessions
+
+    async def delete_session(
+        self,
+        session_id: str,
+    ) -> None:
+        """Delete a user session."""
+        try:
+            await self._client.delete_session(
+                request=discoveryengine.DeleteSessionRequest(
+                    name=f"{self._engine}/sessions/{session_id}"
+                )
+            )
+            logger.info(f"Session {session_id} deleted.")
+
+        except Exception as e:
+            logger.error(f"Error deleting session {session_id}: {e}")
+
+        return

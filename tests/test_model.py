@@ -10,20 +10,21 @@ from answer_app.model import ClientCitation
 from answer_app.model import UserFeedback
 from answer_app.model import FeedbackRequest
 from answer_app.model import FeedbackResponse
+from answer_app.model import GetSessionResponse
 
 
 def test_question_request() -> None:
-    # Valid input
+    # Valid input.
     question = QuestionRequest(question="What is the capital of France?")
     assert question.question == "What is the capital of France?"
 
-    # Invalid input (missing required field)
+    # Invalid input (missing required field).
     with pytest.raises(ValidationError):
         QuestionRequest()
 
 
 def test_answer_response() -> None:
-    # Valid input
+    # Valid input.
     response = AnswerResponse(
         question="What is the capital of France?",
         markdown="**Paris**",
@@ -39,7 +40,7 @@ def test_answer_response() -> None:
     assert response.session == {"name": "session1"}
     assert response.answer_query_token == "token1"
 
-    # Invalid input (missing required answer_query_token field)
+    # Invalid input (missing required answer_query_token field).
     with pytest.raises(ValidationError):
         AnswerResponse(
             question="What is the capital of France?",
@@ -49,7 +50,7 @@ def test_answer_response() -> None:
             session={"name": "session1"},
         )
 
-    # Valid input with None session
+    # Valid input with None session.
     response = AnswerResponse(
         question="What is the capital of France?",
         markdown="**Paris**",
@@ -66,25 +67,25 @@ def test_answer_response() -> None:
 
 
 def test_health_check_response() -> None:
-    # Valid input
+    # Valid input.
     health_check = HealthCheckResponse()
     assert health_check.status == "ok"
 
 
 def test_env_var_response() -> None:
-    # Valid input
+    # Valid input.
     env_var = EnvVarResponse(name="MY_ENV_VAR", value="test_value")
     assert env_var.name == "MY_ENV_VAR"
     assert env_var.value == "test_value"
 
-    # Valid input with None value
+    # Valid input with None value.
     env_var = EnvVarResponse(name="MY_ENV_VAR", value=None)
     assert env_var.name == "MY_ENV_VAR"
     assert env_var.value is None
 
 
 def test_client_citation() -> None:
-    # Valid input
+    # Valid input.
     citation = ClientCitation(
         start_index=0,
         end_index=10,
@@ -104,28 +105,28 @@ def test_client_citation() -> None:
     assert citation.citation_index == 1
     assert citation.uri == "gs://bucket/file.txt"
 
-    # Test get_inline_link method
+    # Test get_inline_link method.
     assert (
         citation.get_inline_link()
         == " _[[1](https://storage.cloud.google.com/bucket/file.txt \"Test 'content'\")]_"
     )
 
-    # Test get_footer_link method
+    # Test get_footer_link method.
     assert (
         citation.get_footer_link() == "https://storage.cloud.google.com/bucket/file.txt"
     )
 
-    # Test count_chars method
+    # Test count_chars method.
     assert citation.count_chars() == len(
         " _[[1](https://storage.cloud.google.com/bucket/file.txt \"Test 'content'\")]_"
     )
 
-    # Test without citation_index
+    # Test without citation_index.
     citation.citation_index = None
     with pytest.raises(ValueError):
         citation.get_inline_link()
 
-    # Test update_citation_index method
+    # Test update_citation_index method.
     citation.update_citation_index(2)
     assert citation.citation_index == 2
     assert (
@@ -168,11 +169,11 @@ def test_feedback_request() -> None:
     assert feedback.feedback_value == UserFeedback.THUMBS_DOWN
     assert feedback.feedback_text == "Test feedback text."
 
-    # Invalid input (missing required field)
+    # Invalid input (missing required field).
     with pytest.raises(ValidationError):
         FeedbackRequest()
 
-    # Invalid input (invalid feedback_value)
+    # Invalid input (invalid feedback_value).
     with pytest.raises(ValidationError):
         FeedbackRequest(
             answer_query_token="token1",
@@ -183,12 +184,39 @@ def test_feedback_request() -> None:
         )
 
 
+def test_user_feedback_enum() -> None:
+    # Test enum values.
+    assert UserFeedback.THUMBS_UP == 1
+    assert UserFeedback.THUMBS_DOWN == 0
+
+    # Test enum names.
+    assert UserFeedback.THUMBS_UP.name == "THUMBS_UP"
+    assert UserFeedback.THUMBS_DOWN.name == "THUMBS_DOWN"
+
+
 def test_feedback_response() -> None:
-    # Valid input
+    # Valid input.
     feedback = FeedbackResponse(answer_query_token="token1")
     assert feedback.answer_query_token == "token1"
     assert feedback.message == "Feedback logged successfully."
 
-    # Invalid input (missing required field)
+    # Invalid input (missing required field).
     with pytest.raises(ValidationError):
         FeedbackResponse()
+
+
+def test_get_session_response() -> None:
+    # Valid input.
+    session_response = GetSessionResponse(
+        sessions=[
+            {"name": "session1"},
+            {"name": "session2"},
+        ]
+    )
+    assert len(session_response.sessions) == 2
+    assert session_response.sessions[0]["name"] == "session1"
+    assert session_response.sessions[1]["name"] == "session2"
+
+    # Invalid input (missing required field).
+    with pytest.raises(ValidationError):
+        GetSessionResponse()

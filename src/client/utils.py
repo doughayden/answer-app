@@ -1,6 +1,5 @@
 import logging
 import os
-import requests
 import time
 from typing import Any
 
@@ -8,6 +7,7 @@ import google.auth
 import google.auth.transport.requests
 from google.auth import impersonated_credentials
 from google.oauth2 import id_token
+import httpx
 
 
 logger = logging.getLogger(__name__)
@@ -76,24 +76,30 @@ class UtilHandler:
 
         return
 
-    def _get_impersonated_id_token(self) -> str:
+    def _get_impersonated_id_token(
+        self,
+        target_scopes=["https://www.googleapis.com/auth/cloud-platform"],
+    ) -> str:
         """Use Service Account Impersonation to generate a token for authorized requests.
         Caller must have the “Service Account Token Creator” role on the target service account.
-        # Args:
-        #     target_principal: The Service Account email address to impersonate.
-        #     target_scopes: List of auth scopes for the Service Account.
-        #     audience: the URI of the Google Cloud resource to access with impersonation.
-        #     request: google.auth.transport.requests.Request()
+
+        Args:
+            self._credentials: The source credential used as to acquire the impersonated credentials.
+            self._target_principal: The Service Account email address to impersonate.
+            target_scopes: List of auth scopes for the Service Account.
+            self._audience: the URI of the Google Cloud resource to access with impersonation.
+            self._auth_request: google.auth.transport.requests.Request()
+
         Returns: Open ID Connect ID Token-based service account credentials bearer token
         that can be used in HTTP headers to make authenticated requests.
-        refs:
+
+        Refs:
         https://cloud.google.com/docs/authentication/get-id-token#impersonation
         https://cloud.google.com/iam/docs/create-short-lived-credentials-direct#user-credentials_1
         https://stackoverflow.com/questions/74411491/python-equivalent-for-gcloud-auth-print-identity-token-command
         https://googleapis.dev/python/google-auth/latest/reference/google.auth.impersonated_credentials.html
         """
         # Create impersonated credentials.
-        target_scopes = ["https://www.googleapis.com/auth/cloud-platform"]
         target_creds = impersonated_credentials.Credentials(
             source_credentials=self._credentials,
             target_principal=self._target_principal,
@@ -157,16 +163,18 @@ class UtilHandler:
 
         return
 
-    def send_request(
+    async def send_request(
         self,
-        data: dict[str, Any],
         route: str,
+        data: dict[str, Any] | None = None,
+        method: str = "POST",
     ) -> dict[str, Any]:
         """Send a request to the Discovery Engine API.
 
         Args:
             data (dict): The data to send in the request.
             route (str): The API route to receive the request.
+            method (str, optional): The HTTP method to use. Defaults to "POST".
 
         Returns:
             dict: The response from the Discovery Engine API.
@@ -186,7 +194,18 @@ class UtilHandler:
             "Content-Type": "application/json",
         }
         logger.info(f"Request data: {data}")
-        response = requests.post(url, headers=headers, json=data)
+
+        async with httpx.AsyncClient() as client:
+            match method:
+                case "POST":
+                    response = await client.post(url, headers=headers, json=data)
+                case "GET":
+                    response = await client.get(url, headers=headers, params=data)
+                case _:
+                    message = f"Unsupported method: {method}"
+                    logger.error(message)
+                    return {"error": message}
+
         logger.info(f"Response status code: {response.status_code}")
 
         # Check for errors.
@@ -195,3 +214,6 @@ class UtilHandler:
             return {"error": response.text}
 
         return response.json()
+
+
+# utils = UtilHandler(log_level=os.getenv("LOG_LEVEL", "INFO").upper())

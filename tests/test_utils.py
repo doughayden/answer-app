@@ -2,44 +2,28 @@ import base64
 import pytest
 from unittest.mock import MagicMock, AsyncMock
 
-from google.cloud.discoveryengine_v1 import AnswerQueryResponse, Answer, Session
+from google.cloud.discoveryengine_v1 import Answer
+from google.cloud.discoveryengine_v1 import AnswerQueryResponse
+from google.cloud.discoveryengine_v1 import Session
 
 from answer_app.model import AnswerResponse
+from answer_app.model import GetSessionResponse
 from answer_app.utils import UtilHandler
-from answer_app.utils import _answer_to_markdown
+from answer_app.utils import _answer_to_markdown, sanitize
 
 
-def test_initialization(
-    mock_google_auth_default: MagicMock,
-    mock_bigquery_client: MagicMock,
-    mock_discoveryengine_agent: MagicMock,
-    mock_load_config: MagicMock,
-) -> None:
-    handler = UtilHandler(log_level="DEBUG")
-    assert handler._project == "test-project-id"
-    assert handler._bq_client is not None
-    assert handler._search_agent is not None
-    assert handler._table == "test-project-id.test-dataset.test-table"
-    assert handler._feedback_table == "test-project-id.test-dataset.test-feedback-table"
-
-
-def test_setup_logging(caplog: pytest.LogCaptureFixture) -> None:
-    handler = UtilHandler(log_level="DEBUG")
-    with caplog.at_level("DEBUG"):
-        handler._setup_logging(log_level="DEBUG")
-    assert "Logging level set to: DEBUG" in caplog.text
-
-
-def test_compose_table(
-    mock_google_auth_default: MagicMock, mock_load_config: MagicMock
-) -> None:
-    handler = UtilHandler(log_level="DEBUG")
-    table = handler._compose_table(dataset_key="dataset_id", table_key="table_id")
-    assert table == "test-project-id.test-dataset.test-table"
-    feedback_table = handler._compose_table(
-        dataset_key="dataset_id", table_key="feedback_table_id"
+def test_sanitize() -> None:
+    input_text = (
+        "This is a test text with returns\r\n"
+        " and newline\n"
+        " characters.\r\n"
+        " It should be sanitized to remove them."
     )
-    assert feedback_table == "test-project-id.test-dataset.test-feedback-table"
+    expected_output = (
+        "This is a test text with returns and newline characters."
+        " It should be sanitized to remove them."
+    )
+    assert sanitize(input_text) == expected_output
 
 
 def test_answer_to_markdown() -> None:
@@ -165,114 +149,192 @@ def test_answer_to_markdown_multiple_citations() -> None:
     assert markdown == encoded_expected_markdown
 
 
+def test_initialization(mock_answer_app_util_handler: UtilHandler) -> None:
+    handler = mock_answer_app_util_handler
+    assert handler._project == "test-project-id"
+    assert handler._bq_client is not None
+    assert handler._vais_handler is not None
+    assert handler._table == "test-project-id.test-dataset.test-table"
+    assert handler._feedback_table == "test-project-id.test-dataset.test-feedback-table"
+
+
+def test_setup_logging(
+    mock_answer_app_util_handler: UtilHandler,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    handler = mock_answer_app_util_handler
+    with caplog.at_level("DEBUG"):
+        handler._setup_logging(log_level="DEBUG")
+    assert "Logging level set to: DEBUG" in caplog.text
+
+
+def test_load_config(
+    mock_answer_app_util_handler: UtilHandler,
+) -> None:
+    handler = mock_answer_app_util_handler
+    assert handler._config["location"] == "test-location"
+    assert handler._config["search_engine_id"] == "test-engine-id"
+    assert handler._config["dataset_id"] == "test-dataset"
+    assert handler._config["table_id"] == "test-table"
+    assert handler._config["feedback_table_id"] == "test-feedback-table"
+
+
+def test_compose_table(
+    mock_answer_app_util_handler: UtilHandler,
+) -> None:
+    handler = mock_answer_app_util_handler
+    table = handler._compose_table(dataset_key="dataset_id", table_key="table_id")
+    feedback_table = handler._compose_table(
+        dataset_key="dataset_id", table_key="feedback_table_id"
+    )
+
+    assert table == "test-project-id.test-dataset.test-table"
+    assert feedback_table == "test-project-id.test-dataset.test-feedback-table"
+
+
 @pytest.mark.asyncio
 async def test_answer_query_no_session_id(
-    mock_google_auth_default: MagicMock,
-    mock_discoveryengine_agent: MagicMock,
-    mock_load_config: MagicMock,
+    mock_answer_app_util_handler: UtilHandler,
 ) -> None:
-    mock_agent_instance = mock_discoveryengine_agent.return_value
-    mock_agent_instance.answer_query = AsyncMock(
+    handler = mock_answer_app_util_handler
+    handler._vais_handler.answer_query = AsyncMock(
         return_value=AnswerQueryResponse(
             answer=Answer(answer_text="Paris"),
             session=Session(name="session1"),
             answer_query_token="token1",
         )
     )
-    handler = UtilHandler(log_level="DEBUG")
+
     response = await handler.answer_query(
-        query_text="What is the capital of France?", session_id=None
+        query_text="What is the capital of France?",
+        session_id=None,
+        user_pseudo_id="",
     )
+
     assert isinstance(response, AnswerResponse)
     assert response.answer["answer_text"] == "Paris"
     assert response.question == "What is the capital of France?"
-    mock_agent_instance.answer_query.assert_called_once_with(
+    handler._vais_handler.answer_query.assert_called_once_with(
         query_text="What is the capital of France?",
         session_id=None,
+        user_pseudo_id="",
     )
 
 
 @pytest.mark.asyncio
 async def test_answer_query_with_session_id(
-    mock_google_auth_default: MagicMock,
-    mock_discoveryengine_agent: MagicMock,
-    mock_load_config: MagicMock,
+    mock_answer_app_util_handler: UtilHandler,
 ) -> None:
-    mock_agent_instance = mock_discoveryengine_agent.return_value
-    mock_agent_instance.answer_query = AsyncMock(
+    handler = mock_answer_app_util_handler
+    handler._vais_handler.answer_query = AsyncMock(
         return_value=AnswerQueryResponse(
             answer=Answer(answer_text="Paris"),
             session=Session(name="test-session"),
             answer_query_token="token1",
         )
     )
-    handler = UtilHandler(log_level="DEBUG")
+
     response = await handler.answer_query(
         query_text="What is the capital of France?",
         session_id="test-session",
+        user_pseudo_id="",
     )
+
     assert isinstance(response, AnswerResponse)
     assert response.answer["answer_text"] == "Paris"
     assert response.question == "What is the capital of France?"
-    mock_agent_instance.answer_query.assert_called_once_with(
+    handler._vais_handler.answer_query.assert_called_once_with(
         query_text="What is the capital of France?",
         session_id="test-session",
+        user_pseudo_id="",
+    )
+
+
+@pytest.mark.asyncio
+async def test_get_user_sessions(
+    mock_answer_app_util_handler: UtilHandler,
+) -> None:
+    handler = mock_answer_app_util_handler
+    handler._vais_handler.get_user_sessions = AsyncMock(
+        return_value=[
+            Session(name="session1"),
+            Session(name="session2"),
+        ]
+    )
+
+    response = await handler.get_user_sessions(user_pseudo_id="test-user")
+
+    assert isinstance(response, GetSessionResponse)
+    assert response.sessions[0]["name"] == "session1"
+    assert response.sessions[1]["name"] == "session2"
+    handler._vais_handler.get_user_sessions.assert_called_once_with(
+        user_pseudo_id="test-user"
+    )
+
+
+@pytest.mark.asyncio
+async def test_delete_session(
+    mock_answer_app_util_handler: UtilHandler,
+) -> None:
+    handler = mock_answer_app_util_handler
+    handler._vais_handler.delete_session = AsyncMock()
+
+    await handler.delete_session(session_id="test-session")
+
+    handler._vais_handler.delete_session.assert_called_once_with(
+        session_id="test-session"
     )
 
 
 @pytest.mark.asyncio
 async def test_bq_insert_row_data(
-    mock_google_auth_default: MagicMock,
-    mock_bigquery_client: MagicMock,
-    mock_load_config: MagicMock,
+    mock_answer_app_util_handler: UtilHandler,
 ) -> None:
-    mock_client_instance = mock_bigquery_client.return_value
-    mock_client_instance.insert_rows_json.return_value = []
+    handler = mock_answer_app_util_handler
+    handler._bq_client.insert_rows_json = MagicMock(return_value=[])
 
-    handler = UtilHandler(log_level="DEBUG")
     data = {"key": "value"}
     errors = await handler.bq_insert_row_data(data=data)
+
     assert errors == []
-    mock_client_instance.insert_rows_json.assert_called_once_with(
+    handler._bq_client.insert_rows_json.assert_called_once_with(
         table="test-project-id.test-dataset.test-table", json_rows=[data]
     )
 
 
 @pytest.mark.asyncio
 async def test_bq_insert_row_data_feedback(
-    mock_google_auth_default: MagicMock,
-    mock_bigquery_client: MagicMock,
-    mock_load_config: MagicMock,
+    mock_answer_app_util_handler: UtilHandler,
 ) -> None:
-    mock_client_instance = mock_bigquery_client.return_value
-    mock_client_instance.insert_rows_json.return_value = []
+    handler = mock_answer_app_util_handler
+    handler._bq_client.insert_rows_json = MagicMock(return_value=[])
 
-    handler = UtilHandler(log_level="DEBUG")
     data = {"key": "value"}
     errors = await handler.bq_insert_row_data(data=data, feedback=True)
+
     assert errors == []
-    mock_client_instance.insert_rows_json.assert_called_once_with(
+    handler._bq_client.insert_rows_json.assert_called_once_with(
         table="test-project-id.test-dataset.test-feedback-table", json_rows=[data]
     )
 
 
 @pytest.mark.asyncio
 async def test_bq_insert_row_data_error(
-    mock_google_auth_default: MagicMock,
-    mock_bigquery_client: MagicMock,
-    mock_load_config: MagicMock,
+    mock_answer_app_util_handler: UtilHandler,
 ) -> None:
-    mock_client_instance = mock_bigquery_client.return_value
-    mock_client_instance.insert_rows_json.return_value = [
-        {"index": 0, "errors": [{"reason": "invalid", "message": "Invalid data"}]}
-    ]
+    handler = mock_answer_app_util_handler
+    handler._bq_client.insert_rows_json = MagicMock(
+        return_value=[
+            {"index": 0, "errors": [{"reason": "invalid", "message": "Invalid data"}]}
+        ]
+    )
 
-    handler = UtilHandler(log_level="DEBUG")
     data = {"key": "value"}
     errors = await handler.bq_insert_row_data(data=data)
+
     assert errors == [
         {"index": 0, "errors": [{"reason": "invalid", "message": "Invalid data"}]}
     ]
-    mock_client_instance.insert_rows_json.assert_called_once_with(
+    handler._bq_client.insert_rows_json.assert_called_once_with(
         table="test-project-id.test-dataset.test-table", json_rows=[data]
     )

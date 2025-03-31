@@ -8,6 +8,7 @@ from pydantic import BaseModel
 class QuestionRequest(BaseModel):
     question: str
     session_id: str | None = None
+    user_pseudo_id: str = ""
 
 
 class AnswerResponse(BaseModel):
@@ -77,3 +78,7 @@ class FeedbackRequest(BaseModel):
 class FeedbackResponse(BaseModel):
     answer_query_token: str
     message: str = "Feedback logged successfully."
+
+
+class GetSessionResponse(BaseModel):
+    sessions: list[dict[str, Any]]

@@ -1,6 +1,6 @@
 [project]
 name = "answer-app"
-version = "0.1.2"
+version = "0.1.4"
 description = "Vertex AI Agent Builder Answer App"
 readme = "README.md"
 requires-python = ">=3.13,<4"
@@ -10,6 +10,7 @@ dependencies = [
     "google-auth (>=2.37.0,<3.0.0)",
     "google-cloud-bigquery (>=3.27.0,<4.0.0)",
     "google-cloud-discoveryengine (>=0.13.5,<0.14.0)",
+    "httpx (>=0.28.1,<0.29.0)",
     "pydantic (>=2.10.4,<3.0.0)",
     "pyyaml (>=6.0.2,<7.0.0)",
     "uvicorn (>=0.34.0,<0.35.0)"
@@ -27,17 +28,16 @@ packages = [
 
 [tool.poetry.group.client.dependencies]
 google-auth = "^2.37.0"
-requests = "^2.32.3"
 rich = "^13.9.4"
-streamlit = "^1.41.1"
+streamlit = "^1.43.2"
 streamlit-feedback = "^0.1.4"
 watchdog = "^6.0.0"
 
 [tool.poetry.group.dev.dependencies]
 coverage = "^7.6.10"
-httpx = "^0.28.1"
 ipykernel = "^6.29.5"
 pytest = "^8.3.4"
 pytest-asyncio = "^0.25.1"
 pytest-cov = "^6.0.0"
+pytest-httpx = "^0.35.0"
 pytz = "^2024.2"
