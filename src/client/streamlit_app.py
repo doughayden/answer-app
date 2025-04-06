@@ -4,35 +4,27 @@ import json
 import logging
 import os
 from typing import Any
-import uuid
 
 import streamlit as st
 from streamlit_feedback import streamlit_feedback
 
-from utils import UtilHandler  # type: ignore
-
+from utils import utils  # type: ignore
 
 logger = logging.getLogger(__name__)
 logger.debug("Streamlit app starting...")
 logger.debug(f"Streamlit version: {st.__version__}")
 
 
-def get_user_id() -> str:
-    """Get the user ID from the Streamlit context."""
-    user_id = st.session_state.get("user_id", f"test_user_{uuid.uuid4()}")
-    logger.debug(f"User ID: {user_id}")
-    return user_id
-
-
-def get_session_history(user_id: str) -> list[str]:
-    """Get the session history for the current user."""
-    logger.debug(f"Getting session history for user {user_id}...")
-    session_history = []
-    return session_history
+def log_context() -> None:
+    """Log the Streamlit context and session state."""
+    logger.debug("[LOG_CONTEXT]")
+    logger.debug(f"Cookies:\n{json.dumps(st.context.cookies.to_dict(), indent=2)}")
+    logger.debug(f"Headers:\n{json.dumps(st.context.headers.to_dict(), indent=2)}")
 
 
 def setup_app() -> None:
     """Set up Streamlit configuration."""
+    logger.debug("[SETUP_APP]")
     st.set_page_config(
         page_title="Conversational Search",
         layout="wide",
@@ -40,55 +32,86 @@ def setup_app() -> None:
     )
     st.title("Answer App")
 
-    cookies = st.context.cookies
-    logger.debug(f"Cookies: {cookies.to_dict()}")
-    headers = st.context.headers
-    logger.debug(f"Headers: {headers.to_dict()}")
+    # log_context()
+
+    return
+
+
+async def get_session_history() -> list[str]:
+    """Get the session history for the current user."""
+    logger.debug("[GET_SESSION_HISTORY]")
+
+    route: str = "/sessions/"
+    user_id: str = st.experimental_user["email"]
+    data: dict[str, str] = {"user_id": user_id}
+    logger.debug(f"Getting session history for user {user_id}...")
+
+    response: dict[str, Any] = await utils.send_request(
+        route=route,
+        data=data,
+        method="GET",
+    )
+    logger.debug(f"Response: {json.dumps(response, indent=2)}")
+
+    session_history: list[str] = [
+        session["turns"][0]["query"]["text"] for session in response.get("sessions", [])
+    ]
+    logger.debug(f"Session history: {session_history}")
+    return session_history
+
+
+async def initialize() -> None:
+    """Initialize the Streamlit app session state and sidebar."""
+    logger.debug("[INITIALIZE]")
 
     # Initialize session state variables.
-    if "utils" not in st.session_state:
-        st.session_state.utils = UtilHandler(
-            log_level=os.getenv("LOG_LEVEL", "INFO").upper()
-        )
     if "answer_query_token" not in st.session_state:
-        st.session_state.answer_query_token = ""
+        st.session_state["answer_query_token"] = ""
     if "question" not in st.session_state:
-        st.session_state.question = ""
+        st.session_state["question"] = ""
     if "answer_text" not in st.session_state:
-        st.session_state.answer_text = ""
+        st.session_state["answer_text"] = ""
     if "session_id" not in st.session_state:
-        st.session_state.session_id = "-"
-    if "user_id" not in st.session_state:
-        st.session_state.user_id = get_user_id()
+        st.session_state["session_id"] = "-"
     if "session_history" not in st.session_state:
-        st.session_state.session_history = []
+        st.session_state["session_history"] = await get_session_history()
     if "chat_history" not in st.session_state:
-        st.session_state.chat_history = []
-    st.session_state.avatars = {"user": "🦖", "assistant": "🤖"}
+        st.session_state["chat_history"] = []
+    st.session_state["avatars"] = {"user": "🦖", "assistant": "🤖"}
 
-    # Sidebar for session ID input.
-    st.sidebar.header("Session Settings")
-    st.session_state.session_id = st.sidebar.text_input(
-        "Session ID", value=st.session_state.session_id
+    # Sidebar - user authentication details.
+    st.sidebar.header("User Settings", divider="rainbow")
+    st.sidebar.markdown(f"Welcome! {st.experimental_user['name']}")
+    st.sidebar.markdown(f"**User ID:** {st.experimental_user['email']}")
+    st.sidebar.button("Log out", on_click=st.logout)
+
+    # Sidebar - session details.
+    st.sidebar.header("Session Settings", divider="rainbow")
+    if st.sidebar.button("Start new session"):
+        st.session_state["answer_query_token"] = ""
+        st.session_state["question"] = ""
+        st.session_state["answer_text"] = ""
+        st.session_state["session_id"] = "-"
+        st.session_state["chat_history"] = []
+
+    # Option to input a session ID.
+    st.session_state["session_id"] = st.sidebar.text_input(
+        "Session ID", value=st.session_state["session_id"]
     )
-    st.sidebar.markdown(f"**User ID:** {st.session_state.user_id}")
-    st.sidebar.markdown(f"**Session History:** {st.session_state.session_history}")
 
-    # Option to clear chat history and start a new session.
-    if st.sidebar.button("Clear Chat History"):
-        st.session_state.answer_query_token = ""
-        st.session_state.question = ""
-        st.session_state.answer_text = ""
-        st.session_state.session_id = "-"
-        st.session_state.chat_history = []
+    # Display the last 5 sessions in the sidebar.
+    st.sidebar.markdown(f"**Session History:**")
+    for session in st.session_state["session_history"][-5:]:
+        st.sidebar.markdown(f"{session}")
 
     return
 
 
 def display_chat_history() -> None:
     """Display chat history."""
-    for message in st.session_state.chat_history:
-        avatar = st.session_state.avatars[message["type"]]
+    logger.debug("[DISPLAY_CHAT_HISTORY]")
+    for message in st.session_state["chat_history"]:
+        avatar = st.session_state["avatars"][message["type"]]
         with st.chat_message(message["type"], avatar=avatar):
             st.markdown(message["content"])
 
@@ -97,29 +120,41 @@ def display_chat_history() -> None:
 
 async def form_submission() -> None:
     """Handle form submission and display the answer."""
+    logger.debug("[FORM_SUBMISSION]")
     if question := st.chat_input("Enter your question:"):
 
         # Update the session state with the question.
-        st.session_state.question = question
-        st.session_state.chat_history.append({"type": "user", "content": question})
+        st.session_state["question"] = question
+        st.session_state["chat_history"].append({"type": "user", "content": question})
 
         # Display the user's question in the chat.
-        st.chat_message("user", avatar=st.session_state.avatars["user"]).write(question)
+        st.chat_message(
+            name="user",
+            avatar=st.session_state["avatars"]["user"],
+        ).write(question)
 
         # Initialize and empty AI chat bubble in a context manager.
-        with st.chat_message("assistant", avatar=st.session_state.avatars["assistant"]):
+        with st.chat_message(
+            "assistant", avatar=st.session_state["avatars"]["assistant"]
+        ):
             message_placeholder = st.empty()
 
             # Send the question to the Conversational Search backend.
             logger.info("Sending question to backend...")
+
+            route = "/answer"
             data = {
                 "question": question,
-                "session_id": st.session_state.session_id,
-                "user_pseudo_id": st.session_state.user_id,
+                "session_id": st.session_state["session_id"],
+                "user_pseudo_id": st.experimental_user["email"],
             }
             logger.debug(f"Data: {json.dumps(data, indent=2)}")
-            route = "/answer"
-            response = await st.session_state.utils.send_request(route=route, data=data)
+
+            response: dict[str, Any] = await utils.send_request(
+                route=route,
+                data=data,
+                method="POST",
+            )
             logger.debug(f"Response: {json.dumps(response, indent=2)}")
 
             # Get the encoded markdown-formatted answer from the backend.
@@ -137,7 +172,7 @@ async def form_submission() -> None:
 
             # Display the formatted answer and update the chat history.
             message_placeholder.markdown(decoded_markdown)
-            st.session_state.chat_history.append(
+            st.session_state["chat_history"].append(
                 {"type": "assistant", "content": decoded_markdown}
             )
 
@@ -149,38 +184,40 @@ async def form_submission() -> None:
 
             # Get the answer text and update the session state.
             try:
-                st.session_state.answer_text = response["answer"]["answer_text"]
-                logger.debug(f"Answer text: {st.session_state.answer_text}")
+                st.session_state["answer_text"] = response["answer"]["answer_text"]
+                logger.debug(f"Answer text: {st.session_state["answer_text"]}")
             except KeyError:
                 logger.error("No answer text returned.")
                 st.error("No answer text returned.")
-                st.session_state.answer_text = ""
+                st.session_state["answer_text"] = ""
 
             # Get the session ID if it was returned in the response and update the sidebar.
-            st.session_state.session_id = (
+            st.session_state["session_id"] = (
                 response.get("session", {}).get("name", "").split("/")[-1]
             )
-            st.sidebar.markdown(f"**Session ID:** {st.session_state.session_id}")
+            st.sidebar.markdown(f"**Session ID:** {st.session_state['session_id']}")
 
             # Get the latency and update the sidebar.
             try:
-                st.session_state.latency = response["latency"]
+                st.session_state["latency"] = response["latency"]
             except KeyError:
                 logger.error("No latency returned.")
                 st.error("No latency returned.")
                 st.session_state.latency = 9999
-            st.sidebar.markdown(f"**Latency:** {st.session_state.latency:.2f} seconds")
+            st.sidebar.markdown(
+                f"**Latency:** {st.session_state['latency']:.2f} seconds"
+            )
 
             # Get the answer query token.
             try:
-                st.session_state.answer_query_token = response["answer_query_token"]
+                st.session_state["answer_query_token"] = response["answer_query_token"]
                 logger.debug(
-                    f"Answer query token: {st.session_state.answer_query_token}"
+                    f"Answer query token: {st.session_state['answer_query_token']}"
                 )
             except KeyError:
                 logger.error("No answer query token returned.")
                 st.error("No answer query token returned.")
-                st.session_state.answer_query_token = ""
+                st.session_state["answer_query_token"] = ""
 
     return
 
@@ -197,24 +234,30 @@ async def send_feedback(feedback: dict[str, Any]) -> None:
     Returns:
         None
     """
+    logger.debug("[SEND_FEEDBACK]")
     logger.info("Sending feedback...")
     logger.debug(f"Feedback: {feedback}")
 
     # Map the streamlit_feedback "score" return symbol to a numerical score.
-    scores = {"👍": 1, "👎": 0}
-    score = scores.get(feedback["score"])
+    scores: dict[str, int] = {"👍": 1, "👎": 0}
+    score: int | None = scores.get(feedback["score"])
 
     # Send the feedback to the backend.
-    data = {
-        "answer_query_token": st.session_state.answer_query_token,
-        "question": st.session_state.question,
-        "answer_text": st.session_state.answer_text,
+    route: str = "/feedback"
+    data: dict[str, Any] = {
+        "answer_query_token": st.session_state["answer_query_token"],
+        "question": st.session_state["question"],
+        "answer_text": st.session_state["answer_text"],
         "feedback_value": score,
         "feedback_text": feedback.get("text"),
     }
     logger.debug(f"Feedback data: {data}")
-    route = "/feedback"
-    response = await st.session_state.utils.send_request(route=route, data=data)
+
+    response: dict[str, Any] = await utils.send_request(
+        route=route,
+        data=data,
+        method="POST",
+    )
     logger.info(f"Feedback response: {response}")
 
     # Display a success message.
@@ -225,12 +268,13 @@ async def send_feedback(feedback: dict[str, Any]) -> None:
 
 async def user_feedback() -> None:
     """Display a user feedback form. Use the send_feedback function as the callback."""
+    logger.debug("[USER_FEEDBACK]")
     if st.session_state.get("answer_query_token"):
-        feedback = streamlit_feedback(
+        feedback: dict[str, Any] = streamlit_feedback(
             feedback_type="thumbs",
             optional_text_label="Please provide feedback on the answer.",
             # on_submit=send_feedback,
-            key=f"feedback_{st.session_state.answer_query_token}",
+            key=f"feedback_{st.session_state['answer_query_token']}",
         )
 
         # Send the feedback to the backend.
@@ -242,17 +286,23 @@ async def user_feedback() -> None:
 
 async def main() -> None:
     """Main function."""
-    # Log the initial session state for debugging.
-    logger.debug(f"[START] Session state: {st.session_state}")
+    # Log the initial session state.
+    logger.info(f"[START] Session state: {st.session_state}")
 
-    # Run tha app components.
+    # Setup the Streamlit app.
     setup_app()
+
+    if not st.experimental_user.is_logged_in:
+        st.button("Log in with Google", on_click=st.login, args=["google"])
+        st.stop()
+
+    await initialize()
     display_chat_history()
     await form_submission()
     await user_feedback()
 
-    # Log the final session state for debugging.
-    logger.debug(f"[END] Session state: {st.session_state}")
+    # Log the final session state.
+    logger.info(f"[END] Session state: {st.session_state}")
 
     return
 

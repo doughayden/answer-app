@@ -311,6 +311,7 @@ terraform.rc
 !terraform_service_account_roles.txt
 !requirements.txt
 !requirements-test.txt
+secrets.toml
 
 # folders
 .vscode/

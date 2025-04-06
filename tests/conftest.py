@@ -108,6 +108,13 @@ def mock_discoveryengine_handler(
 
 # Fixtures for test_client_utils.py
 @pytest.fixture
+def mock_load_dotenv() -> Generator[MagicMock, None, None]:
+    with patch("client.utils.load_dotenv") as mock_load_dotenv:
+        mock_load_dotenv.return_value = True
+        yield mock_load_dotenv
+
+
+@pytest.fixture
 def mock_client_google_auth_default():
     with patch("client.utils.google.auth.default") as mock_default:
         mock_credentials = MagicMock(spec=Credentials)
@@ -159,19 +166,6 @@ def mock_refresh() -> Generator[MagicMock, None, None]:
 
 
 @pytest.fixture
-def mock_verify_token() -> Generator[MagicMock, None, None]:
-    with patch("client.utils.google.oauth2.id_token.verify_token") as mock_verify_token:
-        mock_verify_token.return_value = {"exp": 9999999999}
-        yield mock_verify_token
-
-
-@pytest.fixture
-def mock_log_attributes() -> Generator[MagicMock, None, None]:
-    with patch("client.utils.UtilHandler._log_attributes") as mock_log_attributes:
-        yield mock_log_attributes
-
-
-@pytest.fixture
 def patch_k_revision() -> Generator[None, None, None]:
     with patch.dict(os.environ, {"K_REVISION": "test"}):
         yield
@@ -181,7 +175,9 @@ def patch_k_revision() -> Generator[None, None, None]:
 def patch_target_principal() -> Generator[None, None, None]:
     with patch.dict(
         os.environ,
-        {"TF_VAR_terraform_service_account": "test-sa@projct.iam.gserviceaccount.com"},
+        {
+            "TF_VAR_terraform_service_account": "test-sa@test-project.iam.gserviceaccount.com"
+        },
     ):
         yield
 
@@ -194,11 +190,13 @@ def patch_audience() -> Generator[None, None, None]:
 
 @pytest.fixture
 def mock_client_util_handler(
+    mock_load_dotenv: MagicMock,
     mock_client_google_auth_default: MagicMock,
     mock_google_auth_transport_requests: MagicMock,
     mock_fetch_id_token: MagicMock,
-    mock_verify_token: MagicMock,
-    mock_log_attributes: MagicMock,
+    mock_id_token_creds: MagicMock,
+    mock_impersonated_creds: MagicMock,
+    mock_refresh: MagicMock,
 ) -> ClientUtilHandler:
     """Mock the client.utils UtilHandler class instance."""
     return ClientUtilHandler(log_level="DEBUG")
