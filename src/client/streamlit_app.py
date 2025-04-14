@@ -3,12 +3,18 @@ import base64
 import json
 import logging
 import os
+import pathlib
+import sys
 from typing import Any
 
 import streamlit as st
 from streamlit_feedback import streamlit_feedback
 
-from utils import utils  # type: ignore
+# Hack to get streamlit to recognize the src layout package.
+python_path = str(pathlib.Path(__file__).resolve().parent.parent)
+sys.path.insert(0, python_path)
+
+from client.utils import utils
 
 logger = logging.getLogger(__name__)
 logger.debug("Streamlit app starting...")
@@ -32,7 +38,7 @@ def setup_app() -> None:
     )
     st.title("Answer App")
 
-    # log_context()
+    log_context()
 
     return
 
@@ -294,8 +300,10 @@ async def main() -> None:
 
     if not st.experimental_user.is_logged_in:
         st.button("Log in with Google", on_click=st.login, args=["google"])
+        logger.debug("User not logged in.")
         st.stop()
 
+    logger.debug("User logged in.")
     await initialize()
     display_chat_history()
     await form_submission()
