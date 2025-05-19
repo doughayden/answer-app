@@ -328,3 +328,6 @@ class UtilHandler:
         logger.info(f"Insert row latency: {time.time() - start_time:.4f} seconds.")
 
         return errors
+
+
+utils = UtilHandler(log_level=os.getenv("LOG_LEVEL", "INFO").upper())

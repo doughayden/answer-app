@@ -57,7 +57,7 @@ async def get_session_history() -> list[str]:
         data=data,
         method="GET",
     )
-    logger.debug(f"Response: {json.dumps(response, indent=2)}")
+    logger.debug(f"Response:\n{json.dumps(response, indent=2)}")
 
     session_history: list[str] = [
         session["turns"][0]["query"]["text"] for session in response.get("sessions", [])
@@ -154,14 +154,14 @@ async def form_submission() -> None:
                 "session_id": st.session_state["session_id"],
                 "user_pseudo_id": st.experimental_user["email"],
             }
-            logger.debug(f"Data: {json.dumps(data, indent=2)}")
+            logger.debug(f"Data:\n{json.dumps(data, indent=2)}")
 
             response: dict[str, Any] = await utils.send_request(
                 route=route,
                 data=data,
                 method="POST",
             )
-            logger.debug(f"Response: {json.dumps(response, indent=2)}")
+            logger.debug(f"Response:\n{json.dumps(response, indent=2)}")
 
             # Get the encoded markdown-formatted answer from the backend.
             try:
@@ -293,7 +293,9 @@ async def user_feedback() -> None:
 async def main() -> None:
     """Main function."""
     # Log the initial session state.
-    logger.info(f"[START] Session state: {st.session_state}")
+    logger.info(
+        f"[START] Session state:\n{json.dumps(st.session_state.to_dict(), indent=2)}"
+    )
 
     # Setup the Streamlit app.
     setup_app()
@@ -310,7 +312,9 @@ async def main() -> None:
     await user_feedback()
 
     # Log the final session state.
-    logger.info(f"[END] Session state: {st.session_state}")
+    logger.info(
+        f"[END] Session state:\n{json.dumps(st.session_state.to_dict(), indent=2)}"
+    )
 
     return
 

@@ -32,6 +32,12 @@ preamble: |
   </INSTRUCTIONS>
 
 ### Infrastructure components configuration ###
+# List any optional additional Cloud Run backend deployment regions for redundancy.
+# Commenting all list items results in a null value that gets converted to an empty list in main.tf by coalesce().
+additional_regions:
+- "us-west1"
+- "us-east4"
+
 # Set create_loadbalancer to false to deploy the app to Cloud Run without a load balancer.
 create_loadbalancer: true
 

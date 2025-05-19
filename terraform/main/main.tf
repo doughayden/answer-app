@@ -12,6 +12,9 @@ locals {
   # Load the configuration file.
   config = yamldecode(file("../../src/answer_app/config.yaml"))
 
+  # Get optional redundant Cloud Run backend deployment regions or fallback to an empty list.
+  additional_regions = coalesce(local.config.additional_regions, [])
+
   # Use the load balancer domain name from the configuration file if it is set.
   # Otherwise, get the domain name from the load balancer module output.
   lb_domain = coalesce(local.config.loadbalancer_domain, try(module.loadbalancer[0].lb_domain, null))
@@ -49,7 +52,7 @@ module "answer_app" {
   source             = "../modules/answer-app"
   project_id         = var.project_id
   region             = var.region
-  additional_regions = ["us-west1", "us-east4"]
+  additional_regions = local.additional_regions
   iap_sa_member      = google_project_service_identity.iap_sa.member
   app_name           = local.config.app_name
   lb_domain          = local.lb_domain

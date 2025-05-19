@@ -114,6 +114,17 @@ resource "google_cloud_run_v2_service" "run_app_client" {
     timeout               = "300s"
     execution_environment = "EXECUTION_ENVIRONMENT_GEN2"
 
+    volumes {
+      name = "streamlit-config"
+      secret {
+        secret = google_secret_manager_secret.streamlit_secrets_toml.id
+        items {
+          version = "latest"
+          path    = "secrets.toml"
+        }
+      }
+    }
+
     containers {
       image = var.docker_image["${var.app_name}-client"]
 
@@ -134,6 +145,11 @@ resource "google_cloud_run_v2_service" "run_app_client" {
         tcp_socket {
           port = 8080
         }
+      }
+
+      volume_mounts {
+        name       = "streamlit-config"
+        mount_path = "/app/.streamlit/secrets"
       }
 
       dynamic "env" {

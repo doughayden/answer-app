@@ -11,13 +11,10 @@ from answer_app.model import EnvVarResponse
 from answer_app.model import FeedbackRequest
 from answer_app.model import FeedbackResponse
 from answer_app.model import GetSessionResponse
-from answer_app.utils import sanitize, UtilHandler
+from answer_app.utils import sanitize, utils
 
 
 logger = logging.getLogger(__name__)
-
-# Initialize a utility handler.
-utils = UtilHandler(log_level=os.getenv("LOG_LEVEL", "INFO").upper())
 
 # Create a FastAPI app.
 app = FastAPI()

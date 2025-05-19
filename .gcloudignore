@@ -21,8 +21,10 @@ pytest.ini
 .DS_Store
 
 # Custom patterns
+**/secrets.toml*
 assets/
 scripts/
+LICENSE
 README.md
 
 # Everything from .gitignore

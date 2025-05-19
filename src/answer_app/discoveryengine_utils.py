@@ -123,7 +123,7 @@ class DiscoveryEngineHandler:
             ignore_non_answer_seeking_query=False,  # Optional: Ignore non-answer seeking query
             ignore_low_relevant_content=False,  # Optional: Return fallback answer when content is not relevant
             model_spec=discoveryengine.AnswerQueryRequest.AnswerGenerationSpec.ModelSpec(
-                model_version="gemini-1.5-flash-001/answer_gen/v2",  # Optional: Model to use for answer generation
+                model_version="gemini-2.0-flash-001/answer_gen/v1",  # Optional: Model to use for answer generation
             ),
             prompt_spec=discoveryengine.AnswerQueryRequest.AnswerGenerationSpec.PromptSpec(
                 preamble=self._preamble,  # Optional: Natural language instructions for customizing the answer
@@ -143,7 +143,7 @@ class DiscoveryEngineHandler:
             session=session,  # Optional: include previous session ID to continue a conversation
             query_understanding_spec=query_understanding_spec,
             answer_generation_spec=answer_generation_spec,
-            user_pseudo_id=user_pseudo_id,  # Optional: User pseudo ID
+            user_pseudo_id=user_pseudo_id,
         )
 
         # Make the request.

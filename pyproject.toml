@@ -1,6 +1,6 @@
 [project]
 name = "answer-app"
-version = "0.1.4"
+version = "0.1.5"
 description = "Vertex AI Agent Builder Answer App"
 readme = "README.md"
 requires-python = ">=3.13,<4"
@@ -42,3 +42,10 @@ pytest-asyncio = "^0.25.1"
 pytest-cov = "^6.0.0"
 pytest-httpx = "^0.35.0"
 pytz = "^2024.2"
+
+[tool.pytest.ini_options]
+# asyncio_default_fixture_loop_scope = "function"
+# log_cli = true
+# log_cli_level = "DEBUG"
+# log_cli_format = "%(levelname)-9s [%(name)s.%(funcName)s:%(lineno)5s] %(message)s"
+# log_cli_date_format = "%Y-%m-%d %H:%M:%S"
