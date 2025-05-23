@@ -5,16 +5,10 @@ resource "google_secret_manager_secret" "streamlit_secrets_toml" {
   }
 }
 
-resource "random_password" "cookie_secret" {
-  length  = 40
-  special = false
-
-}
-
 resource "google_secret_manager_secret_version" "streamlit_secrets_toml" {
   secret                 = google_secret_manager_secret.streamlit_secrets_toml.id
   is_secret_data_base64  = true
-  secret_data_wo_version = 5
+  secret_data_wo_version = 1
   secret_data_wo         = filebase64("${path.module}/secrets_template.toml")
 
   # This secret version is a placeholder: ignore when it's disabled after a manual update.

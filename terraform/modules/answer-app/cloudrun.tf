@@ -1,16 +1,5 @@
-locals {
-  run_app_env = {
-    LOG_LEVEL = "INFO"
-  }
-  run_app_client_env = {
-    LOG_LEVEL = "INFO"
-    AUDIENCE  = google_cloud_run_v2_service.run_app[var.region].custom_audiences[0]
-  }
-  regions = concat([var.region], var.additional_regions)
-}
-
 resource "google_cloud_run_v2_service" "run_app" {
-  for_each            = toset(local.regions)
+  for_each            = local.regions
   name                = var.app_name
   location            = each.value
   deletion_protection = false
@@ -70,7 +59,7 @@ resource "google_cloud_run_v2_service" "run_app" {
 }
 
 resource "google_compute_region_network_endpoint_group" "run_app" {
-  for_each              = toset(local.regions)
+  for_each              = local.regions
   name                  = var.app_name
   network_endpoint_type = "SERVERLESS"
   region                = each.value
@@ -117,7 +106,7 @@ resource "google_cloud_run_v2_service" "run_app_client" {
     volumes {
       name = "streamlit-config"
       secret {
-        secret = google_secret_manager_secret.streamlit_secrets_toml.id
+        secret = google_secret_manager_secret.streamlit_secrets_toml.secret_id
         items {
           version = "latest"
           path    = "secrets.toml"

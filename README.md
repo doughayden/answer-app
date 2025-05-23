@@ -273,6 +273,49 @@ scripts/test_endpoint.sh # change the path if necessary
 
 
 &nbsp;
+## Configure User Authentication
+([return to top](#vertex-ai-agent-builder-answer-app))
+
+The `answer-app-client` uses Google OAuth 2.0 with [`st.login`](https://docs.streamlit.io/develop/api-reference/user/st.login) to securely access limited user profile data for personalized sessions.
+1. Follow the instructions to [Configure Identity Aware Proxy](#configure-identity-aware-proxy) and ensure you've initialized the project's [OAuth consent screen](https://developers.google.com/workspace/guides/configure-oauth-consent).
+2. Create a "web application" [OAuth client](https://support.google.com/cloud/answer/15549257) and add Authorized Redirect URIs.
+    - Navigate in the Cloud Console to Google Auth Platform > Clients > Create client.
+    - Select Web application and name the OAuth client.
+    - Add `URIs 1` For local testing: `http://localhost:8080/oauth2callback`.
+    - Add `URIs 2` For the deployed app: `https://app.example.com/oauth2callback` or `https://35.244.148.105.nip.io/oauth2callback` depending on your selected load balancer domain or deployed IP address.
+    - Click Create.
+    - Click "Download JSON" in the next dialog popup to save the OAuth client data to your device.
+    - Note the full filepath of the downloaded JSON file.
+
+![OAuth web client](assets/oauth_web_client.png)
+
+![Download OAuth data](assets/download_oauth_data.png)
+
+3. Update the placeholder `streamlit-secrets-toml` secret deployed to [Google Cloud Secret Manager](https://cloud.google.com/secret-manager/docs/add-secret-version).
+    - Use a helper script to write a Streamlit `secrets.toml` file from the OAuth client data.
+        ```sh
+        python scripts/write_secrets.py "<your_oauth_client_data_file_path>"
+        ```
+    - Add the output file as a new secret version.
+        ```sh
+        secret=$(cd terraform/main && terraform output -raw streamlit_secrets_toml_secret_id)
+        gcloud secrets versions add $secret --data-file=".streamlit/secrets/secrets.toml"
+        ```
+
+<!-- - Navigate in the Cloud Console to Security > Secret Manager > Select `streamlit-secrets-toml`.
+- On the VERSIONS tab click NEW VERSION.
+- Open from this repo [`secrets_template.toml`](terraform/modules/answer-app/secrets_template.toml) and copy its contents.
+- Paste the template contents into the new secret version.
+- Under `[auth]`, set `redirect_uri = "https://app.example.com/oauth2callback"` or `redirect_uri = "https://35.244.148.105.nip.io/oauth2callback"` depending on your selected load balancer domain or deployed IP address.
+- Add a [cryptographically strong](https://docs.python.org/3/library/secrets.html) `cookie_secret` value.
+- Under `[auth.google]`, copy the `client_id` and `client_secret` values from the [OAuth web client in the Cloud Console](#configure-user-authentication) to the placeholder values in the new secret version.
+- Leave the `[auth.google]` values already set for `server_metadata_url` and `client_kwargs`
+- Check the box to Disable all past version and click ADD NEW VERSION. -->
+
+<!-- ![Add new secret version](assets/new_secret_version.png) -->
+
+
+&nbsp;
 ## Use the app
 ([return to top](#vertex-ai-agent-builder-answer-app))
 
@@ -354,6 +397,12 @@ poetry run coverage report -m
 source scripts/set_variables.sh # change the path if necessary
 ```
 - Install Poetry and the project dependencies (see [Unit Tests](#unit-tests)).
+- Configure [`st.login`](https://docs.streamlit.io/develop/api-reference/user/st.login) user authentication for the local Streamlit client app.
+    - Copy [`.streamlit/secrets/secrets.toml.example`](.streamlit/secrets/secrets.toml.example) to a new file named `secrets.toml` in the same directory.
+    - Under `[auth]`, set `redirect_uri = "http://localhost:8080/oauth2callback"` in the new `secrets.toml` file.
+    - Add a [cryptographically strong](https://docs.python.org/3/library/secrets.html) `cookie_secret` value to the new `secrets.toml` file.
+    - Under `[auth.google]`, copy the `client_id` and `client_secret` values from the [OAuth web client in the Cloud Console](#configure-user-authentication) to the placeholder values in the new `secrets.toml` file.
+    - Leave the `[auth.google]` values already set for `server_metadata_url` and `client_kwargs`
 
 ### Poetry
 `answer-app`

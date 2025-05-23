@@ -57,3 +57,8 @@ output "client_app_uri" {
   description = "The URI to access the web client application."
   value       = local.config.create_loadbalancer ? "https://${local.lb_domain}" : module.answer_app.client_service_uri
 }
+
+output "streamlit_secrets_toml_secret_id" {
+  description = "The Streamlit secrets.toml Secret Manager secret ID."
+  value       = module.answer_app.streamlit_secrets_toml_id
+}
