@@ -344,3 +344,4 @@ terraform.rc
 .vscode/
 .history/
 .venv*
+.streamlit/secrets

@@ -6,10 +6,11 @@ from typing import Annotated, Self
 import click
 from pydantic import BaseModel, Field
 
-
-DEFAULT_OUTPUT_PATH = Path(".streamlit/secrets/secrets.toml")
-COOKIE_SECRET_LENGTH = 42
-SECRETS_TOML_TEMPLATE = """[auth]
+DEFAULT_SECRETS_DIR: Path = Path(".streamlit/secrets")
+DEFAULT_OUTPUT_PATH: Path = DEFAULT_SECRETS_DIR / "secrets.toml"
+COOKIE_SECRET_LENGTH: int = 42
+SECRETS_TOML_TEMPLATE: str = """[auth]
+### Override default serving port 8501 to 8080 in config.toml
 redirect_uri = "{redirect_uri}"
 cookie_secret = "{cookie_secret}"
 
@@ -18,6 +19,12 @@ client_id = "{client_id}"
 client_secret = "{client_secret}"
 server_metadata_url = "https://accounts.google.com/.well-known/openid-configuration"
 client_kwargs = {{ "access_type" = "online", "prompt" = "select_account" }}
+
+#### Refs
+# https://docs.streamlit.io/develop/api-reference/user/st.login
+# https://developers.google.com/identity/openid-connect/openid-connect
+# https://developers.google.com/identity/protocols/oauth2/web-server
+# https://support.google.com/cloud/answer/15549257
 """
 
 
@@ -96,6 +103,31 @@ class SecretsTomlData(BaseModel):
         )
 
 
+def find_client_secrets_file(path: Path = DEFAULT_SECRETS_DIR) -> Path:
+    """Find client secrets JSON file in the directory, prioritizing 'client_secret' in name.
+
+    Args:
+        path: pathlib.Path to the directory containing JSON files.
+
+    Returns:
+        pathlib.Path to the first JSON file found in the directory.
+
+    Raises:
+        click.ClickException: If no JSON files are found in the directory.
+    """
+    json_files = sorted(path.glob("*.json"))
+    if not json_files:
+        raise click.ClickException(f"No JSON files found in {path}")
+
+    # Prioritize files with 'client_secret' in the name.
+    for file in json_files:
+        if "client_secret" in file.name:
+            return file
+
+    # Fall back to first JSON file.
+    return json_files[0]
+
+
 def process_client_secrets(input_path: Path, output_path: Path) -> None:
     """Process client secrets file and write TOML config.
 
@@ -156,20 +188,28 @@ def process_client_secrets(input_path: Path, output_path: Path) -> None:
 @click.command(
     help="Generate Streamlit secrets.toml file from OAuth client secrets JSON."
 )
-@click.argument(
-    "input_path",
-    type=click.Path(exists=True, path_type=Path),
+@click.option(
+    "--input-path",
+    "-i",
+    type=Path,
+    help=f"Path to OAuth client secrets JSON file (defaults to auto-detection in {DEFAULT_SECRETS_DIR}).",
 )
 @click.option(
     "--output-path",
     "-o",
     default=DEFAULT_OUTPUT_PATH,
     type=Path,
-    help=f"Path where secrets TOML file will be written (default: {DEFAULT_OUTPUT_PATH})",
+    help=f"Path where secrets TOML file will be written (default: {DEFAULT_OUTPUT_PATH}).",
 )
-def run(input_path: Path, output_path: Path) -> None:
+def run(input_path: Path | None, output_path: Path) -> None:
     """Generate Streamlit secrets.toml file from OAuth client secrets JSON."""
-    click.echo(f"Processing client secrets file: {input_path}")
+    # Find the client secrets JSON file if no input path provided.
+    if input_path is None:
+        input_path = find_client_secrets_file()
+        click.echo(f"Auto-selecting client secrets file: {input_path}")
+    else:
+        click.echo(f"Processing client secrets file: {input_path}")
+
     try:
         process_client_secrets(input_path=input_path, output_path=output_path)
     except Exception as e:

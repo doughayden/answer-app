@@ -2,7 +2,10 @@
 name = "answer-app"
 version = "0.1.5"
 description = "Vertex AI Agent Builder Answer App"
-license = { file = "LICENSE" }
+license = "MIT"
+license-files = [
+    "LICENSE",
+]
 readme = "README.md"
 requires-python = ">=3.13,<4"
 authors = [
@@ -21,7 +24,7 @@ dependencies = [
 ]
 
 [project.scripts]
-write_secrets = "helpers.write_secrets_toml:run"
+write_secrets = "package_scripts.write_secrets_toml:run"
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]

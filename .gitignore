@@ -317,3 +317,4 @@ secrets.toml
 .vscode/
 .history/
 .venv*
+.streamlit/secrets
