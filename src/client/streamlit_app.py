@@ -191,7 +191,7 @@ async def form_submission() -> None:
             # Get the answer text and update the session state.
             try:
                 st.session_state["answer_text"] = response["answer"]["answer_text"]
-                logger.debug(f"Answer text: {st.session_state["answer_text"]}")
+                logger.debug(f"Answer text: {st.session_state['answer_text']}")
             except KeyError:
                 logger.error("No answer text returned.")
                 st.error("No answer text returned.")
