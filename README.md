@@ -170,7 +170,7 @@ The `answer-app-client` uses [Google OAuth 2.0](https://developers.google.com/id
 ### 1. Create Branding
 **Reference:** [Manage OAuth App Branding](https://support.google.com/cloud/answer/15549049)
 - In the Google Cloud console, go to Menu > Google Auth platform > [Branding](https://console.cloud.google.com/auth/branding). Click "Get started" if you see the message " Google Auth Platform not configured yet".
-- Enter an App name (e.g. "Anser App") and an email address you control for User support email.
+- Enter an App name (e.g. "Answer App") and an email address you control for User support email.
 - Choose External audience.
 - Enter a developer contact email address (any address you control, can be the same as the support email).
 - Check the box to agree to the data policy and click Create.
