@@ -99,23 +99,46 @@ source ./scripts/set_variables.sh
 - Global load balancer with automatic failover
 - Configurable autoscaling with concurrency controls
 
+## Documentation Structure
+
+The repository uses a **modular documentation structure** for better maintainability:
+
+- **`README.md`** - Concise overview with quick start and navigation to detailed docs
+- **`docs/installation/`** - Comprehensive setup guides (prerequisites, OAuth, deployment)
+- **`docs/terraform/`** - Infrastructure documentation (reusable across projects)
+- **`docs/reference/`** - Development guides, API docs, and helper scripts reference
+- **`docs/troubleshooting/`** - Known issues and solutions
+
+All detailed instructions are preserved in the modular docs with proper cross-references.
+
 ## Development Notes
 
 ### Local Development Setup
 - Both services can run locally with hot reload
 - OAuth configuration requires setup in `.streamlit/secrets/`
 - Use `scripts/set_variables.sh` to configure required environment variables
+- Complete setup guide: `docs/reference/development.md`
 
 ### Testing Strategy
 - Unit tests for each major component (main.py, discoveryengine_utils.py, streamlit_app.py)
 - HTTP mocking with pytest-httpx for external API calls
 - Async testing support for FastAPI endpoints
+- Tests fail if environment variables are set - use clean shell session
 
 ### Security Considerations
 - All external access protected by IAP
 - Service-to-service authentication between Cloud Run services
 - OAuth credentials stored in Secret Manager
 - Domain restriction policies supported for enterprise deployments
+- OAuth setup guide: `docs/installation/oauth-setup.md`
+
+### Helper Scripts Reference
+- `scripts/install.sh` - Complete deployment automation
+- `scripts/bootstrap.sh` - Initial project setup
+- `scripts/set_variables.sh` - Environment configuration
+- `scripts/test_endpoint.sh` - Endpoint validation
+- `scripts/uninstall.sh` - Complete cleanup
+- Complete reference: `docs/reference/helper-scripts.md`
 
 ### Required Environment Variables
 - `PROJECT` - Google Cloud project ID
