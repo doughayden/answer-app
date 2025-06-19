@@ -41,8 +41,8 @@ additional_regions:
 # Set create_loadbalancer to false to deploy the app to Cloud Run without a load balancer.
 create_loadbalancer: true
 
-# Set loadbalancer_domain to a domain you control. Requires editing your domain's DNS zone A record to point to the load balancer IP address.
-# Set to 'null' to use an auto-generated domain with https://nip.io. Does not require DNS configuration.
+# Set loadbalancer_domain to a domain you control (ex. "app.example.com"). Requires editing your domain's DNS zone A record to point to the load balancer IP address.
+# Set to 'null' to use an auto-generated domain with https://sslip.io. Does not require DNS configuration.
 loadbalancer_domain: null
 
 # Big Query dataset and table IDs to store conversation details.

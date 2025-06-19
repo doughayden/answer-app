@@ -8,7 +8,7 @@ from pydantic import BaseModel, Field
 
 DEFAULT_SECRETS_DIR: Path = Path(".streamlit/secrets")
 DEFAULT_OUTPUT_PATH: Path = DEFAULT_SECRETS_DIR / "secrets.toml"
-COOKIE_SECRET_LENGTH: int = 42
+COOKIE_SECRET_LENGTH: int = 32
 SECRETS_TOML_TEMPLATE: str = """[auth]
 ### Override default serving port 8501 to 8080 in config.toml
 redirect_uri = "{redirect_uri}"
@@ -55,7 +55,7 @@ class SecretsTomlData(BaseModel):
     ]
     redirect_uri: Annotated[
         str,
-        Field(description="Non-localhost redirect URI for OAuth flow"),
+        Field(description="localhost redirect URI for OAuth flow"),
     ]
     cookie_secret: Annotated[
         str,
@@ -63,8 +63,8 @@ class SecretsTomlData(BaseModel):
     ] = secrets.token_urlsafe(COOKIE_SECRET_LENGTH)
 
     @staticmethod
-    def first_non_localhost_uri(uris: list[str]) -> str | None:
-        """Return the first URI that doesn't start with 'http://localhost'.
+    def first_localhost_uri(uris: list[str]) -> str | None:
+        """Return the first URI that starts with 'http://localhost'.
 
         Uses lazy evaluation with a generator expression.
 
@@ -75,7 +75,7 @@ class SecretsTomlData(BaseModel):
             The first non-localhost URI or None if none found.
         """
         return next(
-            (uri for uri in uris if not uri.startswith("http://localhost")), None
+            (uri for uri in uris if uri.startswith("http://localhost")), None
         )
 
     @classmethod
@@ -89,12 +89,12 @@ class SecretsTomlData(BaseModel):
             A new instance with data extracted from the JSON.
 
         Raises:
-            ValueError: If no non-localhost redirect URI is found.
+            ValueError: If no localhost redirect URI is found.
         """
-        redirect_uri: str | None = cls.first_non_localhost_uri(data.web.redirect_uris)
+        redirect_uri: str | None = cls.first_localhost_uri(data.web.redirect_uris)
 
         if not redirect_uri:
-            raise ValueError("No non-localhost redirect URI in client secrets file")
+            raise ValueError("No localhost redirect URI in client secrets file")
 
         return cls(
             client_id=data.web.client_id,

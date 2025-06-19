@@ -30,11 +30,3 @@ resource "google_project_iam_member" "iap_invoker" {
   role    = "roles/run.invoker"
   member  = var.iap_sa_member
 }
-
-# Maintain an authoritative policy of Run Invoker principals on each answer-app regional service.
-resource "google_cloud_run_v2_service_iam_binding" "answer_app_run_invoker" {
-  for_each = local.regions
-  name     = google_cloud_run_v2_service.run_app[each.value].name
-  role     = "roles/run.invoker"
-  members  = local.answer_app_run_invoker_members
-}

@@ -68,6 +68,14 @@ resource "google_compute_region_network_endpoint_group" "run_app" {
   }
 }
 
+# Maintain an authoritative policy of Run Invoker principals on each answer-app regional service.
+resource "google_cloud_run_v2_service_iam_binding" "answer_app_run_invoker" {
+  for_each = local.regions
+  name     = google_cloud_run_v2_service.run_app[each.value].name
+  role     = "roles/run.invoker"
+  members  = local.answer_app_run_invoker_members
+}
+
 resource "google_compute_backend_service" "run_app" {
   name        = var.app_name
   description = var.app_name

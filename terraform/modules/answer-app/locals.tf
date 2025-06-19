@@ -1,3 +1,7 @@
+data "google_secret_manager_secret_version_access" "oauth_client_secret_json" {
+  secret = "answer-app-oauth-client-secret-json"
+}
+
 locals {
   app_project_iam_roles = toset([
     "roles/aiplatform.user",
@@ -10,7 +14,6 @@ locals {
 
   client_app_project_iam_roles = toset([
     "roles/gkemulticloud.telemetryWriter",
-    # "roles/run.invoker",
   ])
 
   answer_app_run_invoker_members = toset([
@@ -25,6 +28,8 @@ locals {
     LOG_LEVEL = "INFO"
     AUDIENCE  = google_cloud_run_v2_service.run_app[var.region].custom_audiences[0]
   }
+
+  client_secret_data = jsondecode(data.google_secret_manager_secret_version_access.oauth_client_secret_json.secret_data)
 
   regions = toset(concat([var.region], var.additional_regions))
 }

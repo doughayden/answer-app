@@ -84,15 +84,30 @@ echo ""
 
 # Sleep to allow the IAM policy changes to propagate.
 echo "Sleeping to allow the IAM policy changes to propagate..."
+echo "Press any key to skip waiting and continue immediately."
+echo ""
+
 sleep=3
 elapsed=0
 limit=90
+
 while [ $elapsed -lt $limit ]; do
-  printf "\rSleeping... $((limit - elapsed)) seconds remaining"
-  sleep $sleep
+  printf "\rSleeping... $((limit - elapsed)) seconds remaining. Press any key to continue." 
+  
+  # Read with timeout (non-blocking)
+  if read -t $sleep -n 1; then
+    printf "\n\nContinuing at user request.\n"
+    echo ""
+    break
+  fi
+  
   elapsed=$((elapsed + sleep))
 done
-echo -e "\nDone."
+
+# Only print "Done" if we completed the full wait
+if [ $elapsed -ge $limit ]; then
+  echo -e "\nDone."
+fi
 
 # Deploy the answer-app services.
 echo "DEPLOYING THE ANSWER-APP SERVICES WITH CLOUD BUILD:"

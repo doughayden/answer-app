@@ -28,7 +28,8 @@ When all you want to do is test or demonstrate Vertex AI conversational search, 
 
 ### Installation
 - [Prerequisites](#prerequisites)
-- [One-Click Deployment](#one-click-deployment)
+- [Configure the OAuth Consent Screen for User Authentication](#configure-the-oauth-consent-screen-for-user-authentication)
+- [Deploy Resources](#deploy-resources)
 - [Add an A record to the DNS Managed Zone](#add-an-a-record-to-the-dns-managed-zone)
 - [Enable Vertex AI Agent Builder](#enable-vertex-ai-agent-builder)
 - [Test the endpoint](#test-the-endpoint)
@@ -93,18 +94,13 @@ When all you want to do is test or demonstrate Vertex AI conversational search, 
 ## Prerequisites
 ([return to top](#vertex-ai-agent-builder-answer-app))
 
-Complete the prerequisite steps before deploying the resources with Terraform:
-1. [User Account and Local Development Environment](#1-user-account-and-local-development-environment)
-2. [Clone the Repo](#2-clone-the-repo)
+- Your Google user account must be a [Project Owner](https://cloud.google.com/iam/docs/roles-overview#legacy-basic) in the target Google Cloud project.
+- Choose one of the following options to install and configure [Terraform](https://developer.hashicorp.com/terraform) and the [`gcloud` CLI](https://cloud.google.com/sdk/gcloud) for your development environment:
+    - Follow the instructions in [OPTION 1](#option-1-deploying-from-google-cloud-shell) to configure deployment using [Google Cloud Shell](https://cloud.google.com/shell/docs/using-cloud-shell).
+    - Follow the instructions in [OPTION 2](#option-2-deploying-outside-of-google-cloud-shell) to configure deployment from your local terminal.
 
-### 1. User Account and Local Development Environment
-([return to prerequisites](#prerequisites))
-
-- Your Google user account must be a [Project Owner](https://cloud.google.com/iam/docs/understanding-roles#owner) in the target Google Cloud project.
-- Terraform will deploy resources to your [`gcloud` CLI](https://cloud.google.com/sdk/gcloud/reference) configuration default project.
-
-#### OPTION 1: Deploying from Google Cloud Shell:
-Use [Google Cloud Shell](https://cloud.google.com/shell/docs/using-cloud-shell) for a convenient environment with `gcloud` and `terraform` pre-installed. Your user account (`core.account`) and default project (`core.project`) should already be set up in the Cloud Shell environment.
+### OPTION 1: Deploying from Google Cloud Shell:
+Use [Cloud Shell](https://cloud.google.com/shell/docs/using-cloud-shell) for a convenient environment with `gcloud` and `terraform` pre-installed. Your user account (`core.account`) and default project (`core.project`) should already be set in the Cloud Shell environment.
 
 1. Select your target deployment project in the [Cloud Console](https://console.cloud.google.com/projectselector2/home/dashboard).
 2. [Open Cloud Shell](https://cloud.google.com/shell/docs/launching-cloud-shell) and confirm your `gcloud` configuration.
@@ -128,13 +124,17 @@ metrics:
 ```
 
 3. Optionally, set the default compute region (`compute.region`). The helper script will default to `us-central1` if your `gcloud` configuration does not specify a region.
+    - Agree to enable the `compute.googleapis.com` API if prompted.
 ```sh
-gcloud config set compute/region 'region' # replace with your preferred region if it's not 'us-central1'
+gcloud config set compute/region 'region' # replace with your preferred region, e.g. us-central1
 ```
 
 4. Set any other [configuration values](https://cloud.google.com/sdk/gcloud/reference/config/set) as needed.
 
-#### OPTION 2: Deploying outside of Google Cloud Shell:
+5. Consider using Personal Access Tokens (PATs) to [clone the `answer-app` repo](https://docs.github.com/en/github/authenticating-to-github/keeping-your-account-and-data-secure/creating-a-personal-access-token) as an alternative to managing SSH keys in Cloud Shell.
+
+
+### OPTION 2: Deploying outside of Google Cloud Shell:
 1. Install [Terraform](https://learn.hashicorp.com/tutorials/terraform/install-cli).
 2. Install the [Google Cloud SDK](https://cloud.google.com/sdk/docs/install).
 3. Authenticate.
@@ -142,7 +142,7 @@ gcloud config set compute/region 'region' # replace with your preferred region i
 gcloud auth login
 ```
 
-4. Set the default project.
+4. Set the target deployment project as your default.
 ```sh
 gcloud config set project 'my-project-id' # replace with your project ID
 ```
@@ -153,23 +153,120 @@ gcloud auth application-default login
 ```
 
 6. Optionally, set the default compute region (`compute.region`). The helper script will default to `us-central1` if your `gcloud` configuration does not specify a region.
+    - Agree to enable the `compute.googleapis.com` API if prompted.
 ```sh
-gcloud config set compute/region 'region' # replace with your preferred region if it's not 'us-central1'
+gcloud config set compute/region 'region' # replace with your preferred region, e.g. 'us-central1'
 ```
 
-&nbsp;
-### 2. Clone the Repo
-([return to prerequisites](#prerequisites))
-
-[Clone the repository](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository) and open a terminal session in the `answer-app` directory.
-- If you're using Cloud Shell, consider using Personal Access Tokens (PATs) to [clone the repo](https://docs.github.com/en/github/authenticating-to-github/keeping-your-account-and-data-secure/creating-a-personal-access-token) if you encounter issues with SSH keys.
+7. [Clone the repository](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository) and open a terminal session in the repo root (`answer-app`) directory.
 
 
 &nbsp;
-## One-Click Deployment
+## Configure the OAuth Consent Screen for User Authentication
+([return to top](#vertex-ai-agent-builder-answer-app))
+
+The `answer-app-client` uses [Google OAuth 2.0](https://developers.google.com/identity/protocols/oauth2) with Streamlit's [`st.login`](https://docs.streamlit.io/develop/api-reference/user/st.login) feature to securely access limited user profile data for personalized sessions. You must use the Google Cloud Console to initialize the project's [OAuth consent screen](https://developers.google.com/workspace/guides/configure-oauth-consent) (a.k.a. "App Branding") before enabling [OAuth client](https://support.google.com/cloud/answer/15549257) credentials for the `answer-app-client` application. A consent screen is what is shown to a user to display which elements of their information are requested by the app and to let them choose whether to proceed.
+
+### 1. Create Branding
+**Reference:** [Manage OAuth App Branding](https://support.google.com/cloud/answer/15549049)
+- In the Google Cloud console, go to Menu > Google Auth platform > [Branding](https://console.cloud.google.com/auth/branding). Click "Get started" if you see the message " Google Auth Platform not configured yet".
+- Enter an App name (e.g. "Anser App") and an email address you control for User support email.
+- Choose External audience.
+- Enter a developer contact email address (any address you control, can be the same as the support email).
+- Check the box to agree to the data policy and click Create.
+
+<details>
+<summary style="cursor: pointer; font-weight: bold; color: #8833c5;">
+🖼️ Show/Hide Screenshots
+</summary>
+
+<div style="margin-top: 10px;">
+
+![Get started](assets/get_started.png)
+![App name](assets/app_name.png)
+![External audience](assets/external_audience.png)
+![Create branding](assets/create_branding.png)
+
+</div>
+</details>
+
+### 2. Create an OAuth Client
+**Reference:** [Manage OAuth Clients](https://support.google.com/cloud/answer/15549257)
+- Navigate in the Cloud Console to Google Auth Platform > [Clients](https://console.cloud.google.com/auth/clients) > Create client.
+- Create a "Web application" type and name the OAuth client (e.g "answer-app-oauth-client").
+- Click Add URI under Authorized Redirect URIs and add `URIs 1` For local testing: `http://localhost:8080/oauth2callback`.
+    - Only add the `localhost` redirect URI at this time and don't enter any additional URIs.
+    - After deployment you'll return to the Cloud Console and [add `URIs 2` for the deployed app](#update-the-oauth-client-authorized-uris): i.e. a value similar to `https://app.example.com/oauth2callback` or `https://35.244.148.105.sslip.io/oauth2callback` depending on your selected load balancer domain or deployed IP address.
+- Click Create.
+- Click "Download JSON" in the next dialog popup to save the OAuth client data to your device.
+- Save the downloaded JSON file to the local repository `.streamlit/secrets` directory.
+    - The `.streamlit/secrets` subdirectory is an ignore pattern in the repo root `.gcloudignore` file.
+    - It should exist as an otherwise empty directory containing a `.gitignore` file to prevent committing sensitive data.
+
+<details>
+<summary style="cursor: pointer; font-weight: bold; color: #8833c5;">
+🖼️ Show/Hide Screenshots
+</summary>
+
+<div style="margin-top: 10px;">
+
+![Create client](assets/create_client.png)
+![OAuth web client](assets/oauth_web_client.png)
+![Download OAuth data](assets/download_oauth_data.png)
+
+</div>
+</details>
+
+### 3. Upload the Client Secrets file to Secret Manager
+**Reference:** [Add a secret version](https://cloud.google.com/secret-manager/docs/add-secret-version)
+- Navigate in the Cloud Console to Security > [Secret Manager](https://console.cloud.google.com/security/secret-manager).
+- Enable the API if prompted.
+- Click CREATE SECRET.
+- Name the secret `answer-app-oauth-client-secret-json`.
+- Under Secret value, click BROWSE to upload the client secret JSON file from the previous step.
+- Click CREATE SECRET.
+
+<details>
+<summary style="cursor: pointer; font-weight: bold; color: #8833c5;">
+🖼️ Show/Hide Screenshots
+</summary>
+
+<div style="margin-top: 10px;">
+
+![Create secret start](assets/create_secret_start.png)
+![Create secret finish](assets/create_secret_finish.png)
+
+</div>
+</details>
+
+### 4. Enable a Public Audience
+**Reference:** [Manage App Audience](https://support.google.com/cloud/answer/15549945)
+- Navigate in the Cloud Console to Google Auth Platform > [Audience](https://console.cloud.google.com/auth/audience)
+- Click Publish app under Publishing status
+- Click Confirm in the Push to production? dialog box.
+
+A public audience (an "External" User Type and "In production" Publishing status) allows you to add any Google identity to the [Identity Aware Proxy access policy](#configure-identity-aware-proxy).
+
+<details>
+<summary style="cursor: pointer; font-weight: bold; color: #8833c5;">
+🖼️ Show/Hide Screenshots
+</summary>
+
+<div style="margin-top: 10px;">
+
+![Publish](assets/publish.png)
+![Push to production](assets/push_to_production.png)
+
+</div>
+</details>
+
+
+&nbsp;
+## Deploy Resources
 ([return to top](#vertex-ai-agent-builder-answer-app))
 
 The `install.sh` script automates the steps required to prepare the project and deploy the resources.
+- Set the value of `loadbalancer_domain` in [`src/answer_app/config.yaml`](src/answer_app/config.yaml#L46) to a domain name you control or leave it set to `null` to use wildcard DNS from [`sslip.io`](https://sslip.io/). (Past versions of this repo used `nip.io` and some references to the service may remain.)
 - Refer to the [Bootstrap](#bootstrap) and [Automate Deployments with Cloud Build](#automate-deployments-with-cloud-build) sections for details on individual steps.
 
 Source the `install.sh` script to install the `answer-app`.
@@ -179,12 +276,30 @@ source scripts/install.sh # change the path if necessary
 
 
 &nbsp;
+## Update the OAuth client Authorized URIs
+([return to top](#vertex-ai-agent-builder-answer-app))
+
+Add the Terraform output value for `deployed_client_redirect_uri` as an authorized redirect URI in the "Answer App" Web application OAuth client.
+- Terraform output values are displayed at the end of the Cloud Build logs.
+- Display the specific output value:
+```sh
+(cd terraform/main && terraform output -raw "deployed_client_redirect_uri")
+```
+
+Example output:
+```txt
+https://35.244.148.105.sslip.io/oauth2callback
+```
+- Refer to the [Create an OAuth Client](#2-create-an-oauth-client) section to add the value to `URIs 2`.
+
+
+&nbsp;
 ## Add an A record to the DNS Managed Zone
 ([return to top](#vertex-ai-agent-builder-answer-app))
 
-**NOTE: You do not need to configure DNS if you set `loadbalancer_domain` to `null` in [`config.yaml`](src/config.yaml) and instead used the default `nip.io` domain.**
+**NOTE: You do not need to configure DNS if you set `loadbalancer_domain` to `null` in [`config.yaml`](src/answer_app/config.yaml) and instead used the default `sslip.io` domain.**
 - Use the load balancer public IP address created by Terraform as the [A record in your DNS zone](https://cloud.google.com/load-balancing/docs/ssl-certificates/google-managed-certs#update-dns). Steps vary by DNS host/provider. ([Cloudflare example](https://developers.cloudflare.com/dns/zone-setups/full-setup/setup/))
-- Disable any proxy for the A record to avoid SSL errors until Google validates the managed certificate domain. ([Cloudflare example](https://developers.cloudflare.com/dns/manage-dns-records/reference/proxied-dns-records/)) 
+- Disable any proxy for the A record to avoid SSL errors until Google validates the managed certificate domain. ([Cloudflare example](https://developers.cloudflare.com/dns/manage-dns-records/reference/proxied-dns-records/))
 
 
 &nbsp;
@@ -192,7 +307,18 @@ source scripts/install.sh # change the path if necessary
 ([return to top](#vertex-ai-agent-builder-answer-app))
 
 A project Owner must [enable Vertex AI Agent Builder](https://cloud.google.com/generative-ai-app-builder/docs/before-you-begin#turn-on-discovery-engine) in the Cloud Console to use the Discovery Engine API and the Agent Builder console. It's a one-time setup to accept terms for the project for as long as the API remains enabled. (Checking the box to agree to model sampling is optional.)
+
+<details>
+<summary style="cursor: pointer; font-weight: bold; color: #8833c5;">
+🖼️ Show/Hide Screenshots
+</summary>
+
+<div style="margin-top: 10px;">
+
 ![Enable Vertex AI Agent Builder](assets/enable_agent_builder.png)
+
+</div>
+</details>
 
 
 &nbsp;
@@ -202,7 +328,19 @@ A project Owner must [enable Vertex AI Agent Builder](https://cloud.google.com/g
 - A newly-created managed TLS certificate may take anywhere from 10-15 minutes up to 24 hours for the CA to sign [after DNS propagates](#add-an-a-record-to-the-dns-managed-zone).
 - The Certificate [Managed status](https://cloud.google.com/load-balancing/docs/ssl-certificates/troubleshooting#certificate-managed-status) will change from PROVISIONING to ACTIVE when it's ready to use.
 - Navigate to Network Services > Load balancing > select the load balancer > Frontend: Certificate > Select the certificate and wait for the status to change to ACTIVE.
+
+<details>
+<summary style="cursor: pointer; font-weight: bold; color: #8833c5;">
+🖼️ Show/Hide Screenshots
+</summary>
+
+<div style="margin-top: 10px;">
+
 ![Active Managed Certificate](assets/cert_active.png)
+
+</div>
+</details>
+
 - Alternatively you can check the status using [`gcloud` commands](https://cloud.google.com/load-balancing/docs/ssl-certificates/google-managed-certs#gcloud_1)
 ```sh
 gcloud compute ssl-certificates list --global # list all certificates and get the **CERTIFICATE_NAME**
@@ -234,85 +372,32 @@ scripts/test_endpoint.sh # change the path if necessary
 &nbsp;
 ## Configure Identity-Aware Proxy
 ([return to top](#vertex-ai-agent-builder-answer-app))
-- Configuring IAP for an 'External' app is only possible from the Google Cloud Console.
-- Ref - [Enable IAP for Cloud Run](https://cloud.google.com/iap/docs/enabling-cloud-run)
-- Ref - [Setting up your OAuth consent screen](https://support.google.com/cloud/answer/10311615)
 
-### Steps
-1. Search for Identity-Aware Proxy (or "IAP") in the Console to navigate to it, then select "Enable API". Once the API is enabled, select "Go to Identity-Aware Proxy".  
-2. You will be prompted to "Configure Consent Screen". A consent screen is what is shown to a user to display which elements of their information are requested by the app and to let them choose whether to proceed. Select "Configure Consent Screen".
+**Reference:** [Enable IAP for Cloud Run](https://cloud.google.com/iap/docs/enabling-cloud-run)
 
-![Identity-Aware Proxy configuration](assets/configure_consent.png)
+1. Search for Identity-Aware Proxy (or "IAP") in the Console.
 
-3. Select a User Type of "External" to share the app with users outside of your organization's domain. Select "Continue".
+2. Toggle on IAP protection **ONLY** for the `answer-app-client` backend service (and not for the `answer-app` backend). You will be prompted to review configuration requirements, and then select the checkbox confirming your understanding and select "Turn On."
+    - Application Backend Services may show an Error status when IAP is not enabled.
+    - Users don't directly access the `answer-app` Backend Service. Instead, it enforces [authentication from the calling service](https://cloud.google.com/run/docs/authenticating/service-to-service) - the client app in this case. **An IAP Error status will not affect access to the `answer-app` Backend Service.**
 
-![Identity-Aware Proxy user type of External](assets/external_app.png)
+<details>
+<summary style="cursor: pointer; font-weight: bold; color: #8833c5;">
+🖼️ Show/Hide Screenshots
+</summary>
 
-4. When configuring your consent screen, identify your app with a name (ex. "Answer App").
-5. Provide a user support email address (any).
-6. Under "Authorized domains" select "Add Domain" and then list the app top-level domain as Authorized domain 1.
-    - i.e. if you used the hostname `app.example.com` then the top-level domain is `example.com`.
-    - If you used the default domain using the `nip.io` service with a hostname like `35.244.148.105.nip.io`, then the top-level domain is `nip.io`.
-7. Add your email address as the "Developer contact information" email address. Click "Save and continue". You can also click "Save and continue" on the following two screens, then on the Summary page click "Back to Dashboard."
-8. From the "OAuth consent screen" summary page, under Publishing Status, select "Publish app" and "Confirm". This will allow you to add any Google identity to which you grant the "IAP-secured Web App User" role to access the app, rather than additionally needing to add them as a test user on the OAuth consent screen.
+<div style="margin-top: 10px;">
 
-![OAuth Consent Screen configuration](assets/app_registration.png)
+![Enable IAP](assets/enable_iap.png)
 
-9. Navigate back to the "Load Balancing" dashboard, select your load balancer, and then the Certificate name. If this is not yet ACTIVE, we will need to wait until it reaches ACTIVE status. Take a break and refresh occasionally.
-10. When the certificate is ACTIVE, navigate back to Identity-Aware Proxy by searching "IAP" at the top of the Console.
-11. Toggle on IAP protection **ONLY** for the `answer-app-client` backend service (and not for the `answer-app` backend). You will be prompted to review configuration requirements, and then select the checkbox confirming your understanding and select "Turn On."
-    - The service will show an Error status when IAP is not enabled. This is expected until the IAP configuration is complete.
-    - Users don't directly access the `answer-app` backend service. Instead, it enforces [authentication on the calling service](https://cloud.google.com/run/docs/authenticating/service-to-service) (the client app in this case). The IAP Error status will not affect it's functionality (which does not rely on IAP for access).
+</div>
+</details>
 
-![OAuth Consent Screen configuration](assets/enable_iap.png)
-
-12. Add a Google Identity (i.e a user or group) with the "IAP-secured Web App User" role.
+3. Add a Google Identity (i.e a user or group) with the "IAP-secured Web App User" role.
     - See the [Known Issues](#errors-adding-users-to-identity-aware-proxy) section for information about "Policy updated failed" errors due to the [Domain restricted sharing Org policy](https://cloud.google.com/resource-manager/docs/organization-policy/restricting-domains#example_error_message).
-13. You may see an "Error: Forbidden" message for about the first 5 minutes, but after that users with the "IAP-secured Web App User" role on the Project or IAP backend service should be able to access the app via the domain on the Load Balancer certificate.
-    - i.e. `https://app.example.com` or `https://35.244.148.105.nip.io`
 
-
-&nbsp;
-## Configure User Authentication
-([return to top](#vertex-ai-agent-builder-answer-app))
-
-The `answer-app-client` uses Google OAuth 2.0 with [`st.login`](https://docs.streamlit.io/develop/api-reference/user/st.login) to securely access limited user profile data for personalized sessions.
-1. Follow the instructions to [Configure Identity Aware Proxy](#configure-identity-aware-proxy) and ensure you've initialized the project's [OAuth consent screen](https://developers.google.com/workspace/guides/configure-oauth-consent).
-2. Create a "web application" [OAuth client](https://support.google.com/cloud/answer/15549257) and add Authorized Redirect URIs.
-    - Navigate in the Cloud Console to Google Auth Platform > Clients > Create client.
-    - Select Web application and name the OAuth client.
-    - Add `URIs 1` For local testing: `http://localhost:8080/oauth2callback`.
-    - Add `URIs 2` For the deployed app: `https://app.example.com/oauth2callback` or `https://35.244.148.105.nip.io/oauth2callback` depending on your selected load balancer domain or deployed IP address.
-    - Click Create.
-    - Click "Download JSON" in the next dialog popup to save the OAuth client data to your device.
-    - Note the full filepath of the downloaded JSON file.
-
-![OAuth web client](assets/oauth_web_client.png)
-
-![Download OAuth data](assets/download_oauth_data.png)
-
-3. Update the placeholder `streamlit-secrets-toml` secret deployed to [Google Cloud Secret Manager](https://cloud.google.com/secret-manager/docs/add-secret-version).
-    - Use a helper script to write a Streamlit `secrets.toml` file from the OAuth client data.
-        ```sh
-        python scripts/write_secrets.py "<your_oauth_client_data_file_path>"
-        ```
-    - Add the output file as a new secret version.
-        ```sh
-        secret=$(cd terraform/main && terraform output -raw streamlit_secrets_toml_secret_id)
-        gcloud secrets versions add $secret --data-file=".streamlit/secrets/secrets.toml"
-        ```
-
-<!-- - Navigate in the Cloud Console to Security > Secret Manager > Select `streamlit-secrets-toml`.
-- On the VERSIONS tab click NEW VERSION.
-- Open from this repo [`secrets_template.toml`](terraform/modules/answer-app/secrets_template.toml) and copy its contents.
-- Paste the template contents into the new secret version.
-- Under `[auth]`, set `redirect_uri = "https://app.example.com/oauth2callback"` or `redirect_uri = "https://35.244.148.105.nip.io/oauth2callback"` depending on your selected load balancer domain or deployed IP address.
-- Add a [cryptographically strong](https://docs.python.org/3/library/secrets.html) `cookie_secret` value.
-- Under `[auth.google]`, copy the `client_id` and `client_secret` values from the [OAuth web client in the Cloud Console](#configure-user-authentication) to the placeholder values in the new secret version.
-- Leave the `[auth.google]` values already set for `server_metadata_url` and `client_kwargs`
-- Check the box to Disable all past version and click ADD NEW VERSION. -->
-
-<!-- ![Add new secret version](assets/new_secret_version.png) -->
+4. You may see an "Error: Forbidden" message for about the first 5 minutes, but after that users with the "IAP-secured Web App User" role on the Project or IAP backend service should be able to access the app via the domain on the Load Balancer certificate.
+    - i.e. `https://app.example.com` or `https://35.244.148.105.sslip.io`
 
 
 &nbsp;
@@ -328,7 +413,7 @@ terraform output client_app_uri
 
 Example output:
 ```
-"https://34.8.148.243.nip.io"
+"https://34.8.148.243.sslip.io"
 ```
 
 - Open the URL in a web browser to access the client app.
@@ -397,49 +482,50 @@ poetry run coverage report -m
 source scripts/set_variables.sh # change the path if necessary
 ```
 - Install Poetry and the project dependencies (see [Unit Tests](#unit-tests)).
-- Configure [`st.login`](https://docs.streamlit.io/develop/api-reference/user/st.login) user authentication for the local Streamlit client app.
-    - Copy [`.streamlit/secrets/secrets.toml.example`](.streamlit/secrets/secrets.toml.example) to a new file named `secrets.toml` in the same directory.
-    - Under `[auth]`, set `redirect_uri = "http://localhost:8080/oauth2callback"` in the new `secrets.toml` file.
-    - Add a [cryptographically strong](https://docs.python.org/3/library/secrets.html) `cookie_secret` value to the new `secrets.toml` file.
-    - Under `[auth.google]`, copy the `client_id` and `client_secret` values from the [OAuth web client in the Cloud Console](#configure-user-authentication) to the placeholder values in the new `secrets.toml` file.
-    - Leave the `[auth.google]` values already set for `server_metadata_url` and `client_kwargs`
+- Ensure the `client_secret` JSON file downloaded from the [OAuth web client in the Cloud Console](#2-create-an-oauth-client) is in the `.streamlit/secrets` directory.
+- Write a local `.streamlit/secrets/secrets.toml` file (ignored by the local .gitignore) by running the `write_secrets` script with `poetry`.
+    ```sh
+    poetry run write_secrets
+    ```
 
-### Poetry
-`answer-app`
+### Run with Poetry
+#### `answer-app`
 - The service will listen on local port 8888.
 ```sh
 poetry run uvicorn main:app --app-dir src/answer_app --reload --host localhost --port 8888
 ```
 
-`client`
+#### `client`
 - With the environment variables set using the [`set_variables.sh` script](#2-set-environment-variables), the `client` app automatically gets and impersonated ID token for the Terraform service account on behalf of the user and sets the target audience for requests to `localhost:8888`.
 - To solve unexpected communication issues, restart a fresh shell session to clear the environment, then re-source the `set_variables.sh` script.
 ```sh
 poetry run streamlit run src/client/streamlit_app.py 
 ```
 
-### Docker
-#### Build
-`answer-app`
+&nbsp;
+### Build with Docker
+#### `answer-app`
 - Uses the `Dockerfile` in the root of the repo
 ```sh
 docker build -t local-answer-app:0.1.0 -f ./src/answer_app/Dockerfile . # change image name and tag as needed
 ```
 
-`client`
+#### `client`
 - Uses a `Dockerfile` in the `src/client` directory
 ```sh
 docker build -t local-answer-app-client:0.1.0 -f ./src/client/Dockerfile . # change image name tag as needed
 ```
 
-#### Run
+&nbsp;
+### Run with Docker
 - Use `--rm` to remove the container when it exits.
 - Use `-v` to mount the host's `gcloud` configuration directory to the container's `/root/.config/gcloud` directory to allow the app to use [Application Default Credentials](https://stackoverflow.com/questions/38938216/pass-google-default-application-credentials-in-local-docker-run) for authentication.
 - Use `-e` to set container environment variables for the [Google Cloud project](https://stackoverflow.com/questions/74866327/oserror-whilst-trying-to-run-a-python-app-inside-a-docker-container-using-appl), log level, target service account, and audience.
 - Use `-p` to map the container's port 8080 to the host's port 8888 or 8080 (specify port mapping as `-p <host-port>:<container-port>`).
 - The `$PROJECT` and `$TF_VAR_terraform_service_account` environment variables will already be set after you ran the [`set_variables.sh`](#2-set-environment-variables) script.
 
-`answer-app`: map container port 8080 to localhost:8888
+#### `answer-app`
+Map container port 8080 to localhost:8888
 ```sh
 docker run --rm -v $HOME/.config/gcloud:/root/.config/gcloud \
 -e GOOGLE_CLOUD_PROJECT=$PROJECT \
@@ -447,7 +533,8 @@ docker run --rm -v $HOME/.config/gcloud:/root/.config/gcloud \
 -p 8888:8080 local-answer-app:0.1.2 # change image name and tag as needed
 ```
 
-`client`: map container port 8080 to localhost:8080 and call the **LOCAL** `answer-app` service at localhost:8888
+#### `client`: call local backend
+Map container port 8080 to localhost:8080 and call the **LOCAL** `answer-app` service at localhost:8888
 ```sh
 docker run --rm -v $HOME/.config/gcloud:/root/.config/gcloud \
 -e GOOGLE_CLOUD_PROJECT=$PROJECT \
@@ -460,7 +547,8 @@ docker run --rm -v $HOME/.config/gcloud:/root/.config/gcloud \
 open -a "/Applications/Google Chrome.app" http://localhost:8080
 ```
 
-`client`: map container port 8080 to localhost:8080 and call the **DEPLOYED** `answer-app` service at `https://app.mydomain.com/answer-app`
+#### `client`: call deployed backend
+Map container port 8080 to localhost:8080 and call the **DEPLOYED** `answer-app` service at `https://app.mydomain.com/answer-app`
 - To target the deployed `answer-app` backend service, set the `AUDIENCE` environment variable to the custom audience for the `answer-app` service (see [Use the Helper Scripts](#3-use-the-helper-scripts)).
 - **NOTE**: You may want to unset the `AUDIENCE` environment variable after testing the deployed service if you want to continue local-only testing afterward.
 ```sh
@@ -477,7 +565,8 @@ docker run --rm -v $HOME/.config/gcloud:/root/.config/gcloud \
 open -a "/Applications/Google Chrome.app" http://localhost:8080
 ```
 
-#### Debug
+&nbsp;
+### Debug a container
 - Open a `sh` shell in the container image.
 ```sh
 docker run --entrypoint /bin/sh --rm -it local-answer-app-client:0.1.0 # change image name and tag as needed
@@ -486,6 +575,34 @@ docker run --entrypoint /bin/sh --rm -it local-answer-app-client:0.1.0 # change 
 &nbsp;
 # KNOWN ISSUES
 
+## Installation fails service account impersonation
+([return to top](#vertex-ai-agent-builder-answer-app))
+### Problem
+During the first installation while the `install.sh` script calls the `bootstrap.sh` script, it fails with the message: "ERROR: The caller cannot impersonate the service account and access objects in the bucket after 1 minute."
+
+Example:
+```
+IAM POLICY PROPAGATION:
+
+Waiting for the IAM policy to propagate...
+Waiting for the IAM policy to propagate...
+Waiting for the IAM policy to propagate...
+Waiting for the IAM policy to propagate...
+Waiting for the IAM policy to propagate...
+Waiting for the IAM policy to propagate...
+
+ERROR: The caller cannot impersonate the service account and access objects in the bucket after 1 minute.
+
+ERROR: The bootstrap script failed.
+```
+
+The error occurs because the script tests the caller's permission to impersonate the Terraform service account before the IAM policy has fully propagated. The script retries for 1 minute and then fails.
+
+### Solution
+Re-run the `install.sh` script after a couple minutes to allow more time for the IAM policy to propagate. You can safely retry the script multiple times to allow more time for propagation.
+
+
+&nbsp;
 ## Failure to create the Artifact Registry repository
 ([return to top](#vertex-ai-agent-builder-answer-app))
 ### Problem
@@ -515,8 +632,10 @@ Example:
 ╵
 ```
 
+The error occurs on the first run of the `bootstrap` module due to a race condition between the Artifact Registry API activation and applying the Terraform plan. The API activation can take a few minutes to complete.
+
 ### Solution
-The error occurs on the first run of the `bootstrap` module due to a race condition between the Artifact Registry API activation and applying the Terraform plan. The API activation can take a few minutes to complete. Rerun the `bootstrap.sh` script or manually re-apply the `bootstrap` module configuration.
+Rerun the `bootstrap.sh` script or manually re-apply the `bootstrap` module configuration.
 
 
 &nbsp;
@@ -533,8 +652,10 @@ Uploading tarball of [.] to [gs://my-project-id_cloudbuild/source/1732724661.794
 ERROR: (gcloud.builds.submit) INVALID_ARGUMENT: could not resolve source: googleapi: Error 403: run-app-cloudbuild@my-project-id.iam.gserviceaccount.com does not have storage.objects.get access to the Google Cloud Storage object. Permission 'storage.objects.get' denied on resource (or it may not exist)., forbidden
 ```
 
+The error can occur shortly after setting up a new project with the `bootstrap` module for the first time. It's a race condition where the Cloud Build service account IAM role bindings have not yet propagated.
+
 ### Solution
-The error can occur shortly after setting up a new project with the `bootstrap` module for the first time. It's a race condition where the Cloud Build service account IAM role bindings have not yet propagated. Rerun the Cloud Build job to resolve the error.
+Rerun the Cloud Build job to resolve the error.
 
 
 &nbsp;
@@ -632,48 +753,6 @@ Apply changes in multiple steps to remove the regional backends:
 3. Remove the regions you want to destroy from the `additional_regions` list variable.
 4. Apply the changes to remove the regional backend NEGs and their associated Cloud Run Services.
 5. Revert the change to Change line 95 in `terraform/modules/answer-app/cloudrun.tf` back to `group = google_compute_region_network_endpoint_group.run_app[backend.key].id` and apply the changes to confirm the configuration works.
-
-
-&nbsp;
-# NEXT STEPS
-([return to top](#vertex-ai-agent-builder-answer-app))
-
-## Features to add
-### Priority
-- [] [stream answers](https://cloud.google.com/generative-ai-app-builder/docs/stream-answer) **NOT AVAILABLE YET**
-- [x] collect user feedback for each question and answer pair and log to BQ
-- [x] implement an optional list of regions to support multiple cloud run backends
-- [x] deploy a templated monitoring dashboard via Terraform
-- [x] replace manual `utils._response_to_dict()` with native `proto-plus` class method conversion `Message.to_dict()`
-    - update downstream features as needed (bq conversations table, client app attribute extraction) to use the native serialization format
-    - use `preserving_proto_field_name=True` (and optionally `always_print_fields_with_no_presence=True`, [reference](https://protobuf.dev/news/v26/#JSON)) to maintain the original field names and minimize or eliminate downstream changes
-- [] add document processing utilities (use async)
-- [x] add structured prompt preamble to the client app `config.yaml`
-- [x] create a separate run invoker service account for the client app
-- [] add a cloud logging handler to the `answer-app` server
-- [] provide a walkthrough of connecting the search agent to spark/agentspace (via a DFCX steering bot)
-- [x] replace architecture diagram with one consistent with google cloud style
-- [] add multiple data stores 
-    - create at least 2 when creating the search app (one can be empty) to support adding/removing data stores later (a search app created with only one data must always have only one)
-    - [website data, structured data, structured content (media), structured content for third-party data sources (maybe omit this), unstructured data (exists), healthcare FHIR data (maybe omit this)]
-    - [Agent Builder ref](https://cloud.google.com/generative-ai-app-builder/docs/create-datastore-ingest#datastores-engines), [Terraform ref](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/discovery_engine_data_store)
-- [] demonstrate IAP for service account auth to call the `answer-app` service
-
-### Pipeline analysis
-- [] establish a 'golden Q&A' to evaluate the model's performance (consider using notebooklm to generate the golden Q&A)
-    - alternatively use deep-eval RAG triad without needing golden Q&A
-- [] automate RAG evaluation (using golden Q&A) - run with each new doc import and save results to BQ for offline analysis
-- [] automate load testing (an extension of automated evaluation) to test the pipeline's autoscaling capabilities - save results to BQ for offline analysis
-- [] add example (saved) queries in BQ to demonstrate common debugging and evaluation reports
-- [] add a looker dashboard with question and answer pairs along with relevancy scores and user feedback - graph relevancy and user feedback over time
-
-### Client
-- [] provide example questions to ask the search agent
-- [] mimic the answer format returned by the console widget (expand inline citations on click)
-- [] implement unique user IDs to establish sessions
-- [] implement end user authentication with identity platform or firebase
-- [] resumable conversation sessions (lookup available active sessions per user ID)
-- [] demonstrate workload identity federation for client apps not within GCP
 
 
 &nbsp;
@@ -1017,7 +1096,7 @@ Use [`gcloud builds submit`](https://cloud.google.com/build/docs/running-builds/
 
 ### 1. Set configuration values in `config.yaml`.
 Verify/Change parameters as needed:
-- [`config.yaml`](src/config.yaml)
+- [`config.yaml`](src/answer_app/config.yaml)
 - Refer to [Connect cloud run services to an existing load balancer](#connect-cloud-run-services-to-an-existing-load-balancer) for configuration requirements when using a Load Balancer managed outside of this Terraform configuration.
 
 ### 2. Set environment variables.
@@ -1044,10 +1123,10 @@ gcloud builds submit . --config=cloudbuild.yaml --project=$PROJECT --region=$REG
 
 Edit and verify these files to connect the Cloud Run services to an existing load balancer.
 
-### [`config.yaml`](src/answer_app/config.yaml#L30)
+### [`config.yaml`](src/answer_app/config.yaml#L42)
 - Set `create_loadbalancer = false` **AND** set `loadbalancer_domain` to the value of the existing load balancer domain.
 
-### [`cloudrun.tf`](terraform/modules/answer-app/cloudrun.tf#L65)
+### [`cloudrun.tf`](terraform/modules/answer-app/cloudrun.tf#L87)
 - Ensure the Terraform `cloud-run` module resource `google_compute_backend_service.run_app` argument [`load_balancing_scheme`](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/compute_backend_service#load_balancing_scheme) matches the existing [load balancer type](https://cloud.google.com/load-balancing/docs/backend-service).
   - Use `load_balancing_scheme = "EXTERNAL_MANAGED"` for the Global external Application Load Balancer.
   - Use `load_balancing_scheme = "EXTERNAL"` for the Classic Application Load Balancer.
