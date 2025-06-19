@@ -1,16 +1,5 @@
-locals {
-  run_app_env = {
-    LOG_LEVEL = "INFO"
-  }
-  run_app_client_env = {
-    LOG_LEVEL = "INFO"
-    AUDIENCE  = google_cloud_run_v2_service.run_app[var.region].custom_audiences[0]
-  }
-  regions = concat([var.region], var.additional_regions)
-}
-
 resource "google_cloud_run_v2_service" "run_app" {
-  for_each            = toset(local.regions)
+  for_each            = local.regions
   name                = var.app_name
   location            = each.value
   deletion_protection = false
@@ -70,13 +59,21 @@ resource "google_cloud_run_v2_service" "run_app" {
 }
 
 resource "google_compute_region_network_endpoint_group" "run_app" {
-  for_each              = toset(local.regions)
+  for_each              = local.regions
   name                  = var.app_name
   network_endpoint_type = "SERVERLESS"
   region                = each.value
   cloud_run {
     service = google_cloud_run_v2_service.run_app[each.value].name
   }
+}
+
+# Maintain an authoritative policy of Run Invoker principals on each answer-app regional service.
+resource "google_cloud_run_v2_service_iam_binding" "answer_app_run_invoker" {
+  for_each = local.regions
+  name     = google_cloud_run_v2_service.run_app[each.value].name
+  role     = "roles/run.invoker"
+  members  = local.answer_app_run_invoker_members
 }
 
 resource "google_compute_backend_service" "run_app" {
@@ -114,6 +111,17 @@ resource "google_cloud_run_v2_service" "run_app_client" {
     timeout               = "300s"
     execution_environment = "EXECUTION_ENVIRONMENT_GEN2"
 
+    volumes {
+      name = "streamlit-config"
+      secret {
+        secret = google_secret_manager_secret.streamlit_secrets_toml.secret_id
+        items {
+          version = "latest"
+          path    = "secrets.toml"
+        }
+      }
+    }
+
     containers {
       image = var.docker_image["${var.app_name}-client"]
 
@@ -134,6 +142,11 @@ resource "google_cloud_run_v2_service" "run_app_client" {
         tcp_socket {
           port = 8080
         }
+      }
+
+      volume_mounts {
+        name       = "streamlit-config"
+        mount_path = "/app/.streamlit/secrets"
       }
 
       dynamic "env" {

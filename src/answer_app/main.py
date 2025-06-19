@@ -10,13 +10,11 @@ from answer_app.model import HealthCheckResponse
 from answer_app.model import EnvVarResponse
 from answer_app.model import FeedbackRequest
 from answer_app.model import FeedbackResponse
-from answer_app.utils import sanitize, UtilHandler
+from answer_app.model import GetSessionResponse
+from answer_app.utils import sanitize, utils
 
 
 logger = logging.getLogger(__name__)
-
-# Initialize a utility handler.
-utils = UtilHandler(log_level=os.getenv("LOG_LEVEL", "INFO").upper())
 
 # Create a FastAPI app.
 app = FastAPI()
@@ -38,6 +36,7 @@ async def answer(request: QuestionRequest) -> AnswerResponse:
         response = await utils.answer_query(
             query_text=request.question,
             session_id=request.session_id,
+            user_pseudo_id=request.user_pseudo_id,
         )
 
         # Dump the response model to a dictionary for loading to BigQuery.
@@ -99,3 +98,9 @@ async def log_feedback(request: FeedbackRequest) -> FeedbackResponse:
         raise HTTPException(status_code=500, detail=str(errors))
 
     return FeedbackResponse(answer_query_token=request.answer_query_token)
+
+
+@app.get("/sessions/", response_model=GetSessionResponse)
+async def get_sessions(user_id: str = Query(...)) -> GetSessionResponse:
+    """Get all sessions for a user ID."""
+    return await utils.get_user_sessions(user_pseudo_id=user_id)

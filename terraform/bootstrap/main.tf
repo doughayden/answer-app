@@ -10,6 +10,7 @@ locals {
     "logging.googleapis.com",
     "monitoring.googleapis.com",
     "run.googleapis.com",
+    "secretmanager.googleapis.com",
     "storage.googleapis.com",
   ]
   # bigquery, logging, monitoring, and storage are enabled by default in all new projects

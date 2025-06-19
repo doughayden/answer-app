@@ -1,19 +1,30 @@
 [project]
 name = "answer-app"
-version = "0.1.2"
+version = "0.1.5"
 description = "Vertex AI Agent Builder Answer App"
+license = "MIT"
+license-files = [
+    "LICENSE",
+]
 readme = "README.md"
 requires-python = ">=3.13,<4"
+authors = [
+    { name = "doug", email = "110487462+doughayden@users.noreply.github.com" },
+]
 dependencies = [
     "fastapi (>=0.115.6,<0.116.0)",
     "google-api-core (>=2.24.0,<3.0.0)",
     "google-auth (>=2.37.0,<3.0.0)",
     "google-cloud-bigquery (>=3.27.0,<4.0.0)",
     "google-cloud-discoveryengine (>=0.13.5,<0.14.0)",
+    "httpx (>=0.28.1,<0.29.0)",
     "pydantic (>=2.10.4,<3.0.0)",
     "pyyaml (>=6.0.2,<7.0.0)",
     "uvicorn (>=0.34.0,<0.35.0)"
 ]
+
+[project.scripts]
+write_secrets = "package_scripts.write_secrets_toml:run"
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
@@ -26,18 +37,26 @@ packages = [
 ]
 
 [tool.poetry.group.client.dependencies]
+authlib = "^1.5.2"
 google-auth = "^2.37.0"
-requests = "^2.32.3"
+python-dotenv = "^1.1.0"
 rich = "^13.9.4"
-streamlit = "^1.41.1"
+streamlit = "^1.43.2"
 streamlit-feedback = "^0.1.4"
-watchdog = "^6.0.0"
 
 [tool.poetry.group.dev.dependencies]
+click = "^8.2.1"
 coverage = "^7.6.10"
-httpx = "^0.28.1"
 ipykernel = "^6.29.5"
 pytest = "^8.3.4"
 pytest-asyncio = "^0.25.1"
 pytest-cov = "^6.0.0"
+pytest-httpx = "^0.35.0"
 pytz = "^2024.2"
+
+[tool.pytest.ini_options]
+# asyncio_default_fixture_loop_scope = "function"
+# log_cli = true
+# log_cli_level = "DEBUG"
+# log_cli_format = "%(levelname)-9s [%(name)s.%(funcName)s:%(lineno)5s] %(message)s"
+# log_cli_date_format = "%Y-%m-%d %H:%M:%S"

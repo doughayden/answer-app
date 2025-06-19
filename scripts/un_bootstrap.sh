@@ -42,7 +42,7 @@ gcloud storage buckets list --format="value(name)" --filter="name:$BUCKET" | gre
 if [ $? -eq 0 ]; then
     echo "Deleting the Terraform state bucket..."
     echo ""
-    gsutil rm -r gs://$BUCKET
+    gcloud storage rm -r "gs://$BUCKET"
 else
     echo "The Terraform state bucket does not exist."
 fi

@@ -21,7 +21,7 @@ resource "google_compute_target_https_proxy" "https_redirect" {
 }
 
 locals {
-  lb_domain = coalesce(var.lb_domain, "${google_compute_global_address.lb_global_address.address}.nip.io")
+  lb_domain = coalesce(var.lb_domain, "${google_compute_global_address.lb_global_address.address}.sslip.io")
 }
 
 resource "random_id" "certificate" {

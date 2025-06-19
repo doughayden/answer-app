@@ -21,8 +21,10 @@ pytest.ini
 .DS_Store
 
 # Custom patterns
+**/secrets.toml*
 assets/
 scripts/
+LICENSE
 README.md
 
 # Everything from .gitignore
@@ -342,3 +344,4 @@ terraform.rc
 .vscode/
 .history/
 .venv*
+.streamlit/secrets

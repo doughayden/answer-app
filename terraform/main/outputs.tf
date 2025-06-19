@@ -57,3 +57,13 @@ output "client_app_uri" {
   description = "The URI to access the web client application."
   value       = local.config.create_loadbalancer ? "https://${local.lb_domain}" : module.answer_app.client_service_uri
 }
+
+output "deployed_client_redirect_uri" {
+  description = "The redirect URI for the deployed client application."
+  value       = local.config.create_loadbalancer ? "https://${local.lb_domain}/oauth2callback" : "${module.answer_app.client_service_uri}/oauth2callback"
+}
+
+output "streamlit_secrets_toml_secret_id" {
+  description = "The Streamlit secrets.toml Secret Manager secret ID."
+  value       = module.answer_app.streamlit_secrets_toml_id
+}

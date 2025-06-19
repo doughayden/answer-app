@@ -1,203 +1,153 @@
 import pytest
+from pytest_httpx import HTTPXMock
 from unittest.mock import MagicMock
+
+from google.auth.exceptions import DefaultCredentialsError
 
 from client.utils import UtilHandler
 
 
-def test_setup_logging_with_file_handler(
-    mock_util_handler: UtilHandler,
-    caplog: pytest.LogCaptureFixture,
-) -> None:
-    with caplog.at_level("DEBUG"):
-        mock_util_handler._setup_logging(log_level="DEBUG")
-    assert "Logging level set to: DEBUG" in caplog.text
-
-
-def test_setup_logging_with_stream_handler(
-    mock_util_handler: UtilHandler,
-    caplog: pytest.LogCaptureFixture,
-    patch_k_revision: MagicMock,
-) -> None:
-    with caplog.at_level("DEBUG"):
-        mock_util_handler._setup_logging(log_level="DEBUG")
-    assert "Logging level set to: DEBUG" in caplog.text
-
-
-def test_get_default_id_token(
-    mock_client_google_auth_default: MagicMock,
-    mock_google_auth_transport_requests: MagicMock,
-    mock_fetch_id_token: MagicMock,
-    mock_verify_token: MagicMock,
-) -> None:
-    handler = UtilHandler(log_level="DEBUG")
-    token = handler._get_default_id_token()
-    assert token == "default-token"
-    mock_fetch_id_token.assert_called_with(handler._auth_request, handler._audience)
-
-
-def test_get_impersonated_id_token(
-    mock_client_google_auth_default: MagicMock,
-    mock_google_auth_transport_requests: MagicMock,
-    mock_impersonated_creds: MagicMock,
-    mock_id_token_creds: MagicMock,
-    mock_verify_token: MagicMock,
-    patch_target_principal: None,
-) -> None:
-    handler = UtilHandler(log_level="DEBUG")
-    token = handler._get_impersonated_id_token()
-    assert token == "impersonated-token"
-    # mock_id_token_creds.assert_called()
-
-
-def test_get_id_token(
-    mock_util_handler: UtilHandler,
-    mock_refresh: MagicMock,
-    mock_fetch_id_token: MagicMock,
-    # mock_impersonated_creds: MagicMock,
-    mock_id_token_creds: MagicMock,
-) -> None:
-    mock_util_handler._target_principal = "test-sa@project.iam.gserviceaccount.com"
-    token = mock_util_handler._get_id_token()
-    assert token == "impersonated-token"
-
-    mock_util_handler._target_principal = None
-    token = mock_util_handler._get_id_token()
-    assert token == "default-token"
-
-
-def test_decode_token(mock_util_handler: UtilHandler) -> None:
-    claims = mock_util_handler._decode_token()
-    assert claims == {"exp": 9999999999}
-
-
-def test_token_expired(mock_util_handler: UtilHandler) -> None:
-    mock_util_handler._token_exp = 0
-    assert mock_util_handler._token_expired() is True
-
-    mock_util_handler._token_exp = 9999999999
-    assert mock_util_handler._token_expired() is False
-
-
-def test_initialization_local(
-    mock_google_auth_default: MagicMock,
-    mock_google_auth_transport_requests: MagicMock,
-    mock_fetch_id_token: MagicMock,
-    mock_impersonated_creds: MagicMock,
-    mock_id_token_creds: MagicMock,
-    mock_verify_token: MagicMock,
-    mock_log_attributes: MagicMock,
-    patch_target_principal: None,
-) -> None:
-    handler = UtilHandler(log_level="DEBUG")
-    assert handler._project == "test-project-id"
-    assert handler._credentials is not None
-    assert handler._audience == "http://localhost:8888"
-    assert handler._target_principal is not None
-    assert handler._auth_request is not None
-    assert handler._token == "impersonated-token"
-    assert handler._token_exp == 9999999999
-
-
-def test_initialization_deployed(
-    mock_google_auth_default: MagicMock,
-    mock_google_auth_transport_requests: MagicMock,
-    mock_fetch_id_token: MagicMock,
-    mock_verify_token: MagicMock,
-    mock_log_attributes: MagicMock,
-    patch_k_revision: None,
+def test_audience_env_var(
+    mock_client_util_handler: UtilHandler,
     patch_audience: None,
 ) -> None:
-    handler = UtilHandler(log_level="DEBUG")
-    assert handler._project == "test-project-id"
-    assert handler._credentials is not None
-    assert handler._audience == "https://app.example.com"
-    assert handler._target_principal is None
-    assert handler._auth_request is not None
-    assert handler._token == "default-token"
-    assert handler._token_exp == 9999999999
+    assert mock_client_util_handler.audience == "https://app.example.com"
 
 
-def test_send_request_success(
-    mock_requests_post: MagicMock,
-    mock_util_handler: UtilHandler,
+def test_audience_default(
+    mock_client_util_handler: UtilHandler,
 ) -> None:
-    mock_requests_post.return_value.status_code = 200
-    mock_requests_post.return_value.json.return_value = {
-        "answer": "This is a test answer"
-    }
-    data = {
-        "question": "What is the capital of France?",
-        "session_id": "test-session",
-    }
-    response = mock_util_handler.send_request(data=data, route="/answer")
+    assert mock_client_util_handler.audience == "http://localhost:8888"
 
-    assert response == {"answer": "This is a test answer"}
-    mock_requests_post.assert_called_once_with(
-        "http://localhost:8888/answer",
-        headers={
-            "Authorization": f"Bearer {mock_util_handler._token}",
-            "Content-Type": "application/json",
-        },
-        json={
-            "question": "What is the capital of France?",
-            "session_id": "test-session",
-        },
+
+def test_target_principal(
+    mock_client_util_handler: UtilHandler,
+    patch_target_principal: None,
+) -> None:
+    assert (
+        mock_client_util_handler.target_principal
+        == "test-sa@test-project.iam.gserviceaccount.com"
     )
 
 
-def test_send_request_error(
-    mock_requests_post: MagicMock,
-    mock_util_handler: UtilHandler,
+def test_target_principal_key_error(
+    mock_client_util_handler: UtilHandler,
+    caplog: pytest.LogCaptureFixture,
 ) -> None:
-    mock_requests_post.return_value.status_code = 500
-    mock_requests_post.return_value.text = "Internal Server Error"
+    with pytest.raises(KeyError):
+        assert mock_client_util_handler.target_principal
+    message = (
+        "TF_VAR_terraform_service_account environment variable "
+        "required for impersonation is not set."
+    )
+    assert message in caplog.text
 
-    data = {
-        "question": "What is the capital of France?",
-        "session_id": "test-session",
-    }
-    response = mock_util_handler.send_request(data=data, route="/answer")
+
+def test_default_id_token(
+    mock_client_util_handler: UtilHandler,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    with caplog.at_level("DEBUG"):
+        assert mock_client_util_handler.id_token == "default-token"
+    assert "Fetching ID token using default credentials..." in caplog.text
+    assert "ID token retrieved using ADC." in caplog.text
+
+
+def test_impersonated_id_token(
+    mock_client_util_handler: UtilHandler,
+    mock_fetch_id_token: MagicMock,
+    patch_target_principal: None,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    mock_fetch_id_token.side_effect = DefaultCredentialsError("test ADC error")
+    with caplog.at_level("DEBUG"):
+        assert mock_client_util_handler.id_token == "impersonated-token"
+    assert "Switching to service account impersonation: test ADC error" in caplog.text
+    assert "ID token retrieved using impersonated credentials." in caplog.text
+
+
+def test_setup_logging_stream_handler(
+    mock_client_util_handler: UtilHandler,
+    caplog: pytest.LogCaptureFixture,
+    patch_k_revision: None,
+) -> None:
+    with caplog.at_level("DEBUG"):
+        mock_client_util_handler._setup_logging()
+    assert "Logging level set to: DEBUG" in caplog.text
+
+
+def test_setup_logging_local_file_handler(
+    mock_client_util_handler: UtilHandler,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    with caplog.at_level("DEBUG"):
+        mock_client_util_handler._setup_logging()
+    assert "Logging level set to: DEBUG" in caplog.text
+
+
+@pytest.mark.asyncio
+async def test_send_request_success_post(
+    mock_client_util_handler: UtilHandler,
+    httpx_mock: HTTPXMock,
+) -> None:
+    response_json = {"answer": "This is a test answer"}
+    httpx_mock.add_response(json=response_json, url="http://localhost:8888/answer")
+
+    data = {"question": "What is the capital of France?", "session_id": "test-session"}
+    response = await mock_client_util_handler.send_request(
+        route="/answer",
+        data=data,
+        method="POST",
+    )
+
+    assert response == {"answer": "This is a test answer"}
+    assert httpx_mock.get_request().url == "http://localhost:8888/answer"
+    assert httpx_mock.get_request().method == "POST"
+
+
+@pytest.mark.asyncio
+async def test_send_request_success_get(
+    mock_client_util_handler: UtilHandler,
+    httpx_mock: HTTPXMock,
+) -> None:
+    response_json = {"status": "ok"}
+    httpx_mock.add_response(json=response_json)
+    response = await mock_client_util_handler.send_request(
+        route="/get-session-history",
+        method="GET",
+    )
+
+    assert response == {"status": "ok"}
+    assert httpx_mock.get_request().method == "GET"
+
+
+@pytest.mark.asyncio
+async def test_send_request_error(
+    mock_client_util_handler: UtilHandler,
+    httpx_mock: HTTPXMock,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    httpx_mock.add_response(status_code=500, text="Internal Server Error")
+
+    data = {"question": "What is the capital of France?", "session_id": "test-session"}
+    response = await mock_client_util_handler.send_request(data=data, route="/answer")
 
     assert response == {"error": "Internal Server Error"}
-    mock_requests_post.assert_called_once_with(
-        "http://localhost:8888/answer",
-        headers={
-            "Authorization": f"Bearer {mock_util_handler._token}",
-            "Content-Type": "application/json",
-        },
-        json={
-            "question": "What is the capital of France?",
-            "session_id": "test-session",
-        },
-    )
+    assert httpx_mock.get_request().url == "http://localhost:8888/answer"
+    assert httpx_mock.get_request().method == "POST"
+    assert "Internal Server Error" in caplog.text
 
 
-def test_send_request_token_refresh(
-    mock_requests_post: MagicMock,
-    mock_util_handler: UtilHandler,
+@pytest.mark.asyncio
+async def test_send_request_unsupported_method(
+    mock_client_util_handler: UtilHandler,
+    httpx_mock: HTTPXMock,
+    caplog: pytest.LogCaptureFixture,
 ) -> None:
-    mock_util_handler._token_exp = 0  # Force token to be expired
-    mock_requests_post.return_value.status_code = 200
-    mock_requests_post.return_value.json.return_value = {
-        "answer": "This is a test answer"
-    }
-
-    data = {
-        "question": "What is the capital of France?",
-        "session_id": "test-session",
-    }
-    response = mock_util_handler.send_request(data=data, route="/answer")
-
-    assert response == {"answer": "This is a test answer"}
-    mock_requests_post.assert_called_once_with(
-        "http://localhost:8888/answer",
-        headers={
-            "Authorization": f"Bearer default-token",
-            "Content-Type": "application/json",
-        },
-        json={
-            "question": "What is the capital of France?",
-            "session_id": "test-session",
-        },
+    data = {"question": "What is the capital of France?", "session_id": "test-session"}
+    response = await mock_client_util_handler.send_request(
+        data=data, route="/answer", method="PUT"
     )
-    assert mock_util_handler._token_exp == 9999999999
+
+    assert response == {"error": "Unsupported method: PUT"}
+    assert "Unsupported method: PUT" in caplog.text

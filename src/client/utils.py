@@ -1,54 +1,159 @@
 import logging
 import os
-import requests
-import time
 from typing import Any
 
+from dotenv import load_dotenv
 import google.auth
-import google.auth.transport.requests
 from google.auth import impersonated_credentials
+from google.auth.exceptions import DefaultCredentialsError
+from google.auth.transport.requests import Request
 from google.oauth2 import id_token
-
+import httpx
 
 logger = logging.getLogger(__name__)
 
 
 class UtilHandler:
-    """A utility handler class."""
+    """A utility handler class.
+    This class handles the OAuth 2.0 flow for Google Cloud services and
+    manages the ID token for authentication. It also sets up logging.
+
+        Attributes:
+            _log_level (str): The log level to set. Defaults to "INFO".
+            audience (str): The audience for the ID token.
+            redirect_uri (str): The redirect URI for the OAuth 2.0 flow. It's the
+                same as the base route "/" for the Streamlit app.
+            client_config (dict[str, str]): The client secrets file.
+            scopes (list[str]): The OAuth 2.0 scopes.
+            flow (Flow): The OAuth 2.0 Authorization Flow instance.
+            claims (dict[str, Any]): The decoded ID token.
+    """
 
     def __init__(self, log_level: str = "INFO") -> None:
-        """Initialize the UtilHandler class.
+        """Initialize the UtilHandler class instance.
+        Sets up logging and loads the .env file if it exists.
 
         Args:
             log_level (str, optional): The log level to set. Defaults to "INFO".
         """
-        self._setup_logging(log_level)
-        # Get ADC for the caller (a Google user account).
-        self._credentials, self._project = google.auth.default()
-        self._audience = os.getenv("AUDIENCE", "http://localhost:8888")
-        self._target_principal = os.getenv("TF_VAR_terraform_service_account", None)
-        self._auth_request = google.auth.transport.requests.Request()
-        self._token = self._get_id_token()
-        self._token_exp = self._decode_token()["exp"]
+        # Configure logging.
+        self._log_level: str = log_level
+        self._setup_logging()
 
-        self._log_attributes()
+        # Load environment variables from .env file if it exists.
+        if load_dotenv():
+            logger.debug("Local .env file loaded.")
+        else:
+            logger.debug("No local .env file found.")
+
+        # Get ADC
+        self.default_creds, self.project = google.auth.default()
+
+        # Initialize instance properties.
+        self._audience: str | None = None
+        self._target_principal: str | None = None
+        self._id_token: str | None = None
 
         return
 
-    def _setup_logging(self, log_level: str = "INFO") -> None:
+    @property
+    def audience(self) -> str:
+        """Get the audience for the ID token.
+
+        Returns:
+            str: The audience for the ID token. Defaults to "http://localhost:8888".
+        """
+        if self._audience is None:
+            self._audience = os.getenv("AUDIENCE", "http://localhost:8888")
+
+        logger.debug(f"audience: {self._audience}")
+
+        return self._audience
+
+    @property
+    def target_principal(self) -> str:
+        """Get the target principal for the ID token.
+        This is the service account email address that will be used to
+        authenticate the request to the Cloud Run service.
+
+        Returns:
+            str: The target principal for the ID token.
+        """
+        if self._target_principal is None:
+            try:
+                self._target_principal = os.environ["TF_VAR_terraform_service_account"]
+            except KeyError:
+                message = (
+                    "TF_VAR_terraform_service_account environment variable "
+                    "required for impersonation is not set."
+                )
+                logger.error(message)
+                raise KeyError(message)
+
+        logger.debug(f"target_principal: {self._target_principal}")
+
+        return self._target_principal
+
+    @property
+    def id_token(self) -> str:
+        """Get the default ID token.
+
+        Returns:
+            str: The default ID token.
+        """
+        if self._id_token is None:
+            request = Request()
+            try:
+                logger.debug("Fetching ID token using default credentials...")
+                self._id_token = id_token.fetch_id_token(
+                    request=request,
+                    audience=self.audience,
+                )
+                logger.debug(f"ID token retrieved using ADC.")
+
+            except DefaultCredentialsError as e:
+                logger.debug(f"Switching to service account impersonation: {e}")
+
+                # Create impersonated credentials.
+                target_scopes = ["https://www.googleapis.com/auth/cloud-platform"]
+                target_creds = impersonated_credentials.Credentials(
+                    source_credentials=self.default_creds,
+                    target_principal=self.target_principal,
+                    target_scopes=target_scopes,
+                )
+
+                # Use impersonated creds to fetch and refresh an access token.
+                id_creds = impersonated_credentials.IDTokenCredentials(
+                    target_credentials=target_creds,
+                    target_audience=self._audience,
+                    include_email=True,
+                )
+                id_creds.refresh(request=request)
+                self._id_token = id_creds.token
+                logger.debug(f"ID token retrieved using impersonated credentials.")
+
+        logger.debug(f"id_token: {self._id_token}")
+
+        return self._id_token
+
+    def _setup_logging(self) -> None:
         """Set up logging with the specified log level.
 
         Args:
             log_level (str, optional): The log level to set. Defaults to "INFO".
         """
-        log_format = "{levelname:<9} [{name}.{funcName}:{lineno:>5}] {message}"
+        log_format = (
+            "{levelname:<9} {asctime} [{name}.{funcName}:{lineno:>5}] {message}"
+        )
+        date_format = "%Y-%m-%d %H:%M:%S %Z"
 
         # Use the stream handler in Cloud Run, otherwise use the file handler.
         if os.getenv("K_REVISION"):
             stream_handler = logging.StreamHandler()
             handlers = [stream_handler]
+
         else:
-            # Determine the directory of the script.
+            # Construct the log filename using the script directory.
             script_dir = os.path.dirname(os.path.abspath(__file__))
             log_dir = os.path.join(script_dir, ".log")
             log_filename = os.path.join(log_dir, "client.log")
@@ -67,126 +172,54 @@ class UtilHandler:
         # Configure the root logger.
         logging.basicConfig(
             format=log_format,
+            datefmt=date_format,
             style="{",
-            level=getattr(logging, log_level, logging.INFO),
+            level=getattr(logging, self._log_level, logging.INFO),
             handlers=handlers,
             encoding="utf-8",
         )
-        logger.info(f"Logging level set to: {log_level}")
+        logger.info(f"Logging level set to: {self._log_level}")
 
         return
 
-    def _get_impersonated_id_token(self) -> str:
-        """Use Service Account Impersonation to generate a token for authorized requests.
-        Caller must have the “Service Account Token Creator” role on the target service account.
-        # Args:
-        #     target_principal: The Service Account email address to impersonate.
-        #     target_scopes: List of auth scopes for the Service Account.
-        #     audience: the URI of the Google Cloud resource to access with impersonation.
-        #     request: google.auth.transport.requests.Request()
-        Returns: Open ID Connect ID Token-based service account credentials bearer token
-        that can be used in HTTP headers to make authenticated requests.
-        refs:
-        https://cloud.google.com/docs/authentication/get-id-token#impersonation
-        https://cloud.google.com/iam/docs/create-short-lived-credentials-direct#user-credentials_1
-        https://stackoverflow.com/questions/74411491/python-equivalent-for-gcloud-auth-print-identity-token-command
-        https://googleapis.dev/python/google-auth/latest/reference/google.auth.impersonated_credentials.html
-        """
-        # Create impersonated credentials.
-        target_scopes = ["https://www.googleapis.com/auth/cloud-platform"]
-        target_creds = impersonated_credentials.Credentials(
-            source_credentials=self._credentials,
-            target_principal=self._target_principal,
-            target_scopes=target_scopes,
-        )
-
-        # Use impersonated creds to fetch and refresh an access token.
-        id_creds = impersonated_credentials.IDTokenCredentials(
-            target_credentials=target_creds,
-            target_audience=self._audience,
-            include_email=True,
-        )
-        id_creds.refresh(self._auth_request)
-
-        return id_creds.token
-
-    def _get_default_id_token(self) -> str:
-        """Get an ID token for the GCP service-attached service account
-        to make authorized requests.
-
-        Returns:
-            str: Open ID Connect ID Token-based service account credentials bearer token
-            that can be used in HTTP headers to make authenticated requests.
-        """
-        return id_token.fetch_id_token(self._auth_request, self._audience)
-
-    def _get_id_token(self) -> str:
-        """Get an ID token based on the environment. If the target_principal
-        is set, use impersonation to get the token. Otherwise, use the Application
-        Default Credentials (ADC) to get the token from the attached service account.
-        """
-        if self._target_principal:
-            return self._get_impersonated_id_token()
-        else:
-            return self._get_default_id_token()
-
-    def _decode_token(self) -> dict:
-        """Decode the token and return the claims.
-
-        Returns:
-            dict: The claims from the token.
-        """
-        claims = id_token.verify_token(self._token, self._auth_request)
-        logger.debug(f"Token claims: {claims}")
-        return claims
-
-    def _token_expired(self) -> bool:
-        """Check if the token has expired.
-
-        Returns:
-            bool: True if the token has expired, False otherwise.
-        """
-        return self._token_exp < time.time()
-
-    def _log_attributes(self) -> None:
-        """Log the attributes of the class."""
-        logger.debug(f"Project: {self._project}")
-        logger.debug(f"AUDIENCE: {self._audience}")
-        logger.debug(f"TARGET PRINCIPAL: {self._target_principal}")
-        logger.debug(f"Token expiration: {self._token_exp}")
-
-        return
-
-    def send_request(
+    async def send_request(
         self,
-        data: dict[str, Any],
         route: str,
+        data: dict[str, Any] | None = None,
+        method: str = "POST",
     ) -> dict[str, Any]:
-        """Send a request to the Discovery Engine API.
+        """Send a request to the answer-app Cloud Run backend service.
 
         Args:
-            data (dict): The data to send in the request.
             route (str): The API route to receive the request.
+            data (dict, optional): The data to send in the request. Passed as the body
+                for POST and as query parameters for GET requests. Defaults to None.
+            method (str, optional): The HTTP method to use. Defaults to "POST".
 
         Returns:
             dict: The response from the Discovery Engine API.
         """
-        # Refresh an expired token.
-        start_time = time.time()
-        if self._token_expired():
-            self._token = self._get_id_token()
-            self._token_exp = self._decode_token()["exp"]
-        logger.debug(f"Token refresh time: {time.time() - start_time:.4f} seconds")
-
         # Construct and send the request.
-        url = f"{self._audience}{route}"
+        url = f"{self.audience}{route}"
         logger.info(f"URL: {url}")
         headers = {
-            "Authorization": f"Bearer {self._token}",
+            "Authorization": f"Bearer {self.id_token}",
             "Content-Type": "application/json",
         }
+        logger.debug(f"Headers: {headers}")
         logger.info(f"Request data: {data}")
-        response = requests.post(url, headers=headers, json=data)
+
+        async with httpx.AsyncClient() as client:
+            match method:
+                case "POST":
+                    response = await client.post(url, headers=headers, json=data)
+                case "GET":
+                    response = await client.get(url, headers=headers, params=data)
+                case _:
+                    message = f"Unsupported method: {method}"
+                    logger.error(message)
+                    return {"error": message}
+
         logger.info(f"Response status code: {response.status_code}")
 
         # Check for errors.
@@ -195,3 +228,6 @@ class UtilHandler:
             return {"error": response.text}
 
         return response.json()
+
+
+utils = UtilHandler(log_level=os.getenv("LOG_LEVEL", "INFO").upper())

@@ -77,3 +77,8 @@ output "client_app_service_account_member" {
   description = "The app service-attached service account member."
   value       = google_service_account.client_app_service_account.member
 }
+
+output "streamlit_secrets_toml_id" {
+  description = "The Streamlit secrets.toml Secret Manager secret ID."
+  value       = google_secret_manager_secret.streamlit_secrets_toml.id
+}

@@ -7,11 +7,15 @@ from typing import Any
 
 import google.auth
 from google.cloud import bigquery
-from google.cloud.discoveryengine_v1.types import Answer, AnswerQueryResponse
+from google.cloud.discoveryengine_v1.types import Answer
+from google.cloud.discoveryengine_v1.types import AnswerQueryResponse
+from google.cloud.discoveryengine_v1.types import Session
 import yaml
 
-from answer_app.discoveryengine_utils import DiscoveryEngineAgent
-from answer_app.model import AnswerResponse, ClientCitation
+from answer_app.discoveryengine_utils import DiscoveryEngineHandler
+from answer_app.model import AnswerResponse
+from answer_app.model import ClientCitation
+from answer_app.model import GetSessionResponse
 
 
 logger = logging.getLogger(__name__)
@@ -43,7 +47,7 @@ def _answer_to_markdown(answer: Answer) -> str:
     Ref: https://github.com/aurelio-labs/cookbook/blob/main/gen-ai/google-ai/gemini-2/web-search.ipynb
     """
     # Start the timer.
-    start_time = time.time()
+    start_time: float = time.time()
 
     # Create a list of ClientCitation objects from the response citations and references.
     client_citations: list[ClientCitation] = [
@@ -100,7 +104,7 @@ def _answer_to_markdown(answer: Answer) -> str:
     logger.debug(f"Markdown: {markdown}")
 
     # Base64 encode the markdown string to ensure fidelity when sending over HTTP.
-    encoded_markdown = base64.b64encode(markdown.encode("utf-8")).decode("utf-8")
+    encoded_markdown: str = base64.b64encode(markdown.encode("utf-8")).decode("utf-8")
 
     # Log the markdown conversion time.
     logger.debug(f"Markdown conversion time: {time.time() - start_time:.4f} seconds.")
@@ -127,7 +131,7 @@ class UtilHandler:
         self._feedback_table = self._compose_table(
             dataset_key="dataset_id", table_key="feedback_table_id"
         )
-        self._search_agent = DiscoveryEngineAgent(
+        self._vais_handler = DiscoveryEngineHandler(
             location=self._config["location"],
             engine_id=self._config["search_engine_id"],
             preamble=self._config.get("preamble", "Give a detailed answer."),
@@ -142,7 +146,7 @@ class UtilHandler:
         Args:
             log_level (str, optional): The log level to set. Defaults to "INFO".
         """
-        log_format = "{levelname:<9} [{name}.{funcName}:{lineno:>5}] {message}"
+        log_format: str = "{levelname:<9} [{name}.{funcName}:{lineno:>5}] {message}"
         logging.basicConfig(
             format=log_format,
             style="{",
@@ -162,10 +166,10 @@ class UtilHandler:
         Returns:
             dict[str, Any]: The configuration settings.
         """
-        this_directory = os.path.dirname(os.path.abspath(__file__))
-        abs_filepath = os.path.join(this_directory, filepath)
+        this_directory: str = os.path.dirname(os.path.abspath(__file__))
+        abs_filepath: str = os.path.join(this_directory, filepath)
         with open(abs_filepath, "r") as file:
-            config: dict = yaml.safe_load(file)
+            config: dict[str, Any] = yaml.safe_load(file)
         logger.debug(f"Loaded configuration: {config}")
 
         return config
@@ -198,7 +202,9 @@ class UtilHandler:
         Returns:
             str: The BigQuery table name.
         """
-        table = f"{self._project}.{self._config[dataset_key]}.{self._config[table_key]}"
+        table: str = (
+            f"{self._project}.{self._config[dataset_key]}.{self._config[table_key]}"
+        )
         logger.debug(f"Table: {table}")
 
         return table
@@ -207,6 +213,7 @@ class UtilHandler:
         self,
         query_text: str,
         session_id: str | None,
+        user_pseudo_id: str,
     ) -> AnswerResponse:
         """Call the answer method to return a generated answer and a list of search results,
         with links to the sources.
@@ -214,6 +221,7 @@ class UtilHandler:
         Args:
             query_text (str): The text of the query to be answered.
             session_id (str, optional): The session ID to continue a conversation.
+            user_pseudo_id (str): The unique ID of the active user.
 
         Returns:
             AnswerResponse: The response from the Conversational Search Service,
@@ -224,21 +232,22 @@ class UtilHandler:
         logger.debug(f"Session ID: {session_id}")
 
         # Start the timer.
-        start_time = time.time()
+        start_time: float = time.time()
 
         # Get the answer to the query.
-        response = await self._search_agent.answer_query(
+        response: AnswerQueryResponse = await self._vais_handler.answer_query(
             query_text=query_text,
             session_id=session_id,
+            user_pseudo_id=user_pseudo_id,
         )
 
         # Log the latency in the model response.
-        latency = time.time() - start_time
-        logger.info(f"Search agent latency: {latency:.4f} seconds.")
+        latency: float = time.time() - start_time
+        logger.info(f"Answer latency: {latency:.4f} seconds.")
 
         # Create a markdown string of the answer text and citations and a dictionary of the full response.
-        markdown = _answer_to_markdown(response.answer)
-        response_dict = AnswerQueryResponse.to_dict(
+        markdown: str = _answer_to_markdown(response.answer)
+        response_dict: dict[str, Any] = AnswerQueryResponse.to_dict(
             instance=response,
             use_integers_for_enums=False,
         )
@@ -249,6 +258,43 @@ class UtilHandler:
             latency=latency,
             **response_dict,
         )
+
+    async def get_user_sessions(
+        self,
+        user_pseudo_id: str,
+    ) -> GetSessionResponse:
+        """Get the list of session IDs for a user.
+
+        Args:
+            user_pseudo_id (str): The unique ID of the active user.
+
+        Returns:
+            GetSessionResponse: A list of dictionary representations of Session objects for the user.
+        """
+        sessions: list[Session] = await self._vais_handler.get_user_sessions(
+            user_pseudo_id=user_pseudo_id
+        )
+
+        return GetSessionResponse(
+            sessions=[
+                Session.to_dict(
+                    instance=session,
+                    use_integers_for_enums=False,
+                )
+                for session in sessions
+            ]
+        )
+
+    async def delete_session(self, session_id: str) -> None:
+        """Delete a session from the Conversational Search Service.
+
+        Args:
+            session_id (str): The session ID to delete.
+
+        Returns:
+            None
+        """
+        return await self._vais_handler.delete_session(session_id=session_id)
 
     async def bq_insert_row_data(
         self,
@@ -282,3 +328,6 @@ class UtilHandler:
         logger.info(f"Insert row latency: {time.time() - start_time:.4f} seconds.")
 
         return errors
+
+
+utils = UtilHandler(log_level=os.getenv("LOG_LEVEL", "INFO").upper())
