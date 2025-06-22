@@ -17,7 +17,8 @@ with patch("google.auth.default") as mock_auth:
          patch("google.auth.impersonated_credentials.Credentials"), \
          patch("google.auth.impersonated_credentials.IDTokenCredentials"), \
          patch("google.auth.transport.requests.Request"), \
-         patch("client.utils.load_dotenv"):
+         patch("client.utils.load_dotenv"), \
+         patch("client.utils.google.auth.default", return_value=(mock_credentials, "test-project-id")):
         
         # Import modules after comprehensive mocking is in place
         from answer_app.utils import UtilHandler as AnswerAppUtilHandler
