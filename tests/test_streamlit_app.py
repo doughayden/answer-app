@@ -23,7 +23,7 @@ class TestStreamlitApp:
 
     def test_setup_app(self, mock_streamlit: MagicMock) -> None:
         """Test setup_app function."""
-        from src.client.streamlit_app import setup_app
+        from client.streamlit_app import setup_app
 
         setup_app()
 
@@ -48,7 +48,7 @@ class TestStreamlitApp:
             ]
         }
 
-        from src.client.streamlit_app import get_session_history
+        from client.streamlit_app import get_session_history
 
         result = await get_session_history()
 
@@ -66,7 +66,7 @@ class TestStreamlitApp:
         """Test get_session_history with empty response."""
         mock_streamlit_utils.send_request.return_value = {}
 
-        from src.client.streamlit_app import get_session_history
+        from client.streamlit_app import get_session_history
 
         result = await get_session_history()
 
@@ -74,7 +74,7 @@ class TestStreamlitApp:
 
     def test_display_chat_history(self, mock_streamlit: MagicMock) -> None:
         """Test display_chat_history function."""
-        from src.client.streamlit_app import display_chat_history
+        from client.streamlit_app import display_chat_history
 
         mock_streamlit.session_state = {
             "chat_history": [
@@ -102,7 +102,7 @@ class TestStreamlitApp:
         }
         mock_streamlit_utils.send_request.return_value = {"status": "success"}
 
-        from src.client.streamlit_app import send_feedback
+        from client.streamlit_app import send_feedback
 
         feedback = {"score": "👍", "text": "Great answer!"}
         await send_feedback(feedback)
@@ -134,7 +134,7 @@ class TestStreamlitApp:
         }
         mock_streamlit_utils.send_request.return_value = {"status": "success"}
 
-        from src.client.streamlit_app import send_feedback
+        from client.streamlit_app import send_feedback
 
         feedback = {"score": "👎", "text": "Not helpful"}
         await send_feedback(feedback)
