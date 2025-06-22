@@ -74,9 +74,7 @@ class SecretsTomlData(BaseModel):
         Returns:
             The first non-localhost URI or None if none found.
         """
-        return next(
-            (uri for uri in uris if uri.startswith("http://localhost")), None
-        )
+        return next((uri for uri in uris if uri.startswith("http://localhost")), None)
 
     @classmethod
     def from_oauth_data(cls, data: OAuthClientSecrets) -> Self:

@@ -2,15 +2,15 @@ import pytest
 
 from pydantic import ValidationError
 
-from answer_app.model import QuestionRequest
 from answer_app.model import AnswerResponse
-from answer_app.model import HealthCheckResponse
-from answer_app.model import EnvVarResponse
 from answer_app.model import ClientCitation
-from answer_app.model import UserFeedback
+from answer_app.model import EnvVarResponse
 from answer_app.model import FeedbackRequest
 from answer_app.model import FeedbackResponse
 from answer_app.model import GetSessionResponse
+from answer_app.model import HealthCheckResponse
+from answer_app.model import QuestionRequest
+from answer_app.model import UserFeedback
 
 
 def test_question_request() -> None:

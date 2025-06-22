@@ -1,8 +1,8 @@
-import pytest
-from pytest_httpx import HTTPXMock
 from unittest.mock import MagicMock
 
 from google.auth.exceptions import DefaultCredentialsError
+import pytest
+from pytest_httpx import HTTPXMock
 
 from client.utils import UtilHandler
 

@@ -1,11 +1,11 @@
-import pytest
 from unittest.mock import MagicMock, AsyncMock
 
 from google.cloud.discoveryengine_v1 import Answer
-from google.cloud.discoveryengine_v1 import AnswerQueryResponse
 from google.cloud.discoveryengine_v1 import AnswerQueryRequest
-from google.cloud.discoveryengine_v1 import Session
+from google.cloud.discoveryengine_v1 import AnswerQueryResponse
 from google.cloud.discoveryengine_v1 import Query
+from google.cloud.discoveryengine_v1 import Session
+import pytest
 
 from answer_app.discoveryengine_utils import DiscoveryEngineHandler
 

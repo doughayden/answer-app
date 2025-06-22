@@ -1,15 +1,16 @@
 import base64
-import pytest
 from unittest.mock import MagicMock, AsyncMock
 
 from google.cloud.discoveryengine_v1 import Answer
 from google.cloud.discoveryengine_v1 import AnswerQueryResponse
 from google.cloud.discoveryengine_v1 import Session
+import pytest
 
 from answer_app.model import AnswerResponse
 from answer_app.model import GetSessionResponse
 from answer_app.utils import UtilHandler
-from answer_app.utils import _answer_to_markdown, sanitize
+from answer_app.utils import _answer_to_markdown
+from answer_app.utils import sanitize
 
 
 def test_sanitize() -> None:

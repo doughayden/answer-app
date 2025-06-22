@@ -1,10 +1,11 @@
-import pytest
 from unittest.mock import MagicMock
 
 from fastapi.testclient import TestClient
+import pytest
 
 from answer_app.main import app
-from answer_app.model import AnswerResponse, GetSessionResponse
+from answer_app.model import AnswerResponse
+from answer_app.model import GetSessionResponse
 
 
 client = TestClient(app)
