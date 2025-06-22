@@ -6,24 +6,17 @@ from unittest.mock import patch, AsyncMock, MagicMock
 import pytest
 from google.auth.credentials import Credentials
 
-# Mock Google Auth calls that happen during module import
-with patch("answer_app.utils.google.auth.default") as mock_auth:
+# Mock Google Auth at the source before any imports
+with patch("google.auth.default") as mock_auth:
     mock_credentials = MagicMock(spec=Credentials)
     mock_auth.return_value = (mock_credentials, "test-project-id")
     
-    with patch("answer_app.utils.bigquery.Client"):
-        with patch("answer_app.utils.DiscoveryEngineHandler"):
-            with patch("answer_app.utils.UtilHandler._load_config") as mock_config:
-                mock_config.return_value = {
-                    "location": "test-location",
-                    "search_engine_id": "test-engine-id",
-                    "dataset_id": "test-dataset",
-                    "table_id": "test-table",
-                    "feedback_table_id": "test-feedback-table",
-                }
-                from answer_app.utils import UtilHandler as AnswerAppUtilHandler
-                from answer_app.discoveryengine_utils import DiscoveryEngineHandler
-                from client.utils import UtilHandler as ClientUtilHandler
+    with patch("google.cloud.bigquery.Client"):
+        with patch("google.cloud.discoveryengine_v1.ConversationalSearchServiceAsyncClient"):
+            # Import modules after mocking is in place
+            from answer_app.utils import UtilHandler as AnswerAppUtilHandler
+            from answer_app.discoveryengine_utils import DiscoveryEngineHandler
+            from client.utils import UtilHandler as ClientUtilHandler
 
 
 # Fixtures for test_main.py
