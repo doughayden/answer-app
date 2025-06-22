@@ -7,23 +7,22 @@ import pytest
 from google.auth.credentials import Credentials
 
 # Mock Google Auth and all cloud services at the source before any imports
-with patch("google.auth.default") as mock_auth:
-    mock_credentials = MagicMock(spec=Credentials)
-    mock_auth.return_value = (mock_credentials, "test-project-id")
+# Use a broader mock to catch all google.auth.default calls regardless of import path
+mock_credentials = MagicMock(spec=Credentials)
+
+with patch("google.auth.default", return_value=(mock_credentials, "test-project-id")) as mock_auth, \
+     patch("google.cloud.bigquery.Client"), \
+     patch("google.cloud.discoveryengine_v1.ConversationalSearchServiceAsyncClient"), \
+     patch("google.oauth2.id_token.fetch_id_token", return_value="mock-token"), \
+     patch("google.auth.impersonated_credentials.Credentials"), \
+     patch("google.auth.impersonated_credentials.IDTokenCredentials"), \
+     patch("google.auth.transport.requests.Request"), \
+     patch("client.utils.load_dotenv"):
     
-    with patch("google.cloud.bigquery.Client"), \
-         patch("google.cloud.discoveryengine_v1.ConversationalSearchServiceAsyncClient"), \
-         patch("google.oauth2.id_token.fetch_id_token", return_value="mock-token"), \
-         patch("google.auth.impersonated_credentials.Credentials"), \
-         patch("google.auth.impersonated_credentials.IDTokenCredentials"), \
-         patch("google.auth.transport.requests.Request"), \
-         patch("client.utils.load_dotenv"), \
-         patch("client.utils.google.auth.default", return_value=(mock_credentials, "test-project-id")):
-        
-        # Import modules after comprehensive mocking is in place
-        from answer_app.utils import UtilHandler as AnswerAppUtilHandler
-        from answer_app.discoveryengine_utils import DiscoveryEngineHandler
-        from client.utils import UtilHandler as ClientUtilHandler
+    # Import modules after comprehensive mocking is in place
+    from answer_app.utils import UtilHandler as AnswerAppUtilHandler
+    from answer_app.discoveryengine_utils import DiscoveryEngineHandler
+    from client.utils import UtilHandler as ClientUtilHandler
 
 
 # Fixtures for test_main.py
