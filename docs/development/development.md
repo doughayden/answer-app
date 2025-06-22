@@ -36,7 +36,7 @@ poetry run coverage report -m
 ### Prerequisites
 
 - Complete the [deployment prerequisites](../installation/prerequisites.md) steps to configure `gcloud`.
-- Set [environment variables](../reference/helper-scripts.md#environment-variables-set):
+- Set [environment variables](../infrastructure/helper-scripts.md#environment-variables-set):
 ```sh
 source scripts/set_variables.sh # change the path if necessary
 ```
@@ -58,7 +58,7 @@ poetry run uvicorn main:app --app-dir src/answer_app --reload --host localhost -
 
 #### Client (call local backend)
 
-With the environment variables set using the [`set_variables.sh` script](../reference/helper-scripts.md#configuration-scripts), the `client` app automatically gets an impersonated ID token for the Terraform service account on behalf of the user and sets the target audience for requests to `localhost:8888`.
+With the environment variables set using the [`set_variables.sh` script](../infrastructure/helper-scripts.md#configuration-scripts), the `client` app automatically gets an impersonated ID token for the Terraform service account on behalf of the user and sets the target audience for requests to `localhost:8888`.
 
 To solve unexpected communication issues, restart a fresh shell session to clear the environment, then re-source the `set_variables.sh` script.
 
@@ -68,7 +68,7 @@ poetry run streamlit run src/client/streamlit_app.py
 
 #### Client (call deployed backend)
 
-Use the [`set_audience.sh`](../reference/helper-scripts.md#testing-scripts) script to set the target audience to the deployed backend URL.
+Use the [`set_audience.sh`](../infrastructure/helper-scripts.md#testing-scripts) script to set the target audience to the deployed backend URL.
 
 ```sh
 source scripts/set_audience.sh # change the path if necessary
@@ -129,7 +129,7 @@ open -a "/Applications/Google Chrome.app" http://localhost:8080
 
 Map container port 8080 to localhost:8080 and call the **DEPLOYED** `answer-app` service at `https://app.mydomain.com/answer-app`
 
-- To target the deployed `answer-app` backend service, set the `AUDIENCE` environment variable to the custom audience for the `answer-app` service (see [Helper Scripts](../reference/helper-scripts.md#testing-scripts) `set_audience.sh`).
+- To target the deployed `answer-app` backend service, set the `AUDIENCE` environment variable to the custom audience for the `answer-app` service (see [Helper Scripts](../infrastructure/helper-scripts.md#testing-scripts) `set_audience.sh`).
 - **NOTE**: You may want to unset the `AUDIENCE` environment variable after testing the deployed service if you want to continue local-only testing.
 ```sh
 source scripts/set_audience.sh # change the path if necessary

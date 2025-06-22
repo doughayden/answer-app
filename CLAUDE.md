@@ -106,8 +106,7 @@ The repository uses a **modular documentation structure** for better maintainabi
 - **`README.md`** - Concise overview with quick start, feature list with icons, and comprehensive navigation to detailed docs
 - **`docs/installation/`** - Comprehensive setup guides (prerequisites, OAuth, deployment)
 - **`docs/development/`** - Development guides and API documentation
-- **`docs/infrastructure/`** - Infrastructure documentation (Terraform, Cloud Build, rollbacks)
-- **`docs/reference/`** - Helper scripts reference and automation tools
+- **`docs/infrastructure/`** - Infrastructure documentation (Terraform, Cloud Build, rollbacks, automation scripts)
 - **`docs/troubleshooting/`** - Known issues and solutions
 
 All detailed instructions are preserved in the modular docs with proper cross-references and back-navigation links. Each documentation file includes a "← Back to README" link for easy navigation.
@@ -126,8 +125,7 @@ All detailed instructions are preserved in the modular docs with proper cross-re
   - `docs/infrastructure/cloud-build.md` - Automated deployments and CI/CD
   - `docs/infrastructure/rollbacks.md` - Rolling back deployments and managing revisions
   - `docs/infrastructure/cloud_infra_changes.md` - Applying infrastructure-only changes
-- **Reference:**
-  - `docs/reference/helper-scripts.md` - Automation scripts reference
+  - `docs/infrastructure/helper-scripts.md` - Automation scripts reference
 - **Troubleshooting:**
   - `docs/troubleshooting/known-issues.md` - Common problems and solutions
 
@@ -158,7 +156,7 @@ All detailed instructions are preserved in the modular docs with proper cross-re
 - `scripts/set_variables.sh` - Environment configuration
 - `scripts/test_endpoint.sh` - Endpoint validation
 - `scripts/uninstall.sh` - Complete cleanup
-- Complete reference: `docs/reference/helper-scripts.md`
+- Complete reference: `docs/infrastructure/helper-scripts.md`
 
 ### Required Environment Variables
 - `PROJECT` - Google Cloud project ID

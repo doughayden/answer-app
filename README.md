@@ -61,7 +61,6 @@ See detailed [deployment prerequisites →](docs/installation/prerequisites.md)
 ### Development
 - [🧪 Development Guide](docs/development/development.md) - Local development, testing, and Docker usage
 - [📖 API Reference](docs/development/api-configuration.md) - Answer method configuration options
-- [🛠️ Helper Scripts](docs/reference/helper-scripts.md) - Automation scripts reference
 
 ### Infrastructure
 - [🏗️ Terraform Overview](docs/infrastructure/terraform.md) - General Terraform patterns and best practices (reusable)
@@ -69,6 +68,7 @@ See detailed [deployment prerequisites →](docs/installation/prerequisites.md)
 - [☁️ Cloud Build Automation](docs/infrastructure/cloud-build.md) - Automated deployments and CI/CD
 - [🔄 Rollbacks](docs/infrastructure/rollbacks.md) - Rolling back deployments and managing revisions
 - [⚙️ Infrastructure Changes](docs/infrastructure/cloud_infra_changes.md) - Applying infrastructure-only changes
+- [🛠️ Helper Scripts](docs/infrastructure/helper-scripts.md) - Automation scripts reference
 
 ### Troubleshooting
 - [❗ Known Issues](docs/troubleshooting/known-issues.md) - Common problems and solutions
