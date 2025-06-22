@@ -6,17 +6,23 @@ from unittest.mock import patch, AsyncMock, MagicMock
 import pytest
 from google.auth.credentials import Credentials
 
-# Mock Google Auth at the source before any imports
+# Mock Google Auth and all cloud services at the source before any imports
 with patch("google.auth.default") as mock_auth:
     mock_credentials = MagicMock(spec=Credentials)
     mock_auth.return_value = (mock_credentials, "test-project-id")
     
-    with patch("google.cloud.bigquery.Client"):
-        with patch("google.cloud.discoveryengine_v1.ConversationalSearchServiceAsyncClient"):
-            # Import modules after mocking is in place
-            from answer_app.utils import UtilHandler as AnswerAppUtilHandler
-            from answer_app.discoveryengine_utils import DiscoveryEngineHandler
-            from client.utils import UtilHandler as ClientUtilHandler
+    with patch("google.cloud.bigquery.Client"), \
+         patch("google.cloud.discoveryengine_v1.ConversationalSearchServiceAsyncClient"), \
+         patch("google.oauth2.id_token.fetch_id_token", return_value="mock-token"), \
+         patch("google.auth.impersonated_credentials.Credentials"), \
+         patch("google.auth.impersonated_credentials.IDTokenCredentials"), \
+         patch("google.auth.transport.requests.Request"), \
+         patch("client.utils.load_dotenv"):
+        
+        # Import modules after comprehensive mocking is in place
+        from answer_app.utils import UtilHandler as AnswerAppUtilHandler
+        from answer_app.discoveryengine_utils import DiscoveryEngineHandler
+        from client.utils import UtilHandler as ClientUtilHandler
 
 
 # Fixtures for test_main.py

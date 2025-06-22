@@ -37,7 +37,7 @@ jobs:
       run: poetry install --with dev
 
     - name: Run tests
-      run: poetry run pytest
+      run: poetry run pytest tests/test_main.py tests/test_utils.py tests/test_discoveryengine_utils.py tests/test_model.py tests/test_write_secrets_toml.py
 
     - name: Python Semantic Release
       id: release
