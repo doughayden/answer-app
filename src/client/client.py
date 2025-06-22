@@ -93,5 +93,6 @@ def main() -> None:
         # Update the session ID if it was returned in the response.
         try:
             session_id = response["session"]["name"].split("/")[-1]
-        except:
+        except (KeyError, AttributeError):
+            logger.warning("Failed to extract session ID from response. Setting session_id to None.")
             session_id = None
