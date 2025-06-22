@@ -6,7 +6,7 @@
 
 Run `pytest` using `poetry`.
 
-**NOTE**: The tests will fail if you've used the [helper scripts](../reference/helper-scripts.md#configuration-scripts) to set the environment variables. Open a new shell session with a clean environment to run the tests.
+**NOTE**: The tests will fail if you've used the [helper scripts](../infrastructure/helper-scripts.md#configuration-scripts) to set the environment variables. Open a new shell session with a clean environment to run the tests.
 
 ### Setup
 
@@ -81,14 +81,14 @@ poetry run streamlit run src/client/streamlit_app.py
 
 Uses the `Dockerfile` in the `src/answer_app` directory:
 ```sh
-docker build -t local-answer-app:0.1.0 -f ./src/answer_app/Dockerfile . # change image name and tag as needed
+docker build -t local-answer-app:0.2.0 -f ./src/answer_app/Dockerfile . # change image name and tag as needed
 ```
 
 #### Client
 
 Uses the `Dockerfile` in the `src/client` directory:
 ```sh
-docker build -t local-answer-app-client:0.1.0 -f ./src/client/Dockerfile . # change image name tag as needed
+docker build -t local-answer-app-client:0.2.0 -f ./src/client/Dockerfile . # change image name tag as needed
 ```
 
 ### Run with Docker
@@ -106,7 +106,7 @@ Map container port 8080 to localhost:8888
 docker run --rm -v $HOME/.config/gcloud:/root/.config/gcloud \
 -e GOOGLE_CLOUD_PROJECT=$PROJECT \
 -e LOG_LEVEL=DEBUG \
--p 8888:8080 local-answer-app:0.1.2 # change image name and tag as needed
+-p 8888:8080 local-answer-app:0.2.0 # change image name and tag as needed
 ```
 
 #### Client (call local backend)
@@ -117,7 +117,7 @@ docker run --rm -v $HOME/.config/gcloud:/root/.config/gcloud \
 -e GOOGLE_CLOUD_PROJECT=$PROJECT \
 -e LOG_LEVEL=DEBUG \
 -e "TF_VAR_terraform_service_account=$TF_VAR_terraform_service_account" \
--p 8080:8080 local-answer-app-client:0.1.0 # change env vars and image name and tag as needed
+-p 8080:8080 local-answer-app-client:0.2.0 # change env vars and image name and tag as needed
 ```
 
 Open your Chrome browser to `http://localhost:8080`.
@@ -138,7 +138,7 @@ docker run --rm -v $HOME/.config/gcloud:/root/.config/gcloud \
 -e LOG_LEVEL=DEBUG \
 -e "TF_VAR_terraform_service_account=$TF_VAR_terraform_service_account" \
 -e "AUDIENCE=$AUDIENCE" \
--p 8080:8080 local-answer-app-client:0.1.0 # change env vars and image name and tag as needed
+-p 8080:8080 local-answer-app-client:0.2.0 # change env vars and image name and tag as needed
 ```
 
 Open your browser to `http://localhost:8080`.
@@ -150,5 +150,5 @@ open -a "/Applications/Google Chrome.app" http://localhost:8080
 
 Open a `sh` shell in the container image.
 ```sh
-docker run --entrypoint /bin/sh --rm -it local-answer-app-client:0.1.0 
+docker run --entrypoint /bin/sh --rm -it local-answer-app-client:0.2.0 
 ```
