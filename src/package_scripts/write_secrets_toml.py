@@ -72,7 +72,7 @@ class SecretsTomlData(BaseModel):
             uris: List of redirect URIs.
 
         Returns:
-            The first non-localhost URI or None if none found.
+            The first localhost URI or None if none found.
         """
         return next((uri for uri in uris if uri.startswith("http://localhost")), None)
 

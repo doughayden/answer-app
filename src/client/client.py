@@ -5,10 +5,10 @@ for local testing when the AUDIENCE environment variable is not set.
 
 Usage:
     From command line:
-        python -c "from src.client.client import main; main()"
+        python -c "from client.client import main; main()"
 
     Or from Python code:
-        from src.client.client import main
+        from client.client import main
         main()
 
     Or from Poetry (with the "client" script defined in pyproject.toml):
