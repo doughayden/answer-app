@@ -224,7 +224,7 @@ def mock_client_util_handler(
 @pytest.fixture
 def mock_streamlit() -> Generator[MagicMock, None, None]:
     """Mock Streamlit components and context."""
-    with patch("src.client.streamlit_app.st") as mock_st:
+    with patch("client.streamlit_app.st") as mock_st:
         # Mock experimental_user as a dict-like object
         mock_st.experimental_user = {
             "email": "test@example.com",
@@ -254,7 +254,7 @@ def mock_streamlit() -> Generator[MagicMock, None, None]:
 @pytest.fixture
 def mock_streamlit_utils() -> Generator[MagicMock, None, None]:
     """Mock the utils module for Streamlit app."""
-    with patch("src.client.streamlit_app.utils") as mock_utils:
+    with patch("client.streamlit_app.utils") as mock_utils:
         mock_utils.send_request = AsyncMock()
         yield mock_utils
 
@@ -263,7 +263,7 @@ def mock_streamlit_utils() -> Generator[MagicMock, None, None]:
 @pytest.fixture
 def mock_client_utils() -> Generator[MagicMock, None, None]:
     """Mock utils instance for client script."""
-    with patch("src.client.client.utils") as mock_utils:
+    with patch("client.client.utils") as mock_utils:
         # Mock send_request as a regular function that returns values, not coroutines
         mock_utils.send_request = MagicMock()
         yield mock_utils
@@ -272,14 +272,14 @@ def mock_client_utils() -> Generator[MagicMock, None, None]:
 @pytest.fixture
 def mock_client_console() -> Generator[MagicMock, None, None]:
     """Mock rich console for client script."""
-    with patch("src.client.client.console") as mock_console:
+    with patch("client.client.console") as mock_console:
         yield mock_console
 
 
 @pytest.fixture
 def mock_client_input() -> Generator[MagicMock, None, None]:
     """Mock input function for client script."""
-    with patch("src.client.client.input") as mock_input:
+    with patch("client.client.input") as mock_input:
         yield mock_input
 
 
@@ -409,14 +409,14 @@ def mock_json_files() -> dict[str, list[Path]]:
 @pytest.fixture
 def mock_click_confirm() -> Generator[MagicMock, None, None]:
     """Mock click.confirm for write_secrets_toml tests."""
-    with patch("src.package_scripts.write_secrets_toml.click.confirm") as mock_confirm:
+    with patch("package_scripts.write_secrets_toml.click.confirm") as mock_confirm:
         yield mock_confirm
 
 
 @pytest.fixture
 def mock_click_secho() -> Generator[MagicMock, None, None]:
     """Mock click.secho for write_secrets_toml tests."""
-    with patch("src.package_scripts.write_secrets_toml.click.secho") as mock_secho:
+    with patch("package_scripts.write_secrets_toml.click.secho") as mock_secho:
         yield mock_secho
 
 
