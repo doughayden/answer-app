@@ -6,23 +6,59 @@ from unittest.mock import patch, AsyncMock, MagicMock
 import pytest
 from google.auth.credentials import Credentials
 
-# Mock Google Auth and all cloud services at the source before any imports
-# Use a broader mock to catch all google.auth.default calls regardless of import path
-mock_credentials = MagicMock(spec=Credentials)
-
-with patch("google.auth.default", return_value=(mock_credentials, "test-project-id")) as mock_auth, \
-     patch("google.cloud.bigquery.Client"), \
-     patch("google.cloud.discoveryengine_v1.ConversationalSearchServiceAsyncClient"), \
-     patch("google.oauth2.id_token.fetch_id_token", return_value="mock-token"), \
-     patch("google.auth.impersonated_credentials.Credentials"), \
-     patch("google.auth.impersonated_credentials.IDTokenCredentials"), \
-     patch("google.auth.transport.requests.Request"), \
-     patch("client.utils.load_dotenv"):
+# Configure pytest before collection starts
+def pytest_configure(config):
+    """Configure pytest and set up mocks before test collection."""
+    import os
+    from unittest.mock import patch, MagicMock
+    from google.auth.credentials import Credentials
     
-    # Import modules after comprehensive mocking is in place
-    from answer_app.utils import UtilHandler as AnswerAppUtilHandler
-    from answer_app.discoveryengine_utils import DiscoveryEngineHandler
-    from client.utils import UtilHandler as ClientUtilHandler
+    # Remove problematic environment variables
+    for env_var in ["GOOGLE_APPLICATION_CREDENTIALS"]:
+        if env_var in os.environ:
+            del os.environ[env_var]
+    
+    # Start global mocks that persist throughout test session
+    mock_credentials = MagicMock(spec=Credentials)
+    
+    # Create patches that will persist for the entire test session
+    config._google_auth_patch = patch("google.auth.default", return_value=(mock_credentials, "test-project-id"))
+    config._google_auth_patch.start()
+    
+    # Also patch cloud services
+    config._bigquery_patch = patch("google.cloud.bigquery.Client")
+    config._bigquery_patch.start()
+    
+    config._discovery_patch = patch("google.cloud.discoveryengine_v1.ConversationalSearchServiceAsyncClient")
+    config._discovery_patch.start()
+    
+    config._id_token_patch = patch("google.oauth2.id_token.fetch_id_token", return_value="mock-token")
+    config._id_token_patch.start()
+    
+    config._impersonated_creds_patch = patch("google.auth.impersonated_credentials.Credentials")
+    config._impersonated_creds_patch.start()
+    
+    config._id_token_creds_patch = patch("google.auth.impersonated_credentials.IDTokenCredentials")
+    config._id_token_creds_patch.start()
+    
+    config._requests_patch = patch("google.auth.transport.requests.Request")
+    config._requests_patch.start()
+    
+    config._load_dotenv_patch = patch("client.utils.load_dotenv")
+    config._load_dotenv_patch.start()
+
+
+def pytest_unconfigure(config):
+    """Clean up patches after test session."""
+    for attr_name in dir(config):
+        if attr_name.endswith('_patch'):
+            patch_obj = getattr(config, attr_name)
+            patch_obj.stop()
+
+# Import modules after pytest hooks have set up mocking
+from answer_app.utils import UtilHandler as AnswerAppUtilHandler
+from answer_app.discoveryengine_utils import DiscoveryEngineHandler
+from client.utils import UtilHandler as ClientUtilHandler
 
 
 # Fixtures for test_main.py
