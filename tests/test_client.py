@@ -1,7 +1,7 @@
 import base64
 from unittest.mock import MagicMock
 
-from src.client.client import main
+from client.client import main
 
 
 class TestClient:
