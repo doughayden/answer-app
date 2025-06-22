@@ -48,10 +48,10 @@ poetry run coverage report -m
 ### Deployment & Infrastructure
 ```bash
 # Complete deployment (bootstrap + deploy)
-./scripts/install.sh
+source ./scripts/install.sh
 
 # Bootstrap project (APIs, service accounts, permissions)
-./scripts/bootstrap.sh
+source ./scripts/bootstrap.sh
 
 # Configure environment variables
 source ./scripts/set_variables.sh
@@ -60,7 +60,7 @@ source ./scripts/set_variables.sh
 ./scripts/test_endpoint.sh
 
 # Complete cleanup
-./scripts/uninstall.sh
+source ./scripts/uninstall.sh
 ```
 
 ## Architecture Overview
@@ -99,23 +99,64 @@ source ./scripts/set_variables.sh
 - Global load balancer with automatic failover
 - Configurable autoscaling with concurrency controls
 
+## Documentation Structure
+
+The repository uses a **modular documentation structure** for better maintainability:
+
+- **`README.md`** - Concise overview with quick start, feature list with icons, and comprehensive navigation to detailed docs
+- **`docs/installation/`** - Comprehensive setup guides (prerequisites, OAuth, deployment)
+- **`docs/development/`** - Development guides and API documentation
+- **`docs/infrastructure/`** - Infrastructure documentation (Terraform, Cloud Build, rollbacks, automation scripts)
+- **`docs/troubleshooting/`** - Known issues and solutions
+
+All detailed instructions are preserved in the modular docs with proper cross-references and back-navigation links. Each documentation file includes a "← Back to README" link for easy navigation.
+
+### Complete Documentation Index
+- **Installation & Deployment:**
+  - `docs/installation/prerequisites.md` - Environment setup and prerequisites
+  - `docs/installation/oauth-setup.md` - Step-by-step OAuth client configuration
+  - `docs/installation/deployment.md` - Deployment and post-deployment steps
+- **Development:**
+  - `docs/development/development.md` - Local development, testing, and Docker usage
+  - `docs/development/api-configuration.md` - Answer method configuration options
+- **Infrastructure:**
+  - `docs/infrastructure/terraform.md` - General Terraform patterns and best practices
+  - `docs/infrastructure/bootstrap.md` - Initial project setup and service accounts
+  - `docs/infrastructure/cloud-build.md` - Automated deployments and CI/CD
+  - `docs/infrastructure/rollbacks.md` - Rolling back deployments and managing revisions
+  - `docs/infrastructure/cloud_infra_changes.md` - Applying infrastructure-only changes
+  - `docs/infrastructure/helper-scripts.md` - Automation scripts reference
+- **Troubleshooting:**
+  - `docs/troubleshooting/known-issues.md` - Common problems and solutions
+
 ## Development Notes
 
 ### Local Development Setup
 - Both services can run locally with hot reload
 - OAuth configuration requires setup in `.streamlit/secrets/`
 - Use `scripts/set_variables.sh` to configure required environment variables
+- Complete setup guide: `docs/development/development.md`
 
 ### Testing Strategy
 - Unit tests for each major component (main.py, discoveryengine_utils.py, streamlit_app.py)
 - HTTP mocking with pytest-httpx for external API calls
 - Async testing support for FastAPI endpoints
+- Tests fail if environment variables are set - use clean shell session
 
 ### Security Considerations
 - All external access protected by IAP
 - Service-to-service authentication between Cloud Run services
 - OAuth credentials stored in Secret Manager
 - Domain restriction policies supported for enterprise deployments
+- OAuth setup guide: `docs/installation/oauth-setup.md`
+
+### Helper Scripts Reference
+- `scripts/install.sh` - Complete deployment automation
+- `scripts/bootstrap.sh` - Initial project setup
+- `scripts/set_variables.sh` - Environment configuration
+- `scripts/test_endpoint.sh` - Endpoint validation
+- `scripts/uninstall.sh` - Complete cleanup
+- Complete reference: `docs/infrastructure/helper-scripts.md`
 
 ### Required Environment Variables
 - `PROJECT` - Google Cloud project ID
