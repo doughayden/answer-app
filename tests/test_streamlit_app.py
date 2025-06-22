@@ -11,7 +11,7 @@ class TestStreamlitApp:
 
     def test_log_context(self, mock_streamlit: MagicMock) -> None:
         """Test log_context function."""
-        from src.client.streamlit_app import log_context
+        from client.streamlit_app import log_context
 
         mock_streamlit.context.cookies.to_dict.return_value = {"session": "test"}
         mock_streamlit.context.headers.to_dict.return_value = {"user-agent": "test"}
