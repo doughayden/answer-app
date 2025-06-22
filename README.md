@@ -1,26 +1,30 @@
-# Vertex AI Agent Builder Answer App
+# Answer App
 
-A production-ready conversational search application that leverages [Vertex AI Agent Builder](https://cloud.google.com/generative-ai-app-builder/docs/introduction) and the [Discovery Engine API](https://cloud.google.com/generative-ai-app-builder/docs/reference/rest) to serve a [conversational search experience](https://cloud.google.com/generative-ai-app-builder/docs/answer) with generative answers grounded on document data.
+A production-ready Retrieval-Augmented Generation (RAG) server that uses [Vertex AI Search](https://cloud.google.com/generative-ai-app-builder/docs/introduction) and the [Discovery Engine API](https://cloud.google.com/generative-ai-app-builder/docs/reference/rest) to serve the **Answer method** - a [conversational search experience](https://cloud.google.com/generative-ai-app-builder/docs/answer) with generative answers grounded on document data.
 
-## Why Use This?
-
-- **Fully-managed conversational search**: Uses the [Answer method](https://cloud.google.com/generative-ai-app-builder/docs/reference/rpc/google.cloud.discoveryengine.v1#conversationalsearchservice) for stateful multi-turn conversational search with generative answers
-- **Production-capable performance**: Autoscaling, concurrency, and regional redundancy via multiple Cloud Run services
-- **Integration flexibility**: Authenticated external HTTPS endpoint for 3rd party systems (using Google-managed TLS)
-- **Resource observability**: Single-pane-of-glass Cloud Monitoring dashboard with customizable metrics and alerts
-- **Explainable and debuggable results**: Investigate generative answers using the full RAG pipeline results logged to BigQuery
-- **Data-driven LLM-ops**: Tune the conversational search agent using question/answer pairs labelled with user feedback
-- **Identity-Aware Proxy**: Secure access control
-- **Automated deployments**: One-click install and uninstall with Terraform and Cloud Build
+- 🤖 **Fully-managed RAG pipeline**: Stateful multi-turn conversational search with generative answers
+- ⚡ **Production-capable performance**: Autoscaling, concurrency, and regional redundancy via multiple Cloud Run services
+- 🔗 **Integration flexibility**: Authenticated external HTTPS endpoint using Google-managed TLS
+- 📊 **Resource observability**: Single-pane-of-glass Cloud Monitoring dashboard with customizable metrics and alerts
+- 🔍 **Explainable and debuggable results**: Investigate generative answers using the full RAG pipeline results logged to BigQuery
+- 📈 **Data-driven LLM-ops**: Tune the conversational search agent using question/answer pairs labelled with user feedback
+- 🛡️ **Identity-Aware Proxy**: Secure access control
+- 👤 **Google OAuth**: Personalized sessions with user authentication
+- 🚀 **Automated deployments**: One-click install and uninstall with Terraform and Cloud Build
 
 ## Architecture
 
 ![Application Architecture](assets/answer_app.png)
 
-- Client requests reach the application through the [Cloud Load Balancer](https://cloud.google.com/load-balancing/docs/https)
-- The [backend service](https://cloud.google.com/load-balancing/docs/backend-service) interfaces with regional [serverless network endpoint groups](https://cloud.google.com/load-balancing/docs/backend-service#serverless_network_endpoint_groups) composed of [Cloud Run](https://cloud.google.com/run/docs/overview/what-is-cloud-run) services
-- [Vertex AI Agent Builder](https://cloud.google.com/generative-ai-app-builder/docs/introduction) provides the [Search App and Data Store](https://cloud.google.com/generative-ai-app-builder/docs/create-datastore-ingest) for document search and retrieval
-- The application asynchronously writes log data and user feedback responses to [BigQuery](https://cloud.google.com/bigquery/docs/introduction) for offline analysis
+- The [Global External Application Load Balancer](https://cloud.google.com/load-balancing/docs/https) provides planet-scale availability
+- The [load balancer backend service](https://cloud.google.com/load-balancing/docs/backend-service) interfaces with regional [serverless network endpoint group backends](https://cloud.google.com/load-balancing/docs/backend-service#serverless_network_endpoint_groups) composed of [Cloud Run](https://cloud.google.com/run/docs/overview/what-is-cloud-run) services
+    - Zonal failover: Cloud Run services [replicate](https://cloud.google.com/run/docs/resource-model#services) across multiple zones within a [Compute region](https://cloud.google.com/run/docs/locations) to prevent outages for a single zonal failure
+    - [Autoscaling](https://cloud.google.com/run/docs/about-instance-autoscaling): add/remove instances to match demand and maintain a minimum instance count for high availability
+    - [Concurrency](https://cloud.google.com/run/docs/about-concurrency): instances process multiple requests simultaneously
+    - [Regional redundancy](https://cloud.google.com/run/docs/multiple-regions): services can span multiple regions to optimize latency and optionally deliver higher availability in case of regional outages.
+- The Vertex AI Search [Search App and Data Store](https://cloud.google.com/generative-ai-app-builder/docs/create-datastore-ingest) automate document preparation for semantic search and retrieval
+- The [Conversational Search Service](https://cloud.google.com/generative-ai-app-builder/docs/reference/rpc/google.cloud.discoveryengine.v1#conversationalsearchservice) (the interface for the Answer method) uses Gemini-based [answer generation models](https://cloud.google.com/generative-ai-app-builder/docs/answer-generation-models) to power grounded generative answers
+- The application asynchronously writes the full session data and user feedback responses to [BigQuery](https://cloud.google.com/bigquery/docs/introduction) for offline analysis
 
 ## Quick Start
 
@@ -29,18 +33,17 @@ A production-ready conversational search application that leverages [Vertex AI A
 - Google Cloud Project with Owner permissions
 - [Terraform](https://developer.hashicorp.com/terraform) and [`gcloud` CLI](https://cloud.google.com/sdk/gcloud) installed
 
-See detailed [deployment prerequisites →](docs/installation/deployment.md#prerequisites)
+See detailed [deployment prerequisites →](docs/installation/prerequisites.md)
 
 ### Installation
 
-1. **Configure OAuth consent screen** for user authentication  
+1. **Configure OAuth** for user authentication  
    📖 [Complete OAuth setup guide →](docs/installation/oauth-setup.md)
 
 2. **Deploy the application**
    ```sh
    source scripts/install.sh
    ```
-   📖 [Detailed deployment guide →](docs/installation/deployment.md)
 
 3. **Enable Vertex AI Agent Builder** in the Cloud Console and import your documents
 
@@ -51,18 +54,21 @@ See detailed [deployment prerequisites →](docs/installation/deployment.md#prer
 ## Documentation
 
 ### Installation & Deployment
-- [📋 Prerequisites & Deployment](docs/installation/deployment.md) - Environment setup and deployment steps
-- [🔐 OAuth Setup Guide](docs/installation/oauth-setup.md) - Step-by-step OAuth consent screen configuration
+- [✅ Prerequisites](docs/installation/prerequisites.md) - Environment setup
+- [🔐 OAuth Setup Guide](docs/installation/oauth-setup.md) - Step-by-step OAuth client configuration
+- [📋 Deployment](docs/installation/deployment.md) - Deployment and Post-deployment steps
 
 ### Development
-- [🧪 Development Guide](docs/reference/development.md) - Local development, testing, and Docker usage
-- [📖 API Reference](docs/reference/api-configuration.md) - Answer method configuration options
+- [🧪 Development Guide](docs/development/development.md) - Local development, testing, and Docker usage
+- [📖 API Reference](docs/development/api-configuration.md) - Answer method configuration options
 - [🛠️ Helper Scripts](docs/reference/helper-scripts.md) - Automation scripts reference
 
 ### Infrastructure
-- [🏗️ Terraform Overview](docs/terraform/overview.md) - General Terraform patterns and best practices (reusable)
-- [🚀 Bootstrap Process](docs/terraform/bootstrap.md) - Initial project setup and service accounts
-- [☁️ Cloud Build Automation](docs/terraform/cloud-build.md) - Automated deployments and rollbacks
+- [🏗️ Terraform Overview](docs/infrastructure/terraform.md) - General Terraform patterns and best practices (reusable)
+- [🚀 Bootstrap Process](docs/infrastructure/bootstrap.md) - Initial project setup and service accounts
+- [☁️ Cloud Build Automation](docs/infrastructure/cloud-build.md) - Automated deployments and CI/CD
+- [🔄 Rollbacks](docs/infrastructure/rollbacks.md) - Rolling back deployments and managing revisions
+- [⚙️ Infrastructure Changes](docs/infrastructure/cloud_infra_changes.md) - Applying infrastructure-only changes
 
 ### Troubleshooting
 - [❗ Known Issues](docs/troubleshooting/known-issues.md) - Common problems and solutions
@@ -77,24 +83,12 @@ source scripts/uninstall.sh
 ## Development
 
 This project uses:
-- **Python 3.13+** with Poetry for dependency management
-- **FastAPI** backend with **Streamlit** frontend
+- **Python 3.13+** with **Poetry** for dependency management
+- **FastAPI** backend with an example **Streamlit** frontend
 - **Terraform** for infrastructure as code
 - **pytest** for testing
 
-```sh
-# Install dependencies
-poetry install
-
-# Run tests
-poetry run pytest
-
-# Run locally
-poetry run uvicorn main:app --app-dir src/answer_app --reload --host localhost --port 8888
-poetry run streamlit run src/client/streamlit_app.py
-```
-
-📖 [Full development guide →](docs/reference/development.md)
+📖 [Full development guide →](docs/development/development.md)
 
 ## Repository Structure
 

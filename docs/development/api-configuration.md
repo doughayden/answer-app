@@ -1,10 +1,11 @@
-# Answer Method Configuration Options (Python)
+# Answer Method (discoveryengine API) Configuration Options (Python)
+
+[← Back to README](../../README.md)
 
 The Discovery Engine API [`answer` method](https://cloud.google.com/generative-ai-app-builder/docs/answer) accepts a variety of configuration options to customize the search and answer generation phases. The following Python code snippet demonstrates how to configure the `answer` method with the available options.
 
 The [Python client library](https://cloud.google.com/python/docs/reference/discoveryengine/latest) does not currently implement all of the features available in the [RPC API](https://cloud.google.com/python/docs/reference/discoveryengine/latest). ([`SafetySetting`](https://cloud.google.com/generative-ai-app-builder/docs/reference/rpc/google.cloud.discoveryengine.v1#safetysetting), for [example](https://cloud.google.com/python/docs/reference/discoveryengine/latest/google.cloud.discoveryengine_v1.types.AnswerQueryRequest.SafetySpec))
 
-<details><summary>Click to expand</summary>
 
 ```py
 async def answer_query(
@@ -277,4 +278,3 @@ async def answer_query(
 
     return response
 ```
-</details>

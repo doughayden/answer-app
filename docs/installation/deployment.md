@@ -1,80 +1,13 @@
 # Deployment Guide
 
-## Prerequisites
-
-- Your Google user account must be a [Project Owner](https://cloud.google.com/iam/docs/roles-overview#legacy-basic) in the target Google Cloud project.
-- Choose one of the following options to install and configure [Terraform](https://developer.hashicorp.com/terraform) and the [`gcloud` CLI](https://cloud.google.com/sdk/gcloud) for your development environment:
-    - Follow the instructions in [OPTION 1](#option-1-deploying-from-google-cloud-shell) to configure deployment using [Google Cloud Shell](https://cloud.google.com/shell/docs/using-cloud-shell).
-    - Follow the instructions in [OPTION 2](#option-2-deploying-outside-of-google-cloud-shell) to configure deployment from your local terminal.
-
-### OPTION 1: Deploying from Google Cloud Shell
-
-Use [Cloud Shell](https://cloud.google.com/shell/docs/using-cloud-shell) for a convenient environment with `gcloud` and `terraform` pre-installed. Your user account (`core.account`) and default project (`core.project`) should already be set in the Cloud Shell environment.
-
-1. Select your target deployment project in the [Cloud Console](https://console.cloud.google.com/projectselector2/home/dashboard).
-2. [Open Cloud Shell](https://cloud.google.com/shell/docs/launching-cloud-shell) and confirm your `gcloud` configuration.
-```sh
-gcloud config list --format=yaml
-```
-Example output:
-```yaml
-accessibility:
-  screen_reader: 'True'
-component_manager:
-  disable_update_check: 'True'
-compute:
-  gce_metadata_read_timeout_sec: '30'
-core:
-  account: project-owner@example.com
-  disable_usage_reporting: 'False'
-  project: my-project-id
-metrics:
-  environment: devshell
-```
-
-3. Optionally, set the default compute region (`compute.region`). The helper script will default to `us-central1` if your `gcloud` configuration does not specify a region.
-    - Agree to enable the `compute.googleapis.com` API if prompted.
-```sh
-gcloud config set compute/region 'region' # replace with your preferred region, e.g. us-central1
-```
-
-4. Set any other [configuration values](https://cloud.google.com/sdk/gcloud/reference/config/set) as needed.
-
-5. Consider using Personal Access Tokens (PATs) to [clone the `answer-app` repo](https://docs.github.com/en/github/authenticating-to-github/keeping-your-account-and-data-secure/creating-a-personal-access-token) as an alternative to managing SSH keys in Cloud Shell.
-
-### OPTION 2: Deploying outside of Google Cloud Shell
-
-1. Install [Terraform](https://learn.hashicorp.com/tutorials/terraform/install-cli).
-2. Install the [Google Cloud SDK](https://cloud.google.com/sdk/docs/install).
-3. Authenticate.
-```sh
-gcloud auth login
-```
-
-4. Set the target deployment project as your default.
-```sh
-gcloud config set project 'my-project-id' # replace with your project ID
-```
-
-5. Configure [Application Default Credentials (ADC)](https://cloud.google.com/docs/authentication/application-default-credentials) for local development.
-```sh
-gcloud auth application-default login
-```
-
-6. Optionally, set the default compute region (`compute.region`). The helper script will default to `us-central1` if your `gcloud` configuration does not specify a region.
-    - Agree to enable the `compute.googleapis.com` API if prompted.
-```sh
-gcloud config set compute/region 'region' # replace with your preferred region, e.g. 'us-central1'
-```
-
-7. [Clone the repository](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository) and open a terminal session in the repo root (`answer-app`) directory.
+[← Back to README](../../README.md)
 
 ## Deploy Resources
 
 The `install.sh` script automates the steps required to prepare the project and deploy the resources.
 
 - Set the value of `loadbalancer_domain` in [`src/answer_app/config.yaml`](../../src/answer_app/config.yaml#L46) to a domain name you control or leave it set to `null` to use wildcard DNS from [`sslip.io`](https://sslip.io/). (Past versions of this repo used `nip.io` and some references to the service may remain.)
-- Refer to the [Bootstrap](../terraform/bootstrap.md) and [Cloud Build](../terraform/cloud-build.md) sections for details on individual steps.
+- Refer to the [Bootstrap](../infrastructure/bootstrap.md) and [Cloud Build](../infrastructure/cloud-build.md) sections for details on individual steps.
 
 Source the `install.sh` script to install the `answer-app`:
 ```sh
@@ -82,6 +15,10 @@ source scripts/install.sh # change the path if necessary
 ```
 
 ## Post-Deployment Steps
+
+### Update the OAuth client Authorized URIs
+
+Refer to the OAuth Setup guide [Post-deployment](../installation/oauth-setup.md#5-post-deployment-update-oauth-client-authorized-uris) section.
 
 ### Add DNS A Record
 
@@ -127,17 +64,27 @@ A project Owner must [enable Vertex AI Agent Builder](https://cloud.google.com/g
 - Alternatively you can check the status using [`gcloud` commands](https://cloud.google.com/load-balancing/docs/ssl-certificates/google-managed-certs#gcloud_1)
 ```sh
 gcloud compute ssl-certificates list --global # list all certificates and get the **CERTIFICATE_NAME**
-gcloud compute ssl-certificates describe **CERTIFICATE_NAME** --global # check status
+gcloud compute ssl-certificates describe **CERTIFICATE_NAME** --global --format="get(name,managed.status, managed.domainStatus)" # check status
 ```
 
-Use the helper script to test that the backend is responding to requests:
+- When the certificate is in `ACTIVE` status, verify the endpoint is reachable using the `test_endpoint.sh` helper script.
+    - The script [authenticates](https://cloud.google.com/run/docs/authenticating/service-to-service) using a service account and the [Cloud Run custom audience](https://cloud.google.com/run/docs/configuring/custom-audiences) to [generate an ID token](https://cloud.google.com/docs/authentication/get-id-token#impersonation)
+
 ```sh
 scripts/test_endpoint.sh # change the path if necessary
 ```
 
+- The server responds with a 200 status code and `{"status":"ok"}` if the endpoint is reachable and the TLS certificate is active.
+- *It may take some more time after the certificate reaches ACTIVE Managed status before the endpoint responds with success. It may throw an SSLError due to mismatched client and server protocols until changes propagate.*
+    - Example errors:
+      - `curl: (35) LibreSSL/3.3.6: error:1404B410:SSL routines:ST_CONNECT:sslv3 alert handshake failure`
+      - `curl: (35) LibreSSL SSL_connect: SSL_ERROR_SYSCALL in connection to 34.117.145.180.nip.io:443`
+
 ### Import Documents
 
-Follow the instructions to [add an unstructured data source](https://cloud.google.com/generative-ai-app-builder/docs/create-datastore-ingest) to the Vertex AI Agent Builder Search app.
+Follow the Google Cloud documentation to [prepare data for ingestion](https://cloud.google.com/generative-ai-app-builder/docs/prepare-data) to the Vertex AI Search Data Store.
+
+**Example data**: [cloud-samples-data/gen-app-builder/search/cymbal-bank-employee](https://console.cloud.google.com/storage/browser/cloud-samples-data/gen-app-builder/search/cymbal-bank-employee)
 
 ### Configure Identity-Aware Proxy
 
@@ -167,10 +114,13 @@ Follow the instructions to [add an unstructured data source](https://cloud.googl
 4. You may see an "Error: Forbidden" message for about the first 5 minutes, but after that users with the "IAP-secured Web App User" role on the Project or IAP backend service should be able to access the app via the domain on the Load Balancer certificate.
     - i.e. `https://app.example.com` or `https://35.244.148.105.sslip.io`
 
-## Use the App
+## Use the Example Client App
 
-Navigate to the client app URI. Use this command to view the URI:
+Terraform deploys an example `streamlit` [web client](../../src/client/streamlit_app.py) to illustrate how to call the `answer-app` RAG server. The example client is accessible via the load balancer domain.
+
+- Get the client app URL from Terraform output.
 ```sh
+cd terraform/main # change the path if necessary
 terraform output client_app_uri
 ```
 
@@ -180,5 +130,19 @@ Example output:
 ```
 
 - Open the URL in a web browser to access the client app.
-- Use IAP to sign in with any Google identity that you've granted the "IAP-secured Web App User" role.
-- Ask questions about documents you've imported into the Vertex AI Agent Builder Search app.
+- Use a Google identity that you've granted the "IAP-secured Web App User" role.
+- Ask questions about documents you've imported into the Vertex AI Search Data Store.
+- Hover over the inline citations to view details about the source document chunks used to generate the answer.
+- Click on inline citations or the links in the Citations footer to view the source documents in a new tab.
+
+![Web Client](../../assets/web_client.png)
+
+## Uninstall
+
+The `uninstall.sh` script destroys all Terraform-provisioned infrastructure and removes project prerequisites by calling the [`un_bootstrap.sh` script](../infrastructure/bootstrap.md#un-bootstrap). 
+
+
+Source the `uninstall.sh` script to remove all `answer-app` resources from the project.
+```sh
+source scripts/uninstall.sh # change the path if necessary
+```

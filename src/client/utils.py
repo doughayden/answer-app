@@ -20,13 +20,13 @@ class UtilHandler:
 
         Attributes:
             _log_level (str): The log level to set. Defaults to "INFO".
+            default_creds (google.auth.credentials.Credentials): The default
+                application credentials.
+            project (str): The Google Cloud project ID.
             audience (str): The audience for the ID token.
-            redirect_uri (str): The redirect URI for the OAuth 2.0 flow. It's the
-                same as the base route "/" for the Streamlit app.
-            client_config (dict[str, str]): The client secrets file.
-            scopes (list[str]): The OAuth 2.0 scopes.
-            flow (Flow): The OAuth 2.0 Authorization Flow instance.
-            claims (dict[str, Any]): The decoded ID token.
+            target_principal (str): The service account email address used for
+                impersonation.
+            id_token (str): The ID token used for authentication.
     """
 
     def __init__(self, log_level: str = "INFO") -> None:

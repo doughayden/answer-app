@@ -48,10 +48,10 @@ poetry run coverage report -m
 ### Deployment & Infrastructure
 ```bash
 # Complete deployment (bootstrap + deploy)
-./scripts/install.sh
+source ./scripts/install.sh
 
 # Bootstrap project (APIs, service accounts, permissions)
-./scripts/bootstrap.sh
+source ./scripts/bootstrap.sh
 
 # Configure environment variables
 source ./scripts/set_variables.sh
@@ -60,7 +60,7 @@ source ./scripts/set_variables.sh
 ./scripts/test_endpoint.sh
 
 # Complete cleanup
-./scripts/uninstall.sh
+source ./scripts/uninstall.sh
 ```
 
 ## Architecture Overview
@@ -103,13 +103,33 @@ source ./scripts/set_variables.sh
 
 The repository uses a **modular documentation structure** for better maintainability:
 
-- **`README.md`** - Concise overview with quick start and navigation to detailed docs
+- **`README.md`** - Concise overview with quick start, feature list with icons, and comprehensive navigation to detailed docs
 - **`docs/installation/`** - Comprehensive setup guides (prerequisites, OAuth, deployment)
-- **`docs/terraform/`** - Infrastructure documentation (reusable across projects)
-- **`docs/reference/`** - Development guides, API docs, and helper scripts reference
+- **`docs/development/`** - Development guides and API documentation
+- **`docs/infrastructure/`** - Infrastructure documentation (Terraform, Cloud Build, rollbacks)
+- **`docs/reference/`** - Helper scripts reference and automation tools
 - **`docs/troubleshooting/`** - Known issues and solutions
 
-All detailed instructions are preserved in the modular docs with proper cross-references.
+All detailed instructions are preserved in the modular docs with proper cross-references and back-navigation links. Each documentation file includes a "← Back to README" link for easy navigation.
+
+### Complete Documentation Index
+- **Installation & Deployment:**
+  - `docs/installation/prerequisites.md` - Environment setup and prerequisites
+  - `docs/installation/oauth-setup.md` - Step-by-step OAuth client configuration
+  - `docs/installation/deployment.md` - Deployment and post-deployment steps
+- **Development:**
+  - `docs/development/development.md` - Local development, testing, and Docker usage
+  - `docs/development/api-configuration.md` - Answer method configuration options
+- **Infrastructure:**
+  - `docs/infrastructure/terraform.md` - General Terraform patterns and best practices
+  - `docs/infrastructure/bootstrap.md` - Initial project setup and service accounts
+  - `docs/infrastructure/cloud-build.md` - Automated deployments and CI/CD
+  - `docs/infrastructure/rollbacks.md` - Rolling back deployments and managing revisions
+  - `docs/infrastructure/cloud_infra_changes.md` - Applying infrastructure-only changes
+- **Reference:**
+  - `docs/reference/helper-scripts.md` - Automation scripts reference
+- **Troubleshooting:**
+  - `docs/troubleshooting/known-issues.md` - Common problems and solutions
 
 ## Development Notes
 
@@ -117,7 +137,7 @@ All detailed instructions are preserved in the modular docs with proper cross-re
 - Both services can run locally with hot reload
 - OAuth configuration requires setup in `.streamlit/secrets/`
 - Use `scripts/set_variables.sh` to configure required environment variables
-- Complete setup guide: `docs/reference/development.md`
+- Complete setup guide: `docs/development/development.md`
 
 ### Testing Strategy
 - Unit tests for each major component (main.py, discoveryengine_utils.py, streamlit_app.py)

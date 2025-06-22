@@ -1,15 +1,36 @@
 # Terraform Overview
 
+[← Back to README](../../README.md)
+
 General instructions to initialize a Terraform workspace/environment and set up a backend configuration and bucket for storing Terraform state.
 
 ## Table of Contents
 
+- [Service account impersonation](#service-account-impersonation)
 - [Initialize](#initialize)
 - [Workspaces](#workspaces)
 - [Terraform Backends](#terraform-backends)
 - [Flexible Backends - Partial Configuration](#flexible-backends---partial-configuration)
 - [Reconfiguring a Backend](#reconfiguring-a-backend)
 - [Plan and Apply](#plan-and-apply)
+
+## Service account impersonation
+
+Instead of creating and managing Service Account keys for authentication, this code uses an [impersonation pattern for Terraform](https://cloud.google.com/blog/topics/developers-practitioners/using-google-cloud-service-account-impersonation-your-terraform-code) to fetch access tokens on behalf of a Google Cloud IAM Service Account. See the Google Cloud IAM docs on [Service account impersonation](https://cloud.google.com/iam/docs/service-account-impersonation) for additional reference.
+
+- Grant the caller (a Google user account or group address) permission to generate [short-lived access tokens](https://cloud.google.com/iam/docs/create-short-lived-credentials-direct) on behalf of the targeted service account.
+    - The caller needs the Account Token Creator role (`roles/iam.serviceAccountTokenCreator`) or a custom role with the `iam.serviceAccounts.getAccessToken` permission that applies to the Terraform provisioning service account.
+    - Create a [role binding on the Service Account resource](https://cloud.google.com/iam/docs/manage-access-service-accounts#single-role) instead of the project IAM policy to [minimize the scope of the permission](https://cloud.google.com/iam/docs/best-practices-service-accounts#project-folder-grants).
+    - Perhaps counterintuitively, the primitive Owner role (`roles/owner`) does NOT include this permission.
+```sh
+export MEMBER='user:{your-username@example.com}' # replace '{your-username@example.com}' from 'user:{your-username@example.com}' with your Google user account email address
+# Example to add a group -> export MEMBER='group:devops-group@example.com'
+
+gcloud iam service-accounts add-iam-policy-binding "terraform-service-account@${PROJECT}.iam.gserviceaccount.com" --member=$MEMBER --role="roles/iam.serviceAccountTokenCreator" --condition=None
+```
+- Use the `google_service_account_access_token` [Terraform data source](https://registry.terraform.io/providers/hashicorp/google/latest/docs/data-sources/service_account_access_token) to generate short-lived credentials [instead of service account keys](https://cloud.google.com/iam/docs/best-practices-for-managing-service-account-keys#alternatives).
+
+([return to top](#terraform-overview))
 
 ## Initialize
 
@@ -19,6 +40,8 @@ The Terraform working directory must be [initialized](https://developer.hashicor
 # Initialize the working directory.
 terraform init
 ```
+
+([return to top](#terraform-overview))
 
 ## Workspaces
 
@@ -41,6 +64,8 @@ terraform workspace select default
 terraform workspace select -or-create nonprod
 ```
 
+([return to top](#terraform-overview))
+
 ## Terraform Backends
 
 Using the [default (local) backend](https://developer.hashicorp.com/terraform/language/backend#default-backend) doesn't require additional configuration. A [Cloud Storage backend](https://developer.hashicorp.com/terraform/language/backend/gcs) requires these prerequisites:
@@ -59,7 +84,7 @@ gcloud storage buckets create gs://my-terraform-bucket --project=my-project --un
 terraform {
   backend "gcs" {
     bucket                      = "my-terraform-bucket"
-    impersonate_service_account = "terraform-service-account@my-project-id..iam.gserviceaccount.com"
+    impersonate_service_account = "terraform-service-account@my-project-id.iam.gserviceaccount.com"
     prefix                      = "terraform_state/"
   }
   required_providers {
@@ -71,6 +96,8 @@ terraform {
   required_version = ">= 0.13"
 }
 ```
+
+([return to top](#terraform-overview))
 
 ## Flexible Backends - Partial Configuration
 
@@ -115,6 +142,8 @@ terraform init -backend-config="backend_$ENVIRONMENT.gcs.tfbackend"
 terraform init -backend-config="bucket=terraform-state-my-project-id" -backend-config="impersonate_service_account=terraform-service-account@my-project-id.iam.gserviceaccount.com"
 ```
 
+([return to top](#terraform-overview))
+
 ## Reconfiguring a Backend
 
 To force Terraform to use a new backend without [migrating](https://spacelift.io/blog/terraform-migrate-state) state data from an existing backend, [initialize](https://developer.hashicorp.com/terraform/cli/commands/init#backend-initialization) with the `-reconfigure` flag. The existing state in the old backend is left unchanged and not copied to the new backend.
@@ -122,6 +151,8 @@ To force Terraform to use a new backend without [migrating](https://spacelift.io
 ```sh
 terraform init -reconfigure -backend-config="backend_$ENVIRONMENT.gcs.tfbackend"
 ```
+
+([return to top](#terraform-overview))
 
 ## Plan and Apply
 
@@ -143,3 +174,5 @@ terraform plan -var-file="vars_$ENVIRONMENT.tfvars"
 # Apply changes.
 terraform apply -var-file="vars_$ENVIRONMENT.tfvars"
 ```
+
+([return to top](#terraform-overview))

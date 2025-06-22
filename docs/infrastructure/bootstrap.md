@@ -1,4 +1,6 @@
-# Bootstrap Process
+# Bootstrap
+
+[← Back to README](../../README.md)
 
 The `bootstrap.sh` script automates the `gcloud` and `terraform` commands required to prepare the project.
 
@@ -26,18 +28,18 @@ Source the `bootstrap.sh` script to set your shell variables and run the Terrafo
 source scripts/bootstrap.sh # change the path if necessary
 ```
 
-## Service Account Impersonation
-
-[Service account impersonation](https://cloud.google.com/iam/docs/service-account-impersonation) allows you to use your user account to impersonate the Terraform service account for deployments.
-
-Example to add a group:
-```sh
-export MEMBER='group:devops-group@example.com'
-```
-
 ## Un-Bootstrap
 
-To remove all bootstrap resources:
+<span style="color: red;">**WARNING: THIS WILL DELETE YOUR TERRAFORM STATE**</span>
+
+The `un_bootstrap.sh` script automates `gcloud` commands to remove these project resources created by the `bootstrap` script. It does not disable any APIs. 
+- Terraform state bucket
+- Terraform service account project role bindings
+- Terraform service account resource
+
+## Running Un-Bootstrap
+
+Source the `un_bootstrap.sh` script to remove the resources:
 
 ```sh
 source scripts/un_bootstrap.sh # change the path if necessary

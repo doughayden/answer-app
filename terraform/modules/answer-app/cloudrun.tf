@@ -86,6 +86,13 @@ resource "google_compute_backend_service" "run_app" {
 
   load_balancing_scheme = "EXTERNAL_MANAGED"
 
+  # OPTIONAL: To increase the availability of your multi-regional service, 
+  # you can configure outlier detection to identify unhealthy Cloud Run services 
+  # based on their HTTP error rate and diverge some requests to another region.
+  # https://cloud.google.com/run/docs/multiple-regions#terraform
+  # https://cloud.google.com/load-balancing/docs/https/setting-up-global-traffic-mgmt#configure_outlier_detection
+  # https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/compute_backend_service#outlier_detection-1
+
   dynamic "backend" {
     for_each = toset(local.regions)
     content {
