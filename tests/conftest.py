@@ -9,21 +9,26 @@ from google.auth.credentials import Credentials
 # Configure pytest before collection starts
 def pytest_configure(config):
     """Configure pytest and set up mocks before test collection."""
-    import os
     from unittest.mock import patch, MagicMock
     from google.auth.credentials import Credentials
-    
-    # Remove problematic environment variables
-    for env_var in ["GOOGLE_APPLICATION_CREDENTIALS"]:
-        if env_var in os.environ:
-            del os.environ[env_var]
     
     # Start global mocks that persist throughout test session
     mock_credentials = MagicMock(spec=Credentials)
     
-    # Create patches that will persist for the entire test session
-    config._google_auth_patch = patch("google.auth.default", return_value=(mock_credentials, "test-project-id"))
-    config._google_auth_patch.start()
+    # Create comprehensive google.auth.default patches for all modules that might call it
+    # These patches must be started BEFORE any module imports occur
+    auth_patches = [
+        "google.auth.default",
+        "client.utils.google.auth.default", 
+        "answer_app.utils.google.auth.default",
+        "answer_app.discoveryengine_utils.google.auth.default"
+    ]
+    
+    config._auth_patches = []
+    for patch_target in auth_patches:
+        auth_patch = patch(patch_target, return_value=(mock_credentials, "test-project-id"))
+        auth_patch.start()
+        config._auth_patches.append(auth_patch)
     
     # Also patch cloud services
     config._bigquery_patch = patch("google.cloud.bigquery.Client")
@@ -57,15 +62,19 @@ def pytest_configure(config):
 
 def pytest_unconfigure(config):
     """Clean up patches after test session."""
+    # Stop auth patches
+    if hasattr(config, '_auth_patches'):
+        for patch_obj in config._auth_patches:
+            patch_obj.stop()
+    
+    # Stop other patches
     for attr_name in dir(config):
         if attr_name.endswith('_patch'):
             patch_obj = getattr(config, attr_name)
             patch_obj.stop()
 
-# Import modules after pytest hooks have set up mocking
-from answer_app.utils import UtilHandler as AnswerAppUtilHandler
-from answer_app.discoveryengine_utils import DiscoveryEngineHandler
-from client.utils import UtilHandler as ClientUtilHandler
+# NOTE: Module imports are delayed until fixtures are needed to avoid calling
+# google.auth.default() during import. The imports are done inside individual fixtures.
 
 
 # Fixtures for test_main.py
@@ -127,8 +136,9 @@ def mock_answer_app_util_handler(
     mock_utils_google_auth_default: MagicMock,
     mock_bigquery_client: MagicMock,
     mock_utils_discoveryengine_handler: MagicMock,
-) -> AnswerAppUtilHandler:
+):
     """Mock the answer_app.utils.UtilHandler class instance."""
+    from answer_app.utils import UtilHandler as AnswerAppUtilHandler
     with patch("answer_app.utils.UtilHandler._setup_logging"):
         return AnswerAppUtilHandler(log_level="DEBUG")
 
@@ -156,8 +166,9 @@ def mock_discoveryengine_client() -> Generator[MagicMock, None, None]:
 def mock_discoveryengine_handler(
     mock_discoveryengine_utils_google_auth_default: MagicMock,
     mock_discoveryengine_client: MagicMock,
-) -> DiscoveryEngineHandler:
+):
     """Mock the answer_app.discoveryengine_utils.DiscoveryEngineHandler class instance."""
+    from answer_app.discoveryengine_utils import DiscoveryEngineHandler
     return DiscoveryEngineHandler(
         location="test-location",
         engine_id="test-engine-id",
@@ -258,8 +269,9 @@ def mock_client_util_handler(
     mock_id_token_creds: MagicMock,
     mock_impersonated_creds: MagicMock,
     mock_refresh: MagicMock,
-) -> ClientUtilHandler:
+):
     """Mock the client.utils UtilHandler class instance."""
+    from client.utils import UtilHandler as ClientUtilHandler
     return ClientUtilHandler(log_level="DEBUG")
 
 
