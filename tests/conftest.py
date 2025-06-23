@@ -1,77 +1,70 @@
 import os
 from pathlib import Path
-from typing import Generator
+from typing import Any, Generator
 from unittest.mock import patch, AsyncMock, MagicMock
 
 import pytest
-from google.auth.credentials import Credentials
+
 
 # Configure pytest before collection starts
-def pytest_configure(config):
+def pytest_configure(config: Any) -> None:
     """Configure pytest and set up mocks before test collection."""
     from unittest.mock import patch, MagicMock
     from google.auth.credentials import Credentials
-    
+
     # Start global mocks that persist throughout test session
     mock_credentials = MagicMock(spec=Credentials)
-    
+
     # Create comprehensive google.auth.default patches for all modules that might call it
     # These patches must be started BEFORE any module imports occur
     auth_patches = [
         "google.auth.default",
-        "client.utils.google.auth.default", 
+        "client.utils.google.auth.default",
         "answer_app.utils.google.auth.default",
-        "answer_app.discoveryengine_utils.google.auth.default"
+        "answer_app.discoveryengine_utils.google.auth.default",
     ]
-    
+
     config._auth_patches = []
     for patch_target in auth_patches:
-        auth_patch = patch(patch_target, return_value=(mock_credentials, "test-project-id"))
+        auth_patch = patch(
+            patch_target, return_value=(mock_credentials, "test-project-id")
+        )
         auth_patch.start()
         config._auth_patches.append(auth_patch)
-    
-    # Also patch cloud services
+
+    # Also patch essential cloud services globally
     config._bigquery_patch = patch("google.cloud.bigquery.Client")
     config._bigquery_patch.start()
-    
-    config._discovery_patch = patch("google.cloud.discoveryengine_v1.ConversationalSearchServiceAsyncClient")
+
+    config._discovery_patch = patch(
+        "google.cloud.discoveryengine_v1.ConversationalSearchServiceAsyncClient"
+    )
     config._discovery_patch.start()
-    
-    config._id_token_patch = patch("google.oauth2.id_token.fetch_id_token", return_value="mock-token")
-    config._id_token_patch.start()
-    
-    config._impersonated_creds_patch = patch("google.auth.impersonated_credentials.Credentials")
-    config._impersonated_creds_patch.start()
-    
-    config._id_token_creds_patch = patch("google.auth.impersonated_credentials.IDTokenCredentials")
-    config._id_token_creds_patch.start()
-    
-    config._requests_patch = patch("google.auth.transport.requests.Request")
-    config._requests_patch.start()
-    
+
     config._load_dotenv_patch = patch("client.utils.load_dotenv")
     config._load_dotenv_patch.start()
-    
+
     # Mock the module-level singleton instances that get created during import
     config._answer_app_utils_patch = patch("answer_app.utils.utils")
     config._answer_app_utils_patch.start()
-    
+
     config._client_utils_patch = patch("client.utils.utils")
     config._client_utils_patch.start()
 
 
-def pytest_unconfigure(config):
+def pytest_unconfigure(config: Any) -> None:
     """Clean up patches after test session."""
     # Stop auth patches
-    if hasattr(config, '_auth_patches'):
+    if hasattr(config, "_auth_patches"):
         for patch_obj in config._auth_patches:
             patch_obj.stop()
-    
+
     # Stop other patches
     for attr_name in dir(config):
-        if attr_name.endswith('_patch'):
+        if attr_name.endswith("_patch"):
             patch_obj = getattr(config, attr_name)
             patch_obj.stop()
+
 
 # NOTE: Module imports are delayed until fixtures are needed to avoid calling
 # google.auth.default() during import. The imports are done inside individual fixtures.
@@ -89,7 +82,7 @@ def mock_util_handler_methods() -> Generator[MagicMock, None, None]:
         yield mock_utils
 
 
-@pytest.fixture()
+@pytest.fixture
 def patch_my_env_var() -> Generator[None, None, None]:
     """Mock the environment variable MY_ENV_VAR."""
     with patch.dict(os.environ, {"MY_ENV_VAR": "test_value"}):
@@ -98,96 +91,43 @@ def patch_my_env_var() -> Generator[None, None, None]:
 
 # Fixtures for test_utils.py
 @pytest.fixture
-def mock_load_config() -> Generator[MagicMock, None, None]:
-    with patch("answer_app.utils.UtilHandler._load_config") as mock_load_config:
-        mock_load_config.return_value = {
+def mock_answer_app_util_handler() -> Any:
+    """Mock the answer_app.utils.UtilHandler class instance."""
+    from answer_app.utils import UtilHandler as AnswerAppUtilHandler
+
+    with (
+        patch("answer_app.utils.UtilHandler._load_config") as mock_config,
+        patch("answer_app.utils.UtilHandler._setup_logging"),
+        patch("answer_app.utils.bigquery.Client"),
+        patch("answer_app.utils.DiscoveryEngineHandler"),
+    ):
+        mock_config.return_value = {
             "location": "test-location",
             "search_engine_id": "test-engine-id",
             "dataset_id": "test-dataset",
             "table_id": "test-table",
             "feedback_table_id": "test-feedback-table",
         }
-        yield mock_load_config
-
-
-@pytest.fixture
-def mock_utils_google_auth_default() -> Generator[MagicMock, None, None]:
-    with patch("answer_app.utils.google.auth.default") as mock_default:
-        mock_credentials = MagicMock(spec=Credentials)
-        mock_default.return_value = (mock_credentials, "test-project-id")
-        yield mock_default
-
-
-@pytest.fixture
-def mock_bigquery_client() -> Generator[MagicMock, None, None]:
-    with patch("answer_app.utils.bigquery.Client") as mock_client:
-        yield mock_client
-
-
-@pytest.fixture
-def mock_utils_discoveryengine_handler() -> Generator[MagicMock, None, None]:
-    with patch("answer_app.utils.DiscoveryEngineHandler") as mock_handler:
-        yield mock_handler
-
-
-@pytest.fixture
-def mock_answer_app_util_handler(
-    mock_load_config: MagicMock,
-    mock_utils_google_auth_default: MagicMock,
-    mock_bigquery_client: MagicMock,
-    mock_utils_discoveryengine_handler: MagicMock,
-):
-    """Mock the answer_app.utils.UtilHandler class instance."""
-    from answer_app.utils import UtilHandler as AnswerAppUtilHandler
-    with patch("answer_app.utils.UtilHandler._setup_logging"):
         return AnswerAppUtilHandler(log_level="DEBUG")
 
 
 # Fixtures for test_discoveryengine_utils.py
 @pytest.fixture
-def mock_discoveryengine_utils_google_auth_default() -> (
-    Generator[MagicMock, None, None]
-):
-    with patch("answer_app.discoveryengine_utils.google.auth.default") as mock_default:
-        mock_credentials = MagicMock(spec=Credentials)
-        mock_default.return_value = (mock_credentials, "test-project-id")
-        yield mock_default
-
-
-@pytest.fixture
-def mock_discoveryengine_client() -> Generator[MagicMock, None, None]:
-    with patch(
-        "answer_app.discoveryengine_utils.discoveryengine.ConversationalSearchServiceAsyncClient"
-    ) as mock_client:
-        yield mock_client
-
-
-@pytest.fixture
-def mock_discoveryengine_handler(
-    mock_discoveryengine_utils_google_auth_default: MagicMock,
-    mock_discoveryengine_client: MagicMock,
-):
+def mock_discoveryengine_handler() -> Any:
     """Mock the answer_app.discoveryengine_utils.DiscoveryEngineHandler class instance."""
     from answer_app.discoveryengine_utils import DiscoveryEngineHandler
-    return DiscoveryEngineHandler(
-        location="test-location",
-        engine_id="test-engine-id",
-        preamble="test-preamble",
-    )
+
+    with patch(
+        "answer_app.discoveryengine_utils.discoveryengine.ConversationalSearchServiceAsyncClient"
+    ):
+        return DiscoveryEngineHandler(
+            location="test-location",
+            engine_id="test-engine-id",
+            preamble="test-preamble",
+        )
 
 
 # Fixtures for test_client_utils.py
-
-
-@pytest.fixture
-def mock_fetch_id_token() -> Generator[MagicMock, None, None]:
-    with patch(
-        "client.utils.google.oauth2.id_token.fetch_id_token"
-    ) as mock_fetch_id_token:
-        mock_fetch_id_token.return_value = "default-token"
-        yield mock_fetch_id_token
-
-
 @pytest.fixture
 def patch_k_revision() -> Generator[None, None, None]:
     with patch.dict(os.environ, {"K_REVISION": "test"}):
@@ -212,67 +152,63 @@ def patch_audience() -> Generator[None, None, None]:
 
 
 @pytest.fixture
-def mock_load_dotenv() -> Generator[MagicMock, None, None]:
-    with patch("client.utils.load_dotenv") as mock_load_dotenv:
-        mock_load_dotenv.return_value = True
-        yield mock_load_dotenv
-
-
-@pytest.fixture
-def mock_client_google_auth_default() -> Generator[MagicMock, None, None]:
-    with patch("client.utils.google.auth.default") as mock_default:
-        mock_credentials = MagicMock(spec=Credentials)
-        mock_default.return_value = (mock_credentials, "test-project-id")
-        yield mock_default
-
-
-@pytest.fixture
-def mock_google_auth_transport_requests() -> Generator[MagicMock, None, None]:
-    with patch("client.utils.google.auth.transport.requests.Request") as mock_request:
-        yield mock_request
-
-
-@pytest.fixture
-def mock_impersonated_creds() -> Generator[MagicMock, None, None]:
+def mock_fetch_id_token() -> Generator[MagicMock, None, None]:
+    """Mock fetch_id_token for client utils tests."""
     with patch(
-        "client.utils.google.auth.impersonated_credentials.Credentials"
-    ) as mock_impersonated_creds:
-        mock_impersonated_creds_instance = mock_impersonated_creds.return_value
-        yield mock_impersonated_creds_instance
+        "client.utils.google.oauth2.id_token.fetch_id_token",
+        return_value="default-token",
+    ) as mock:
+        yield mock
 
 
 @pytest.fixture
-def mock_id_token_creds() -> Generator[MagicMock, None, None]:
-    with patch(
-        "client.utils.google.auth.impersonated_credentials.IDTokenCredentials"
-    ) as mock_id_token_creds:
-        mock_id_token_creds_instance = mock_id_token_creds.return_value
-        mock_id_token_creds_instance.token = "impersonated-token"
-        yield mock_id_token_creds_instance
-
-
-@pytest.fixture
-def mock_refresh() -> Generator[MagicMock, None, None]:
-    with patch(
-        "client.utils.google.auth.impersonated_credentials.IDTokenCredentials.refresh"
-    ) as mock_refresh:
-        mock_refresh.return_value = None
-        yield mock_refresh
-
-
-@pytest.fixture
-def mock_client_util_handler(
-    mock_load_dotenv: MagicMock,
-    mock_client_google_auth_default: MagicMock,
-    mock_google_auth_transport_requests: MagicMock,
-    mock_fetch_id_token: MagicMock,
-    mock_id_token_creds: MagicMock,
-    mock_impersonated_creds: MagicMock,
-    mock_refresh: MagicMock,
-):
-    """Mock the client.utils UtilHandler class instance."""
+def mock_client_util_handler() -> Generator[Any, None, None]:
+    """Create a UtilHandler instance with comprehensive mocking."""
     from client.utils import UtilHandler as ClientUtilHandler
-    return ClientUtilHandler(log_level="DEBUG")
+
+    # Create properly mocked credential objects
+    mock_id_token_creds = MagicMock()
+    mock_id_token_creds.token = "impersonated-token"
+    mock_id_token_creds.refresh = MagicMock()
+
+    mock_impersonated_creds = MagicMock()
+    mock_impersonated_creds.universe_domain = "googleapis.com"
+    mock_impersonated_creds.signer_email = "test@example.com"
+
+    # Create patches that stay active during the entire test
+    patches = [
+        patch("client.utils.load_dotenv", return_value=True),
+        patch(
+            "client.utils.google.oauth2.id_token.fetch_id_token",
+            return_value="default-token",
+        ),
+        patch("client.utils.google.auth.transport.requests.Request"),
+        patch(
+            "client.utils.google.auth.impersonated_credentials.Credentials",
+            return_value=mock_impersonated_creds,
+        ),
+        patch(
+            "client.utils.google.auth.impersonated_credentials.IDTokenCredentials",
+            return_value=mock_id_token_creds,
+        ),
+    ]
+
+    # Start all patches
+    for p in patches:
+        p.start()
+
+    try:
+        # Create handler instance
+        handler = ClientUtilHandler(log_level="DEBUG")
+        # Clear cached values for proper testing
+        handler._audience = None
+        handler._target_principal = None
+        handler._id_token = None
+        yield handler
+    finally:
+        # Stop all patches
+        for p in patches:
+            p.stop()
 
 
 # Fixtures for Streamlit app tests

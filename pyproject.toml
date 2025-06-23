@@ -60,7 +60,7 @@ pytz = "^2024.2"
 
 [tool.pytest.ini_options]
 asyncio_default_fixture_loop_scope = "function"
-# # Uncomment below to enable logging configuration.
+### Uncomment below to enable logging configuration.
 # log_cli = true
 # log_cli_level = "DEBUG"
 # log_cli_format = "%(levelname)-9s [%(name)s.%(funcName)s:%(lineno)5s] %(message)s"

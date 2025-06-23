@@ -94,5 +94,7 @@ def main() -> None:
         try:
             session_id = response["session"]["name"].split("/")[-1]
         except (KeyError, AttributeError):
-            logger.warning("Failed to extract session ID from response. Setting session_id to None.")
+            logger.warning(
+                "Failed to extract session ID from response. Setting session_id to None."
+            )
             session_id = None

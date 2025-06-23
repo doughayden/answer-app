@@ -10,9 +10,7 @@ import pytest
 from answer_app.discoveryengine_utils import DiscoveryEngineHandler
 
 
-def test_initialization_with_project_id(
-    mock_discoveryengine_utils_google_auth_default: MagicMock,
-) -> None:
+def test_initialization_with_project_id() -> None:
     handler = DiscoveryEngineHandler(
         location="test-location",
         engine_id="test-engine-id",
