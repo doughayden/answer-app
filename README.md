@@ -1,5 +1,14 @@
 # Answer App
 
+![Version](https://img.shields.io/badge/version-0.2.0-blue.svg)
+![Python](https://img.shields.io/badge/python-3.13+-blue.svg)
+![License](https://img.shields.io/badge/license-MIT-green.svg)
+![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)
+![FastAPI](https://img.shields.io/badge/FastAPI-005571?style=flat&logo=fastapi)
+![Streamlit](https://img.shields.io/badge/Streamlit-FF4B4B?style=flat&logo=streamlit&logoColor=white)
+![Google Cloud](https://img.shields.io/badge/Google%20Cloud-4285F4?style=flat&logo=google-cloud&logoColor=white)
+![Terraform](https://img.shields.io/badge/Terraform-623CE4?style=flat&logo=terraform&logoColor=white)
+
 A production-ready Retrieval-Augmented Generation (RAG) server that uses [Vertex AI Search](https://cloud.google.com/generative-ai-app-builder/docs/introduction) and the [Discovery Engine API](https://cloud.google.com/generative-ai-app-builder/docs/reference/rest) to serve the **Answer method** - a [conversational search experience](https://cloud.google.com/generative-ai-app-builder/docs/answer) with generative answers grounded on document data.
 
 - 🤖 **Fully-managed RAG pipeline**: Stateful multi-turn conversational search with generative answers
@@ -61,6 +70,7 @@ See detailed [deployment prerequisites →](docs/installation/prerequisites.md)
 ### Development
 - [🧪 Development Guide](docs/development/development.md) - Local development, testing, and Docker usage
 - [📖 API Reference](docs/development/api-configuration.md) - Answer method configuration options
+- [🏷️ Version Management](docs/development/version-management.md) - Automated semantic release and versioning
 
 ### Infrastructure
 - [🏗️ Terraform Overview](docs/infrastructure/terraform.md) - General Terraform patterns and best practices (reusable)
@@ -104,8 +114,8 @@ answer-app/
 │   └── modules/             # Reusable Terraform modules
 ├── docs/                    # Modular documentation
 │   ├── installation/        # Setup guides
-│   ├── terraform/           # Infrastructure documentation
-│   ├── reference/           # Development & API docs
+│   ├── infrastructure/      # Infrastructure documentation
+│   ├── development/         # Development & API docs
 │   └── troubleshooting/     # Known issues & solutions
 ├── scripts/                 # Automation scripts
 ├── tests/                   # Unit tests
