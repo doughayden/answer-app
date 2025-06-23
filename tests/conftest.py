@@ -46,6 +46,13 @@ def pytest_configure(config):
     
     config._load_dotenv_patch = patch("client.utils.load_dotenv")
     config._load_dotenv_patch.start()
+    
+    # Mock the module-level singleton instances that get created during import
+    config._answer_app_utils_patch = patch("answer_app.utils.utils")
+    config._answer_app_utils_patch.start()
+    
+    config._client_utils_patch = patch("client.utils.utils")
+    config._client_utils_patch.start()
 
 
 def pytest_unconfigure(config):
