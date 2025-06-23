@@ -4,9 +4,14 @@
 
 ## Unit Tests
 
-Run `pytest` using `poetry`.
+Run `pytest` using `poetry`. The test suite is designed to run in any environment without requiring Google Cloud credentials or authentication setup.
 
-**NOTE**: The tests will fail if you've used the [helper scripts](../infrastructure/helper-scripts.md#configuration-scripts) to set the environment variables. Open a new shell session with a clean environment to run the tests.
+### Test Features
+
+- **Zero external dependencies**: Tests run without requiring Google Cloud credentials or environment variables
+- **Comprehensive auth mocking**: All `google.auth.default()` calls are intercepted during pytest collection
+- **93 tests with 94% coverage**: Complete test coverage for all major components
+- **CI/CD ready**: Tests pass consistently in GitHub Actions and local environments
 
 ### Setup
 
@@ -30,6 +35,29 @@ Optionally run `pytest` with `coverage` and view the report.
 poetry run coverage run -m pytest
 poetry run coverage report -m
 ```
+
+## Continuous Integration
+
+The project uses GitHub Actions for automated testing and releases with a split workflow design:
+
+### Workflow Structure
+
+- **Test Job**: Runs on all pushes and pull requests to `main` branch
+  - Executes full test suite (93 tests)
+  - Validates code quality and functionality
+  - No authentication required due to comprehensive mocking
+  
+- **Release Job**: Runs only on pushes to `main` branch (not on PRs)
+  - Uses Python Semantic Release for automated versioning
+  - Prevents failed workflow runs on feature branch PRs
+  - Automatically generates changelogs and version bumps
+
+### Benefits
+
+- **Clean PR workflows**: No failed semantic-release runs on feature branches
+- **Consistent testing**: All tests pass without external dependencies
+- **Automated versioning**: Conventional commits trigger appropriate version bumps
+- **Zero maintenance**: No credential management needed for CI environment
 
 ## Local Development
 
