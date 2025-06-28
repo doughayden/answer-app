@@ -42,6 +42,8 @@ jobs:
     permissions:
       id-token: write
       contents: write
+      pull-requests: write
+      actions: write
 
     steps:
     - name: Check out repository
