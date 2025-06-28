@@ -75,7 +75,6 @@ remove_dist = false
 major_on_zero = false
 tag_format = "v{version}"
 commit = false
-push = false
 tag = true
 vcs_release = true
 
