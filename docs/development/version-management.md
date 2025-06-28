@@ -54,19 +54,22 @@ vcs = "git"
 style = "semver"
 
 [tool.semantic_release]
-build_command = "pip install poetry && poetry build"
+upload_to_pypi = false    # No PyPI publishing
+upload_to_release = false # No build artifacts in releases
 tag_format = "v{version}"
-commit = false      # No version bump commits (respects protected branches)
-tag = true         # Create Git tags
-vcs_release = true # Create GitHub releases
+commit = false           # No version bump commits (respects protected branches)
+tag = true              # Create Git tags
+vcs_release = true      # Create GitHub releases
 ```
 
 ### Key Design Decisions
 
 - **No version commits**: `commit = false` prevents commits to protected main branch
+- **No build artifacts**: `upload_to_release = false` creates clean releases without distribution files
 - **Dynamic project version**: `dynamic = ["version"]` tells Poetry to get version from plugin
 - **Placeholder Poetry version**: `0.0.0` satisfies Poetry's validation requirements
 - **SemVer style**: Standard semantic versioning format (MAJOR.MINOR.PATCH)
+- **Clone-and-use workflow**: Optimized for direct repository cloning rather than package installation
 
 ## Conventional Commits
 
@@ -129,6 +132,7 @@ When a release is triggered:
 - ❌ **No version commits** to pyproject.toml (by design)
 - ❌ **No manual file updates** required
 - ❌ **No CI commits** cluttering git history
+- ❌ **No build artifacts** attached to releases (optimized for direct cloning)
 
 ## Manual Operations
 
@@ -194,6 +198,126 @@ export POETRY_DYNAMIC_VERSIONING_BYPASS=1
 poetry build
 ```
 
+## Release Packaging Options
+
+### Current Configuration: Clone-and-Use Workflow
+
+The current configuration is optimized for repositories that users clone and work with directly. This creates clean releases with tags and changelogs but without build artifacts.
+
+**Benefits:**
+- ✅ **Faster releases** - No build time required
+- ✅ **Cleaner release pages** - No unnecessary files attached
+- ✅ **Simpler workflow** - Users clone and `poetry install`
+- ✅ **Reduced CI/CD complexity** - No build or upload steps
+
+### Alternative: Package Distribution Workflow
+
+If you later want to distribute pre-built packages (e.g., for `pip install` usage), you can enable build artifacts:
+
+#### Option 1: GitHub Release Artifacts Only
+
+```toml
+[tool.semantic_release]
+build_command = "pip install poetry && poetry build"
+dist_path = "dist/"
+upload_to_pypi = false
+upload_to_release = true    # Enable build artifacts
+remove_dist = false
+tag_format = "v{version}"
+commit = false
+tag = true
+vcs_release = true
+
+[tool.semantic_release.publish]
+dist_glob_patterns = ["dist/*"]
+upload_to_vcs_release = true
+```
+
+**This creates:**
+- Wheel files (`.whl`) for `pip install`
+- Source distributions (`.tar.gz`) 
+- Attached to GitHub releases as downloadable assets
+
+#### Option 2: PyPI + GitHub Release Distribution
+
+```toml
+[tool.semantic_release]
+build_command = "pip install poetry && poetry build"
+dist_path = "dist/"
+upload_to_pypi = true       # Enable PyPI publishing
+upload_to_release = true    # Enable GitHub artifacts
+remove_dist = false
+tag_format = "v{version}"
+commit = false
+tag = true
+vcs_release = true
+
+[tool.semantic_release.publish]
+dist_glob_patterns = ["dist/*"]
+upload_to_vcs_release = true
+```
+
+**Additional requirements for PyPI:**
+- Configure PyPI API token as `PYPI_TOKEN` secret in GitHub Actions
+- Ensure package name is available on PyPI
+- Add publication permissions to workflow
+
+#### Option 3: PyPI Only (No GitHub Artifacts)
+
+```toml
+[tool.semantic_release]
+build_command = "pip install poetry && poetry build"
+dist_path = "dist/"
+upload_to_pypi = true       # Enable PyPI publishing
+upload_to_release = false   # No GitHub artifacts
+remove_dist = true          # Clean up after upload
+tag_format = "v{version}"
+commit = false
+tag = true
+vcs_release = true
+```
+
+### When to Enable Package Distribution
+
+Consider enabling package distribution when:
+
+1. **External users** want to install via `pip install answer-app`
+2. **Automated systems** need to install the package programmatically
+3. **CI/CD pipelines** in other projects want to use your package as a dependency
+4. **Docker images** need to install the package without cloning the repository
+5. **Offline environments** need pre-built packages
+
+### When to Keep Current Configuration
+
+Keep the current clone-and-use configuration when:
+
+1. **Development-focused** repository for direct collaboration
+2. **Application deployments** using Docker or Cloud Run (current use case)
+3. **Small team** working directly with source code
+4. **Rapid iteration** without external package consumers
+5. **Infrastructure projects** deployed from source
+
+### Migration Path
+
+To enable package distribution later:
+
+1. **Update semantic-release configuration** in `pyproject.toml`
+2. **Add PyPI token** as GitHub repository secret (if using PyPI)
+3. **Update GitHub Actions workflow** permissions if needed
+4. **Test with dry-run** to verify configuration
+5. **Update documentation** to reflect new installation methods
+
+### Build Artifact Contents
+
+When enabled, semantic-release creates these files:
+
+- **`dist/*.whl`** - Binary wheel distributions for faster installation
+- **`dist/*.tar.gz`** - Source distributions with complete source code
+- **Dependencies included** - All Poetry dependencies properly specified
+- **Entry points configured** - CLI commands available after installation
+
+The build process uses Poetry's native packaging system ensuring compatibility with the existing dependency management.
+
 ## Troubleshooting
 
 ### Common Issues
@@ -251,14 +375,24 @@ permissions:
   id-token: write
 ```
 
-#### 4. Poetry Build Fails
+#### 4. Semantic Release Workflow Fails
 
-**Symptoms**: `poetry build` command fails in semantic-release
+**Symptoms**: GitHub Actions workflow fails during semantic-release step
 
-**Solution**: Verify build command includes Poetry installation:
+**Common Causes**:
+- **Configuration errors**: Invalid `pyproject.toml` semantic-release settings
+- **Permission issues**: Insufficient GitHub token permissions
+- **Missing dependencies**: poetry-dynamic-versioning not installed
+
+**Solution**: Verify minimal configuration:
 ```toml
 [tool.semantic_release]
-build_command = "pip install poetry && poetry build"
+upload_to_pypi = false
+upload_to_release = false
+tag_format = "v{version}"
+commit = false
+tag = true
+vcs_release = true
 ```
 
 ### Advanced Troubleshooting
