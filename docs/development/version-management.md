@@ -365,15 +365,74 @@ When enabled, semantic-release creates these files:
 
 The build process uses Poetry's native packaging system ensuring compatibility with the existing dependency management.
 
+## Understanding Dynamic Versioning Behavior
+
+### Expected Version Display
+
+Dynamic versioning creates **different version outputs** depending on the command used:
+
+#### What Shows `0.0.0` (Expected Behavior)
+
+These commands read the static placeholder value from `pyproject.toml`:
+
+```bash
+poetry version          # Shows: 0.0.0
+poetry install          # Shows: version 0.0.0 during installation
+poetry show answer-app  # Shows: 0.0.0
+```
+
+**This is completely normal** - these commands read the `[tool.poetry] version = "0.0.0"` placeholder.
+
+#### What Shows Actual Dynamic Version
+
+To see the real version detected from Git tags:
+
+```bash
+poetry run poetry-dynamic-versioning
+# Shows: 0.2.0-post.1+5d82d2a (example)
+```
+
+**Format explanation:**
+- `0.2.0` - Base version from latest Git tag
+- `-post.1` - One commit after the tag
+- `+5d82d2a` - Short commit hash
+
+#### When Dynamic Versioning Activates
+
+Dynamic versions are automatically used during:
+- ✅ **`poetry build`** - Creates packages with correct version
+- ✅ **`pip install`** - Installs with dynamic version when built from source
+- ✅ **Package metadata** - Runtime version detection in applications
+- ✅ **CI/CD builds** - Automated builds use detected versions
+
+#### Quick Reference
+
+| Command | Version Shown | Explanation |
+|---------|---------------|-------------|
+| `poetry version` | 0.0.0 | Static placeholder (expected) |
+| `poetry install` | 0.0.0 | Static placeholder (expected) |
+| `poetry run poetry-dynamic-versioning` | 0.2.0-post.1+5d82d2a | Actual dynamic version |
+| `poetry build` | 0.2.0-post.1+5d82d2a | Dynamic version in built package |
+
+**💡 Remember**: Seeing `0.0.0` in routine commands is **correct behavior**, not a problem to fix.
+
 ## Troubleshooting
 
 ### Common Issues
 
-#### 1. Version Not Updating in Builds
+#### 1. Understanding `0.0.0` Version Display
 
-**Symptoms**: Poetry builds show version `0.0.0` instead of tag version
+**⚠️ This is usually NOT a problem** - see [Expected Version Display](#expected-version-display) above.
 
-**Causes & Solutions**:
+**Symptoms**: `poetry version` or `poetry install` shows `0.0.0`
+
+**Expected Behavior**: These commands read the static placeholder and should show `0.0.0`
+
+**Only investigate if**:
+- `poetry run poetry-dynamic-versioning` also shows `0.0.0`
+- `poetry build` creates packages with version `0.0.0`
+
+**Actual Problem Causes**:
 - **No Git tags**: Ensure at least one semantic version tag exists (`git tag v0.1.0`)
 - **Not in Git repository**: Dynamic versioning requires Git repository
 - **Dirty working directory**: Commit or stash changes before building
@@ -383,12 +442,12 @@ The build process uses Poetry's native packaging system ensuring compatibility w
 # Check current Git tags
 git tag --sort=-version:refname
 
-# Test dynamic versioning (WARNING: modifies pyproject.toml)
+# Test actual dynamic versioning (WARNING: modifies pyproject.toml)
 git stash push pyproject.toml
 poetry run poetry-dynamic-versioning
 git stash pop
 
-# Check Poetry's detected version (safer alternative)
+# Check if placeholder is correct (should show 0.0.0)
 poetry version
 ```
 
@@ -477,7 +536,7 @@ poetry run poetry-dynamic-versioning --help
 # Test version detection manually
 cd /path/to/repo
 python -c "
-import dunamai
+import dunamai  # poetry-dynamic-versioning dependency
 print(f'Detected version: {dunamai.Version.from_git().serialize()}')
 "
 ```
