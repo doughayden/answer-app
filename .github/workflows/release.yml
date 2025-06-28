@@ -1,4 +1,7 @@
-name: Release
+name: Release (Tag-Based)
+
+# Creates semantic version tags and GitHub releases without modifying repository files
+# Compatible with protected branches - no commits pushed back to main
 
 on:
   push:
@@ -40,10 +43,8 @@ jobs:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     concurrency: release
     permissions:
-      id-token: write
       contents: write
-      pull-requests: write
-      actions: write
+      id-token: write
 
     steps:
     - name: Check out repository
