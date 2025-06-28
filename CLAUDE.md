@@ -134,6 +134,7 @@ All detailed instructions are preserved in the modular docs with proper cross-re
 - **Development:**
   - `docs/development/development.md` - Local development, testing, and Docker usage
   - `docs/development/api-configuration.md` - Answer method configuration options
+  - `docs/development/version-management.md` - Automated semantic release and dynamic versioning
 - **Infrastructure:**
   - `docs/infrastructure/terraform.md` - General Terraform patterns and best practices
   - `docs/infrastructure/bootstrap.md` - Initial project setup and service accounts
@@ -200,9 +201,9 @@ All detailed instructions are preserved in the modular docs with proper cross-re
 - **Architecture maturity**: Production-ready with enterprise security patterns
 - **Infrastructure**: Multi-regional Cloud Run deployment with Terraform IaC
 - **Dependencies**: Modern Python tooling with Poetry, up-to-date Google Cloud libraries
-- **Version automation**: Fully automated dual-plugin system (semantic-release + poetry-dynamic-versioning)
+- **Version automation**: Fully automated dual-plugin system (semantic-release + poetry-dynamic-versioning) with clean releases
 
 ### Key Configuration Files
-- **`pyproject.toml`**: Dynamic versioning enabled, Python 3.13+ requirement, comprehensive dependencies
+- **`pyproject.toml`**: Dynamic versioning enabled, optimized for clone-and-use workflow, Python 3.13+ requirement
 - **`src/answer_app/config.yaml`**: Application settings including preamble, regions, BigQuery tables
 - **`.streamlit/config.toml`**: Streamlit server configuration with dark theme and OAuth secrets path
