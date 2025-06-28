@@ -83,6 +83,82 @@ The workflow uses GitHub's built-in `GITHUB_TOKEN` which is automatically provid
 
 **Note**: If you need advanced features, you can optionally set up a Personal Access Token as `GH_TOKEN` secret for enhanced permissions.
 
+## Poetry Integration Strategy
+
+This project uses Poetry for dependency management alongside semantic-release for automated versioning. The integration required solving a specific technical challenge with Docker container isolation in GitHub Actions.
+
+### The Challenge: Poetry Command Not Found
+
+When using the `python-semantic-release` GitHub Action, semantic-release runs inside a Docker container that is isolated from the GitHub Actions runner environment. This creates a problem:
+
+1. **Runner Environment**: Poetry is installed via `snok/install-poetry@v1` action
+2. **Semantic-Release Container**: Starts fresh with only Python and pip
+3. **Result**: `poetry build` command fails with "command not found" error (exit status 127)
+
+### The Solution: Container-Aware Build Command
+
+Following the proven approach from [this guide](https://mestrak.com/blog/semantic-release-with-python-poetry-github-actions-20nn), we configure semantic-release to install Poetry within its own container:
+
+```toml
+[tool.semantic_release]
+build_command = "pip install poetry && poetry build"
+```
+
+### Why This Works
+
+- **Dual Environment Strategy**: Poetry is installed in both environments for different purposes
+- **Runner Environment**: Used for dependency installation, testing, and development workflow
+- **Semantic-Release Container**: Gets its own Poetry installation for building distributions
+- **No Package Manager Mixing**: Each environment uses Poetry consistently
+
+### Workflow Configuration
+
+The complete GitHub Actions workflow uses:
+
+```yaml
+- name: Install Poetry
+  run: |
+    curl -sSL https://install.python-poetry.org | python3 -
+    echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+- name: Install dependencies
+  run: poetry install --with dev
+
+- name: Python Semantic Release
+  uses: python-semantic-release/python-semantic-release@v9.15.0
+  with:
+    github_token: ${{ secrets.GITHUB_TOKEN }}
+```
+
+### Alternative Approaches Considered
+
+1. **Mixed Package Management**: Using `python -m build` instead of Poetry
+   - **Issue**: Inconsistent with project's Poetry-first approach
+2. **PATH Environment Variables**: Setting PATH in semantic-release step  
+   - **Issue**: Docker container isolation prevents access to runner PATH
+3. **Pre-building**: Building distributions before semantic-release
+   - **Issue**: Doesn't integrate well with semantic-release's workflow
+
+### Benefits of Current Approach
+
+- **Consistent tooling**: Uses Poetry throughout the entire pipeline
+- **Proven solution**: Based on documented best practices
+- **Container-aware**: Designed specifically for Docker isolation challenges
+- **Maintainable**: Clear separation of concerns between environments
+
+### Troubleshooting
+
+If you encounter Poetry-related issues in semantic-release:
+
+1. **Check build command**: Ensure `pyproject.toml` has `build_command = "pip install poetry && poetry build"`
+2. **Review workflow logs**: Look for "command not found" errors (exit status 127)
+3. **Verify Poetry installation**: Confirm Poetry installs successfully in both environments
+
+For more details on this approach, see:
+- [Semantic Release with Python Poetry Guide](https://mestrak.com/blog/semantic-release-with-python-poetry-github-actions-20nn)
+- [snok/install-poetry GitHub Action](https://github.com/snok/install-poetry)
+- [Python Semantic Release Docker Documentation](https://python-semantic-release.readthedocs.io/)
+
 ## Cloud Build Integration
 
 To integrate with the existing Cloud Build workflow, you can:
