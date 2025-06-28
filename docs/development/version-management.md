@@ -2,11 +2,80 @@
 
 [← Back to README](../../README.md)
 
-## Automated Semantic Release
+## Overview
 
-This project uses [Python Semantic Release](https://python-semantic-release.readthedocs.io/) to automatically manage versioning based on conventional commit messages.
+This project implements a fully automated version management system using **semantic-release** for tag creation and **poetry-dynamic-versioning** for version synchronization. This dual-plugin approach ensures zero manual version maintenance while supporting Poetry's build system requirements.
 
-## How It Works
+## Architecture
+
+### Dual-Plugin System
+
+The version management system consists of two complementary plugins:
+
+1. **[Python Semantic Release](https://python-semantic-release.readthedocs.io/)** - Creates Git tags and GitHub releases based on conventional commits
+2. **[Poetry Dynamic Versioning](https://pypi.org/project/poetry-dynamic-versioning/)** - Automatically detects version from Git tags during builds
+
+### How It Works
+
+```mermaid
+graph LR
+    A[Conventional Commit] --> B[Push to main]
+    B --> C[GitHub Actions]
+    C --> D[Semantic Release]
+    D --> E[Create Git Tag]
+    E --> F[GitHub Release]
+    G[Poetry Build] --> H[Dynamic Versioning]
+    H --> I[Detect Tag Version]
+    I --> J[Update Project Metadata]
+```
+
+1. **Developer commits** using conventional commit format
+2. **GitHub Actions triggers** on push to main branch
+3. **Semantic-release analyzes** commits and creates version tags
+4. **GitHub releases** are auto-generated with changelog
+5. **Poetry-dynamic-versioning** detects tags during builds and updates project metadata
+
+## Configuration
+
+### Current Configuration
+
+**pyproject.toml:**
+```toml
+[project]
+name = "answer-app"
+dynamic = []  # Auto-formatted, but dynamic versioning still works via build backend
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0", "poetry-dynamic-versioning>=1.5.0,<2.0.0"]
+build-backend = "poetry_dynamic_versioning.backend"  # This enables dynamic versioning
+
+[tool.poetry]
+# Poetry section (version auto-managed by build backend)
+
+[tool.poetry-dynamic-versioning]
+enable = true
+vcs = "git"
+style = "semver"
+
+[tool.semantic_release]
+upload_to_pypi = false    # No PyPI publishing
+upload_to_release = false # No build artifacts in releases
+tag_format = "v{version}"
+commit = false           # No version bump commits (respects protected branches)
+tag = true              # Create Git tags
+vcs_release = true      # Create GitHub releases
+```
+
+### Key Design Decisions
+
+- **No version commits**: `commit = false` prevents commits to protected main branch
+- **No build artifacts**: `upload_to_release = false` creates clean releases without distribution files  
+- **Dynamic versioning backend**: `poetry_dynamic_versioning.backend` handles version detection from Git tags
+- **Automatic version detection**: Versions determined from Git tags during build/package operations
+- **SemVer style**: Standard semantic versioning format (MAJOR.MINOR.PATCH)
+- **Clone-and-use workflow**: Optimized for direct repository cloning rather than package installation
+
+## Conventional Commits
 
 ### Commit Message Format
 
@@ -28,38 +97,108 @@ The project follows [Conventional Commits](https://www.conventionalcommits.org/)
 
 ### Supported Commit Types
 
-- `feat:` - New features (minor version bump)
-- `fix:` - Bug fixes (patch version bump)  
-- `perf:` - Performance improvements (patch version bump)
-- `docs:` - Documentation changes (no version bump)
-- `style:` - Code style changes (no version bump)
-- `refactor:` - Code refactoring (no version bump)
-- `test:` - Test changes (no version bump)
-- `build:` - Build system changes (no version bump)
-- `ci:` - CI configuration changes (no version bump)
-- `chore:` - Other changes (no version bump)
+| Type | Description | Version Impact |
+|------|-------------|----------------|
+| `feat:` | New features | Minor bump |
+| `fix:` | Bug fixes | Patch bump |
+| `perf:` | Performance improvements | Patch bump |
+| `docs:` | Documentation changes | No bump |
+| `style:` | Code style changes | No bump |
+| `refactor:` | Code refactoring | No bump |
+| `test:` | Test changes | No bump |
+| `build:` | Build system changes | No bump |
+| `ci:` | CI configuration changes | No bump |
+| `chore:` | Other changes | No bump |
 
-## Automated Updates
+## Automated Process
 
-When a new version is released, the following files are automatically updated:
+### GitHub Actions Workflow
 
-1. **`pyproject.toml`** - Project version
-2. **`README.md`** - Version badge
-3. **`CLAUDE.md`** - Project status version references
-4. **`CHANGELOG.md`** - Generated with commit history
+The release workflow (`.github/workflows/release.yml`) automatically:
 
-## Manual Version Management
+1. **Runs tests** to ensure code quality
+2. **Analyzes commit messages** to determine version bump
+3. **Creates semantic version tags** (e.g., `v0.2.0`)
+4. **Generates GitHub releases** with auto-generated changelog
+5. **Respects branch protection** by not pushing commits
 
-### Dry Run (Check What Would Happen)
+### What Gets Updated Automatically
+
+When a release is triggered:
+
+- ✅ **Git tag created** (e.g., `v0.2.0`)
+- ✅ **GitHub release published** with auto-generated changelog
+- ✅ **Version badges** in README.md automatically reflect latest GitHub release
+- ✅ **Project metadata** dynamically reflects current version during builds
+
+### What Does NOT Get Updated
+
+- ❌ **No version commits** to pyproject.toml (by design)
+- ❌ **No manual file updates** required
+- ❌ **No CI commits** cluttering git history
+- ❌ **No build artifacts** attached to releases (optimized for direct cloning)
+
+## Manual Operations
+
+### Safe Local Testing
+
+**Commands that DON'T modify pyproject.toml:**
+```bash
+# Normal development - no file changes
+poetry install
+poetry run pytest  
+poetry run uvicorn main:app
+poetry version  # Shows detected version safely
+```
+
+**Commands that DO modify pyproject.toml:**
+```bash
+# These require cleanup before committing
+poetry run poetry-dynamic-versioning
+poetry build
+```
+
+**Safe testing pattern:**
+```bash
+# Save current state
+git stash push pyproject.toml
+
+# Test dynamic versioning  
+poetry run poetry-dynamic-versioning
+# Review output...
+
+# Restore clean state
+git stash pop
+```
+
+### Check Next Version (Dry Run)
 
 ```bash
 poetry run semantic-release version --dry-run
 ```
 
-### Create Version and Tag
+### Force Version Creation
 
 ```bash
 poetry run semantic-release version
+```
+
+### Check Current Dynamic Version
+
+```bash
+poetry run poetry-dynamic-versioning
+```
+
+⚠️ **Important**: This command modifies `pyproject.toml` by writing the detected version. After testing, revert changes before committing:
+
+```bash
+# After testing, revert any version writes:
+git checkout pyproject.toml
+
+# Or use git stash to save/restore:
+git stash push pyproject.toml
+poetry run poetry-dynamic-versioning  # Test
+git stash pop  # Restore original file
 ```
 
 ### Generate Changelog Only
@@ -68,103 +207,308 @@ poetry run semantic-release version
 poetry run semantic-release changelog
 ```
 
-## GitHub Actions Integration
+## Manual Override Options
 
-The project includes a GitHub Actions workflow (`.github/workflows/release.yml`) that:
+### 1. Skip Automatic Release
 
-1. **Triggers on push to main** - Automatically checks for new version
-2. **Runs tests** - Ensures code quality before release
-3. **Creates GitHub release** - With automatically generated release notes
-4. **Updates version badges** - Keeps README current
+Add `[skip ci]` to commit message:
+```bash
+git commit -m "docs: update README [skip ci]"
+```
 
-### GitHub Token
+### 2. Force Specific Version Type
 
-The workflow uses GitHub's built-in `GITHUB_TOKEN` which is automatically provided to GitHub Actions. No additional setup required.
+Use conventional commit footers:
+```bash
+git commit -m "fix: minor bug
 
-**Note**: If you need advanced features, you can optionally set up a Personal Access Token as `GH_TOKEN` secret for enhanced permissions.
+BREAKING CHANGE: This forces a major version bump"
+```
 
-## Poetry Integration Strategy
+### 3. Manual Version Override
 
-This project uses Poetry for dependency management alongside semantic-release for automated versioning. The integration required solving a specific technical challenge with Docker container isolation in GitHub Actions.
+For emergency situations, you can manually create tags:
+```bash
+# Create tag manually
+git tag v1.0.0
+git push origin v1.0.0
 
-### The Challenge: Poetry Command Not Found
+# Create GitHub release manually
+gh release create v1.0.0 --generate-notes
+```
 
-When using the `python-semantic-release` GitHub Action, semantic-release runs inside a Docker container that is isolated from the GitHub Actions runner environment. This creates a problem:
+### 4. Disable Dynamic Versioning Temporarily
 
-1. **Runner Environment**: Poetry is installed via `snok/install-poetry@v1` action
-2. **Semantic-Release Container**: Starts fresh with only Python and pip
-3. **Result**: `poetry build` command fails with "command not found" error (exit status 127)
+```bash
+# Temporarily disable for development
+export POETRY_DYNAMIC_VERSIONING_BYPASS=1
+poetry build
+```
 
-### The Solution: Container-Aware Build Command
+## Release Packaging Options
 
-Following the proven approach from [this guide](https://mestrak.com/blog/semantic-release-with-python-poetry-github-actions-20nn), we configure semantic-release to install Poetry within its own container:
+### Current Configuration: Clone-and-Use Workflow
+
+The current configuration is optimized for repositories that users clone and work with directly. This creates clean releases with tags and changelogs but without build artifacts.
+
+**Benefits:**
+- ✅ **Faster releases** - No build time required
+- ✅ **Cleaner release pages** - No unnecessary files attached
+- ✅ **Simpler workflow** - Users clone and `poetry install`
+- ✅ **Reduced CI/CD complexity** - No build or upload steps
+
+### Alternative: Package Distribution Workflow
+
+If you later want to distribute pre-built packages (e.g., for `pip install` usage), you can enable build artifacts:
+
+#### Option 1: GitHub Release Artifacts Only
 
 ```toml
 [tool.semantic_release]
 build_command = "pip install poetry && poetry build"
+dist_path = "dist/"
+upload_to_pypi = false
+upload_to_release = true    # Enable build artifacts
+remove_dist = false
+tag_format = "v{version}"
+commit = false
+tag = true
+vcs_release = true
+
+[tool.semantic_release.publish]
+dist_glob_patterns = ["dist/*"]
+upload_to_vcs_release = true
 ```
 
-### Why This Works
+**This creates:**
+- Wheel files (`.whl`) for `pip install`
+- Source distributions (`.tar.gz`) 
+- Attached to GitHub releases as downloadable assets
 
-- **Dual Environment Strategy**: Poetry is installed in both environments for different purposes
-- **Runner Environment**: Used for dependency installation, testing, and development workflow
-- **Semantic-Release Container**: Gets its own Poetry installation for building distributions
-- **No Package Manager Mixing**: Each environment uses Poetry consistently
+#### Option 2: PyPI + GitHub Release Distribution
 
-### Workflow Configuration
+```toml
+[tool.semantic_release]
+build_command = "pip install poetry && poetry build"
+dist_path = "dist/"
+upload_to_pypi = true       # Enable PyPI publishing
+upload_to_release = true    # Enable GitHub artifacts
+remove_dist = false
+tag_format = "v{version}"
+commit = false
+tag = true
+vcs_release = true
 
-The complete GitHub Actions workflow uses:
+[tool.semantic_release.publish]
+dist_glob_patterns = ["dist/*"]
+upload_to_vcs_release = true
+```
 
+**Additional requirements for PyPI:**
+- Configure PyPI API token as `PYPI_TOKEN` secret in GitHub Actions
+- Ensure package name is available on PyPI
+- Add publication permissions to workflow
+
+#### Option 3: PyPI Only (No GitHub Artifacts)
+
+```toml
+[tool.semantic_release]
+build_command = "pip install poetry && poetry build"
+dist_path = "dist/"
+upload_to_pypi = true       # Enable PyPI publishing
+upload_to_release = false   # No GitHub artifacts
+remove_dist = true          # Clean up after upload
+tag_format = "v{version}"
+commit = false
+tag = true
+vcs_release = true
+```
+
+### When to Enable Package Distribution
+
+Consider enabling package distribution when:
+
+1. **External users** want to install via `pip install answer-app`
+2. **Automated systems** need to install the package programmatically
+3. **CI/CD pipelines** in other projects want to use your package as a dependency
+4. **Docker images** need to install the package without cloning the repository
+5. **Offline environments** need pre-built packages
+
+### When to Keep Current Configuration
+
+Keep the current clone-and-use configuration when:
+
+1. **Development-focused** repository for direct collaboration
+2. **Application deployments** using Docker or Cloud Run (current use case)
+3. **Small team** working directly with source code
+4. **Rapid iteration** without external package consumers
+5. **Infrastructure projects** deployed from source
+
+### Migration Path
+
+To enable package distribution later:
+
+1. **Update semantic-release configuration** in `pyproject.toml`
+2. **Add PyPI token** as GitHub repository secret (if using PyPI)
+3. **Update GitHub Actions workflow** permissions if needed
+4. **Test with dry-run** to verify configuration
+5. **Update documentation** to reflect new installation methods
+
+### Build Artifact Contents
+
+When enabled, semantic-release creates these files:
+
+- **`dist/*.whl`** - Binary wheel distributions for faster installation
+- **`dist/*.tar.gz`** - Source distributions with complete source code
+- **Dependencies included** - All Poetry dependencies properly specified
+- **Entry points configured** - CLI commands available after installation
+
+The build process uses Poetry's native packaging system ensuring compatibility with the existing dependency management.
+
+## Troubleshooting
+
+### Common Issues
+
+#### 1. Version Not Updating in Builds
+
+**Symptoms**: Poetry builds show version `0.0.0` instead of tag version
+
+**Causes & Solutions**:
+- **No Git tags**: Ensure at least one semantic version tag exists (`git tag v0.1.0`)
+- **Not in Git repository**: Dynamic versioning requires Git repository
+- **Dirty working directory**: Commit or stash changes before building
+
+**Debug Commands**:
+```bash
+# Check current Git tags
+git tag --sort=-version:refname
+
+# Test dynamic versioning (WARNING: modifies pyproject.toml)
+git stash push pyproject.toml
+poetry run poetry-dynamic-versioning
+git stash pop
+
+# Check Poetry's detected version (safer alternative)
+poetry version
+```
+
+#### 2. Semantic Release Not Creating Tags
+
+**Symptoms**: Workflow succeeds but no tags/releases created
+
+**Common Causes**:
+- **No conventional commits**: Ensure commits follow `type:` format
+- **Push disabled**: Check that `push = false` is not set in config
+- **Permission issues**: Verify GitHub token has appropriate permissions
+
+**Debug Steps**:
+```bash
+# Check what semantic-release would do
+poetry run semantic-release version --dry-run
+
+# Review recent commits
+git log --oneline -5
+
+# Check semantic-release configuration
+poetry run semantic-release config
+```
+
+#### 3. GitHub Actions Permission Errors
+
+**Symptoms**: `Error: Resource not accessible by integration`
+
+**Solution**: Ensure workflow has appropriate permissions:
 ```yaml
-- name: Install Poetry
-  run: |
-    curl -sSL https://install.python-poetry.org | python3 -
-    echo "$HOME/.local/bin" >> $GITHUB_PATH
+permissions:
+  contents: write
+  id-token: write
+```
 
-- name: Install dependencies
-  run: poetry install --with dev
+#### 4. Semantic Release Workflow Fails
 
+**Symptoms**: GitHub Actions workflow fails during semantic-release step
+
+**Common Causes**:
+- **Configuration errors**: Invalid `pyproject.toml` semantic-release settings
+- **Permission issues**: Insufficient GitHub token permissions
+- **Missing dependencies**: poetry-dynamic-versioning not installed
+
+**Solution**: Verify minimal configuration:
+```toml
+[tool.semantic_release]
+upload_to_pypi = false
+upload_to_release = false
+tag_format = "v{version}"
+commit = false
+tag = true
+vcs_release = true
+```
+
+### Advanced Troubleshooting
+
+#### Enable Verbose Logging
+
+**GitHub Actions**: Add to workflow:
+```yaml
 - name: Python Semantic Release
   uses: python-semantic-release/python-semantic-release@v9.15.0
   with:
-    github_token: ${{ secrets.GITHUB_TOKEN }}
+    root_options: "-vv"
 ```
 
-### Alternative Approaches Considered
+**Local Testing**:
+```bash
+poetry run semantic-release -vv version --dry-run
+```
 
-1. **Mixed Package Management**: Using `python -m build` instead of Poetry
-   - **Issue**: Inconsistent with project's Poetry-first approach
-2. **PATH Environment Variables**: Setting PATH in semantic-release step  
-   - **Issue**: Docker container isolation prevents access to runner PATH
-3. **Pre-building**: Building distributions before semantic-release
-   - **Issue**: Doesn't integrate well with semantic-release's workflow
+#### Check Plugin Status
 
-### Benefits of Current Approach
+```bash
+# Verify poetry-dynamic-versioning is installed
+poetry show poetry-dynamic-versioning
 
-- **Consistent tooling**: Uses Poetry throughout the entire pipeline
-- **Proven solution**: Based on documented best practices
-- **Container-aware**: Designed specifically for Docker isolation challenges
-- **Maintainable**: Clear separation of concerns between environments
+# Check plugin configuration
+poetry run poetry-dynamic-versioning --help
+```
 
-### Troubleshooting
+#### Version Detection Issues
 
-If you encounter Poetry-related issues in semantic-release:
+```bash
+# Test version detection manually
+cd /path/to/repo
+python -c "
+import dunamai
+print(f'Detected version: {dunamai.Version.from_git().serialize()}')
+"
+```
 
-1. **Check build command**: Ensure `pyproject.toml` has `build_command = "pip install poetry && poetry build"`
-2. **Review workflow logs**: Look for "command not found" errors (exit status 127)
-3. **Verify Poetry installation**: Confirm Poetry installs successfully in both environments
+## Integration with Cloud Build
 
-For more details on this approach, see:
-- [Semantic Release with Python Poetry Guide](https://mestrak.com/blog/semantic-release-with-python-poetry-github-actions-20nn)
-- [snok/install-poetry GitHub Action](https://github.com/snok/install-poetry)
-- [Python Semantic Release Docker Documentation](https://python-semantic-release.readthedocs.io/)
+To integrate semantic versioning with the existing Cloud Build pipeline:
 
-## Cloud Build Integration
+### Option 1: Trigger on Tags
 
-To integrate with the existing Cloud Build workflow, you can:
+Configure Cloud Build to trigger on version tags:
 
-1. **Trigger Cloud Build on new tags** - Configure Cloud Build triggers for version tags
-2. **Use semantic version in Docker tags** - Replace `BUILD_ID` with semantic version in `cloudbuild.yaml`
+```yaml
+# cloudbuild.yaml
+substitutions:
+  _VERSION: ${TAG_NAME}
+  
+steps:
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['build', '-t', 'gcr.io/$PROJECT_ID/answer-app:${_VERSION}', '.']
+```
+
+### Option 2: Use Semantic Version in Docker Tags
+
+Replace `$BUILD_ID` with semantic version:
+
+```bash
+# In Cloud Build step
+export VERSION=$(git describe --tags --abbrev=0)
+docker build -t gcr.io/$PROJECT_ID/answer-app:$VERSION .
+```
 
 ## Examples
 
@@ -172,14 +516,14 @@ To integrate with the existing Cloud Build workflow, you can:
 
 ```bash
 git commit -m "feat: add user session management API endpoint"
-# Results in: 0.2.0 → 0.3.0
+# Pushes to main → Creates v0.3.0 tag → GitHub release generated
 ```
 
 ### Bug Fix (Patch Version Bump)
 
 ```bash
 git commit -m "fix: resolve OAuth token refresh issue"
-# Results in: 0.2.0 → 0.2.1
+# Results in: v0.2.0 → v0.2.1
 ```
 
 ### Breaking Change (Major Version Bump)
@@ -188,30 +532,42 @@ git commit -m "fix: resolve OAuth token refresh issue"
 git commit -m "feat: redesign API authentication
 
 BREAKING CHANGE: OAuth flow now requires additional scope parameter"
-# Results in: 0.2.0 → 1.0.0
+# Results in: v0.2.0 → v1.0.0
 ```
 
-### Documentation Update (No Version Bump)
+### Multiple Changes in One Release
 
 ```bash
-git commit -m "docs: update installation guide with new prerequisites"
-# Results in: No version change
+git commit -m "feat: add user metrics dashboard"
+git commit -m "fix: resolve memory leak in background tasks"
+git commit -m "docs: update API documentation"
+# Results in minor version bump (highest precedence)
 ```
 
 ## Benefits
 
-- **Consistent versioning** - No manual version number management
-- **Automatic changelog** - Generated from commit messages
-- **GitHub integration** - Automatic releases and release notes
-- **Badge updates** - Version badges stay current automatically
-- **Conventional commits** - Encourages clear, structured commit messages
+- ✅ **Zero manual version management** - Completely automated
+- ✅ **Protected branch compatible** - No commits to main branch
+- ✅ **Consistent versioning** - SemVer compliance guaranteed
+- ✅ **Automatic changelogs** - Generated from conventional commits
+- ✅ **GitHub integration** - Native release management
+- ✅ **Build-time accuracy** - Dynamic version detection
+- ✅ **CI/CD friendly** - Works with any build system
+- ✅ **Audit trail** - Complete version history in Git tags
 
 ## Best Practices
 
-1. **Write clear commit messages** - Follow conventional commit format
-2. **Use appropriate commit types** - Choose the right prefix for the change
-3. **Include breaking changes** - Use `BREAKING CHANGE:` footer when needed
-4. **Review dry runs** - Check version changes before committing
-5. **Keep commits atomic** - One logical change per commit
+1. **Write descriptive commit messages** following conventional commits
+2. **Use appropriate commit types** for accurate version bumps
+3. **Test locally with dry-run** before pushing important changes
+4. **Keep commits atomic** - one logical change per commit
+5. **Use breaking change footers** when introducing incompatible changes
+6. **Review generated changelogs** for accuracy and completeness
 
-For more information, see the [Python Semantic Release documentation](https://python-semantic-release.readthedocs.io/).
+## References
+
+- [Python Semantic Release Documentation](https://python-semantic-release.readthedocs.io/)
+- [Poetry Dynamic Versioning](https://pypi.org/project/poetry-dynamic-versioning/)
+- [Conventional Commits Specification](https://www.conventionalcommits.org/)
+- [Semantic Versioning](https://semver.org/)
+- [GitHub Actions Documentation](https://docs.github.com/en/actions)

@@ -1,6 +1,6 @@
 [project]
 name = "answer-app"
-dynamic = []
+dynamic = ["version"]
 description = "Vertex AI Search Answer App"
 license = "MIT"
 license-files = [
@@ -22,7 +22,6 @@ dependencies = [
     "pyyaml (>=6.0.2,<7.0.0)",
     "uvicorn (>=0.34.0,<0.35.0)"
 ]
-version = "0.1.0"
 
 [project.scripts]
 write_secrets = "package_scripts.write_secrets_toml:run"
@@ -34,6 +33,7 @@ requires = ["poetry-core>=2.0.0,<3.0.0", "poetry-dynamic-versioning>=1.5.0,<2.0.
 build-backend = "poetry_dynamic_versioning.backend"
 
 [tool.poetry]
+version = "0.0.0"
 packages = [
     { include = "answer_app", from = "src" },
     { include = "client", from = "src" },
@@ -74,10 +74,8 @@ vcs = "git"
 style = "semver"
 
 [tool.semantic_release]
-build_command = "pip install poetry && poetry build"
-dist_path = "dist/"
 upload_to_pypi = false
-upload_to_release = true
+upload_to_release = false
 remove_dist = false
 major_on_zero = false
 tag_format = "v{version}"
@@ -85,9 +83,6 @@ commit = false
 tag = true
 vcs_release = true
 
-[tool.semantic_release.publish]
-dist_glob_patterns = ["dist/*"]
-upload_to_vcs_release = true
 
 [tool.semantic_release.commit_parser_options]
 allowed_tags = ["build", "chore", "ci", "docs", "feat", "fix", "perf", "style", "refactor", "test"]
