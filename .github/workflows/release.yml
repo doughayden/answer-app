@@ -56,7 +56,9 @@ jobs:
         python-version: "3.13"
 
     - name: Install Poetry
-      run: pip install poetry==2.0.0
+      run: |
+        curl -sSL https://install.python-poetry.org | python3 -
+        echo "$HOME/.local/bin" >> $GITHUB_PATH
     
     - name: Install dependencies
       run: poetry install --with dev
@@ -67,4 +69,6 @@ jobs:
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}
         root_options: "-vv"
+      env:
+        PATH: "$HOME/.local/bin:$PATH"
 
