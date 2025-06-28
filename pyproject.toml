@@ -67,11 +67,6 @@ asyncio_default_fixture_loop_scope = "function"
 # log_cli_date_format = "%Y-%m-%d %H:%M:%S"
 
 [tool.semantic_release]
-version_toml = ["pyproject.toml:project.version"]
-version_variables = [
-    "CLAUDE.md:0.2.0",
-    "README.md:version-0.2.0",
-]
 build_command = "pip install poetry && poetry build"
 dist_path = "dist/"
 upload_to_pypi = false
@@ -81,6 +76,7 @@ major_on_zero = false
 tag_format = "v{version}"
 commit = false
 push = false
+tag = true
 vcs_release = true
 
 [tool.semantic_release.publish]
