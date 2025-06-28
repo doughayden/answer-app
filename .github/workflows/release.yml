@@ -73,7 +73,6 @@ jobs:
         github_token: ${{ secrets.GITHUB_TOKEN }}
         root_options: "-vv"
         commit: "false"
-        push: "false"
         tag: "true"
         vcs_release: "true"
 
