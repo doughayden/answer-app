@@ -1,6 +1,6 @@
 [project]
 name = "answer-app"
-version = "0.2.0"
+dynamic = []
 description = "Vertex AI Search Answer App"
 license = "MIT"
 license-files = [
@@ -22,6 +22,7 @@ dependencies = [
     "pyyaml (>=6.0.2,<7.0.0)",
     "uvicorn (>=0.34.0,<0.35.0)"
 ]
+version = "0.1.0"
 
 [project.scripts]
 write_secrets = "package_scripts.write_secrets_toml:run"
@@ -29,8 +30,8 @@ client = "client.client:main"
 release = "semantic_release.cli:main"
 
 [build-system]
-requires = ["poetry-core>=2.0.0,<3.0.0"]
-build-backend = "poetry.core.masonry.api"
+requires = ["poetry-core>=2.0.0,<3.0.0", "poetry-dynamic-versioning>=1.5.0,<2.0.0"]
+build-backend = "poetry_dynamic_versioning.backend"
 
 [tool.poetry]
 packages = [
@@ -56,6 +57,7 @@ pytest-asyncio = "^0.25.1"
 pytest-cov = "^6.0.0"
 pytest-httpx = "^0.35.0"
 python-semantic-release = "^9.15.1"
+poetry-dynamic-versioning = "^1.5.0"
 pytz = "^2024.2"
 
 [tool.pytest.ini_options]
@@ -65,6 +67,11 @@ asyncio_default_fixture_loop_scope = "function"
 # log_cli_level = "DEBUG"
 # log_cli_format = "%(levelname)-9s [%(name)s.%(funcName)s:%(lineno)5s] %(message)s"
 # log_cli_date_format = "%Y-%m-%d %H:%M:%S"
+
+[tool.poetry-dynamic-versioning]
+enable = true
+vcs = "git"
+style = "semver"
 
 [tool.semantic_release]
 build_command = "pip install poetry && poetry build"
