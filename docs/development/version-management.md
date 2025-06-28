@@ -43,10 +43,14 @@ graph LR
 ```toml
 [project]
 name = "answer-app"
-dynamic = ["version"]  # Version managed dynamically
+dynamic = []  # Auto-formatted, but dynamic versioning still works via build backend
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0", "poetry-dynamic-versioning>=1.5.0,<2.0.0"]
+build-backend = "poetry_dynamic_versioning.backend"  # This enables dynamic versioning
 
 [tool.poetry]
-version = "0.0.0"  # Placeholder version for Poetry compatibility
+# Poetry section (version auto-managed by build backend)
 
 [tool.poetry-dynamic-versioning]
 enable = true
@@ -65,9 +69,9 @@ vcs_release = true      # Create GitHub releases
 ### Key Design Decisions
 
 - **No version commits**: `commit = false` prevents commits to protected main branch
-- **No build artifacts**: `upload_to_release = false` creates clean releases without distribution files
-- **Dynamic project version**: `dynamic = ["version"]` tells Poetry to get version from plugin
-- **Placeholder Poetry version**: `0.0.0` satisfies Poetry's validation requirements
+- **No build artifacts**: `upload_to_release = false` creates clean releases without distribution files  
+- **Dynamic versioning backend**: `poetry_dynamic_versioning.backend` handles version detection from Git tags
+- **Automatic version detection**: Versions determined from Git tags during build/package operations
 - **SemVer style**: Standard semantic versioning format (MAJOR.MINOR.PATCH)
 - **Clone-and-use workflow**: Optimized for direct repository cloning rather than package installation
 
@@ -136,6 +140,37 @@ When a release is triggered:
 
 ## Manual Operations
 
+### Safe Local Testing
+
+**Commands that DON'T modify pyproject.toml:**
+```bash
+# Normal development - no file changes
+poetry install
+poetry run pytest  
+poetry run uvicorn main:app
+poetry version  # Shows detected version safely
+```
+
+**Commands that DO modify pyproject.toml:**
+```bash
+# These require cleanup before committing
+poetry run poetry-dynamic-versioning
+poetry build
+```
+
+**Safe testing pattern:**
+```bash
+# Save current state
+git stash push pyproject.toml
+
+# Test dynamic versioning  
+poetry run poetry-dynamic-versioning
+# Review output...
+
+# Restore clean state
+git stash pop
+```
+
 ### Check Next Version (Dry Run)
 
 ```bash
@@ -152,6 +187,18 @@ poetry run semantic-release version
 
 ```bash
 poetry run poetry-dynamic-versioning
+```
+
+⚠️ **Important**: This command modifies `pyproject.toml` by writing the detected version. After testing, revert changes before committing:
+
+```bash
+# After testing, revert any version writes:
+git checkout pyproject.toml
+
+# Or use git stash to save/restore:
+git stash push pyproject.toml
+poetry run poetry-dynamic-versioning  # Test
+git stash pop  # Restore original file
 ```
 
 ### Generate Changelog Only
@@ -336,10 +383,12 @@ The build process uses Poetry's native packaging system ensuring compatibility w
 # Check current Git tags
 git tag --sort=-version:refname
 
-# Test dynamic versioning
+# Test dynamic versioning (WARNING: modifies pyproject.toml)
+git stash push pyproject.toml
 poetry run poetry-dynamic-versioning
+git stash pop
 
-# Check Poetry's detected version
+# Check Poetry's detected version (safer alternative)
 poetry version
 ```
 
