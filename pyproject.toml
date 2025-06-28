@@ -79,6 +79,9 @@ upload_to_release = true
 remove_dist = false
 major_on_zero = false
 tag_format = "v{version}"
+commit = false
+push = false
+vcs_release = true
 
 [tool.semantic_release.publish]
 dist_glob_patterns = ["dist/*"]
