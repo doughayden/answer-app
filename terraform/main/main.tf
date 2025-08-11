@@ -42,18 +42,11 @@ module "loadbalancer" {
   ]
 }
 
-# Get the Identity-Aware Proxy (IAP) Service Agent from the google-beta provider.
-resource "google_project_service_identity" "iap_sa" {
-  provider = google-beta
-  service  = "iap.googleapis.com"
-}
-
 module "answer_app" {
   source             = "../modules/answer-app"
   project_id         = var.project_id
   region             = var.region
   additional_regions = local.additional_regions
-  iap_sa_member      = google_project_service_identity.iap_sa.member
   app_name           = local.config.app_name
   lb_domain          = local.lb_domain
   docker_image       = local.docker_image
@@ -72,14 +65,3 @@ module "answer_app" {
     company_name     = local.config.customer_name
   }
 }
-
-# module "workflow" {
-#   source           = "../modules/workflow"
-#   project_id       = var.project_id
-#   audience         = module.answer_app.cloudrun_custom_audiences[0]
-#   company_name     = local.config.customer_name
-#   data_store_id    = local.config.data_store_id
-#   lb_domain        = local.lb_domain
-#   location         = local.config.location
-#   search_engine_id = local.config.search_engine_id
-# }

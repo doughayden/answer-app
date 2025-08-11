@@ -14,11 +14,6 @@ variable "additional_regions" {
   default     = []
 }
 
-variable "iap_sa_member" {
-  description = "The IAP service agent member."
-  type        = string
-}
-
 variable "app_name" {
   description = "The Cloud Run service name."
   type        = string

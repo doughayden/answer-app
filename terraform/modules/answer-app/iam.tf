@@ -24,9 +24,15 @@ resource "google_project_iam_member" "client_app_service_account" {
   member   = google_service_account.client_app_service_account.member
 }
 
+# Get the Identity-Aware Proxy (IAP) Service Agent from the google-beta provider.
+resource "google_project_service_identity" "iap" {
+  provider = google-beta
+  service  = "iap.googleapis.com"
+}
+
 # Allow the IAP Service Agent to invoke Cloud Run services.
 resource "google_project_iam_member" "iap_invoker" {
   project = var.project_id
   role    = "roles/run.invoker"
-  member  = var.iap_sa_member
+  member  = google_project_service_identity.iap.member
 }

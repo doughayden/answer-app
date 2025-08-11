@@ -111,11 +111,12 @@ echo "TERRAFORM STATE BUCKET:"
 echo ""
 gcloud storage buckets list --format="value(name)" --filter="name:$BUCKET" | grep -q $BUCKET
 if [ $? -eq 0 ]; then
-  echo "The Terraform state bucket "gs://${BUCKET}" already exists."
+  echo "The Terraform state bucket 'gs://${BUCKET}' already exists."
 else
   echo "Creating a bucket for the Terraform state..."
   echo ""
   gcloud storage buckets create "gs://${BUCKET}" --public-access-prevention --uniform-bucket-level-access --project=$PROJECT
+  echo "Created the bucket 'gs://${BUCKET}'."
 fi
 echo ""
 echo ""
